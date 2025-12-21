@@ -43,6 +43,7 @@ export const registerUser = async (req, res) => {
         role: user.role,
         clubName: user.clubName,
         organizationName: user.organizationName,
+        verificationStatus: user.verificationStatus,
         token: generateToken(user._id),
       });
     } else {
@@ -72,6 +73,7 @@ export const loginUser = async (req, res) => {
         role: user.role,
         clubName: user.clubName,
         organizationName: user.organizationName,
+        verificationStatus: user.verificationStatus,
         token: generateToken(user._id),
       });
     } else {
@@ -97,7 +99,7 @@ export const getMe = async (req, res) => {
       role: user.role,
       clubName: user.clubName,
       organizationName: user.organizationName,
-      isVerified: user.isVerified,
+      verificationStatus: user.verificationStatus,
     });
   } catch (error) {
     console.error(error);

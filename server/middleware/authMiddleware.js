@@ -59,7 +59,7 @@ export const checkVerificationStatus = (req, res, next) => {
     }
 
     // Block other actions if not verified
-    if (req.user.verificationStatus !== 'Verified') {
+    if (req.user.verificationStatus !== 'verified') {
         return res.status(403).json({
             message: `Account is ${req.user.verificationStatus}. You cannot perform this action until verified.`
         });
