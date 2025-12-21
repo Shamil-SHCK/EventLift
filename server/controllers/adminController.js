@@ -24,14 +24,16 @@ export const verifyUser = async (req, res) => {
             return res.status(400).json({ message: 'Invalid status provided' });
         }
 
-        const user = await User.findById(req.params.userId);
+        // Use findByIdAndUpdate to bypass validation of other fields
+        const user = await User.findByIdAndUpdate(
+            req.params.userId,
+            { verificationStatus: status },
+            { new: true, runValidators: false } // runValidators: false is key here
+        ).select('-password');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-
-        user.verificationStatus = status;
-        await user.save();
 
         res.json({
             message: `User marked as ${status}`,

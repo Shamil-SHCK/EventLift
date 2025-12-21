@@ -31,7 +31,11 @@ const Login = () => {
 
             // Redirect after successful login
             setTimeout(() => {
-                navigate('/dashboard');
+                if (data.role === 'administrator') {
+                    navigate('/admin');
+                } else {
+                    navigate('/dashboard');
+                }
             }, 1000);
         } catch (err) {
             setError(err.message);
