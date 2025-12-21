@@ -1,0 +1,179 @@
+import { useState, useEffect } from 'react';
+import { getCurrentUser, logoutUser } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+
+const Dashboard = () => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const userData = await getCurrentUser();
+                setUser(userData);
+            } catch (err) {
+                console.error('Failed to fetch user', err);
+                // If fetch fails (likely token invalid), logout and redirect
+                logoutUser();
+                navigate('/login');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, [navigate]);
+
+    const handleLogout = () => {
+        logoutUser();
+        navigate('/login');
+    };
+
+    if (loading) {
+        return (
+            <div style={styles.container}>
+                <div style={styles.loading}>Loading dashboard...</div>
+            </div>
+        );
+    }
+
+    return (
+        <div style={styles.container}>
+            <nav style={styles.navbar}>
+                <h1 style={styles.logo}>Sponsorship Platform</h1>
+                <button onClick={handleLogout} style={styles.logoutButton}>
+                    Logout
+                </button>
+            </nav>
+
+            <div style={styles.content}>
+                <div style={styles.welcomeCard}>
+                    <h2 style={styles.greeting}>Welcome, {user?.name}!</h2>
+                    <div style={styles.userInfo}>
+                        <p><strong>Email:</strong> {user?.email}</p>
+                        <p><strong>Role:</strong> <span style={styles.roleTag}>{user?.role}</span></p>
+                        <p><strong>Status:</strong> <span style={{
+                            ...styles.statusTag,
+                            backgroundColor: user?.verificationStatus === 'Verified' ? '#e8f5e9' : '#fff3e0',
+                            color: user?.verificationStatus === 'Verified' ? '#2e7d32' : '#ef6c00'
+                        }}>{user?.verificationStatus}</span></p>
+                        {user?.clubName && <p><strong>Club:</strong> {user.clubName}</p>}
+                        {user?.organizationName && <p><strong>Organization:</strong> {user.organizationName}</p>}
+                    </div>
+                </div>
+
+                <div style={styles.dashboardGrid}>
+                    {/* Placeholder for future dashboard widgets */}
+                    <div style={styles.widget}>
+                        <h3>Quick Actions</h3>
+                        <p>Coming soon...</p>
+                    </div>
+                    <div style={styles.widget}>
+                        <h3>Recent Activity</h3>
+                        <p>No recent activity.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const styles = {
+    container: {
+        minHeight: '100vh',
+        backgroundColor: '#f0f2f5',
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    loading: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '1.2rem',
+        color: '#666',
+    },
+    navbar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '1rem 2rem',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        flexWrap: 'wrap',
+    },
+    logo: {
+        margin: 0,
+        color: '#2196F3',
+        fontSize: '1.5rem',
+        flexShrink: 0,
+    },
+    logoutButton: {
+        padding: '0.5rem 1rem',
+        backgroundColor: '#f44336',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.9rem',
+        fontWeight: 'bold',
+        marginTop: '0.5rem', // Spacing for mobile wrap
+    },
+    content: {
+        padding: '2rem',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        width: '100%',
+        boxSizing: 'border-box',
+    },
+    welcomeCard: {
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        marginBottom: '2rem',
+    },
+    greeting: {
+        marginTop: 0,
+        color: '#333',
+        fontSize: 'clamp(1.5rem, 5vw, 2rem)', // Responsive font size
+    },
+    userInfo: {
+        marginTop: '1rem',
+        lineHeight: '1.6',
+        color: '#555',
+    },
+    roleTag: {
+        backgroundColor: '#e3f2fd',
+        color: '#1976d2',
+        padding: '0.2rem 0.5rem',
+        borderRadius: '12px',
+        fontSize: '0.85rem',
+        textTransform: 'capitalize',
+        whiteSpace: 'nowrap',
+    },
+    statusTag: {
+        padding: '0.2rem 0.5rem',
+        borderRadius: '12px',
+        fontSize: '0.85rem',
+        marginLeft: '0.5rem',
+        fontWeight: 'bold',
+        whiteSpace: 'nowrap',
+    },
+    dashboardGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', // Auto-responsive grid
+        gap: '1.5rem',
+    },
+    widget: {
+        backgroundColor: 'white',
+        padding: '1.5rem',
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        minWidth: '0', // Prevents overflow in flex/grid items
+    },
+};
+
+export default Dashboard;
