@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getPendingUsers, verifyUser, logoutUser } from '../services/api';
+import { getPendingUsers, getAllUsers, verifyUser, resetUserPassword, logoutUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const AdminPanel = () => {
     const [users, setUsers] = useState([]);
+    const [filter, setFilter] = useState('pending'); // 'pending' | 'all'
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -11,7 +12,12 @@ const AdminPanel = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const data = await getPendingUsers();
+                let data;
+                if (filter === 'pending') {
+                    data = await getPendingUsers();
+                } else {
+                    data = await getAllUsers();
+                }
                 setUsers(data);
             } catch (err) {
                 setError(err.message);
@@ -25,20 +31,39 @@ const AdminPanel = () => {
         };
 
         fetchUsers();
-    }, [navigate]);
+    }, [navigate, filter]);
 
     const handleVerify = async (userId, status) => {
         try {
             await verifyUser(userId, status);
-            // Remove user from list locally after successful update
-            setUsers(users.filter((user) => user._id !== userId));
+            // If viewing pending, remove from list. If layout is 'all', maybe just update status? 
+            // For simplicity, just refetch or update local state.
+            if (filter === 'pending') {
+                setUsers(users.filter((user) => user._id !== userId));
+            } else {
+                // Update the specific user in the list
+                setUsers(users.map(u => u._id === userId ? { ...u, verificationStatus: status } : u));
+            }
         } catch (err) {
             setError(err.message);
         }
     };
 
+    const handleResetPassword = async (userId) => {
+        if (!window.confirm('Are you sure you want to reset this user\'s password to "ChangeMe@123"?')) {
+            return;
+        }
+        try {
+            await resetUserPassword(userId);
+            alert('Password reset successfully to "ChangeMe@123"');
+        } catch (err) {
+            alert('Failed to reset password: ' + err.message);
+        }
+    };
+
     const handleLogout = () => {
         logoutUser();
+        setUsers([]); // Clear displayed data
         navigate('/login');
     };
 
@@ -56,14 +81,34 @@ const AdminPanel = () => {
 
                 <div style={styles.card}>
                     <div style={styles.cardHeader}>
-                        <h2 style={styles.cardTitle}>Pending Applications</h2>
-                        <span style={styles.badge}>{users.length} pending</span>
+                        <div style={styles.cardHeaderLeft}>
+                            <h2 style={styles.cardTitle}>{filter === 'pending' ? 'Pending Applications' : 'All Users'}</h2>
+                            <span style={styles.badge}>{users.length} {filter === 'pending' ? 'pending' : 'users'}</span>
+                        </div>
+                        <div style={styles.filterControls}>
+                            <button
+                                style={filter === 'pending' ? styles.filterBtnActive : styles.filterBtn}
+                                onClick={() => setFilter('pending')}
+                            >
+                                Pending
+                            </button>
+                            <button
+                                style={filter === 'all' ? styles.filterBtnActive : styles.filterBtn}
+                                onClick={() => setFilter('all')}
+                            >
+                                All Users
+                            </button>
+                        </div>
                     </div>
 
                     {users.length === 0 ? (
                         <div style={styles.emptyState}>
-                            <p>No pending users found.</p>
-                            <p style={styles.emptySubtext}>New registrations will appear here.</p>
+                            <div style={styles.emptyState}>
+                                <p>No {filter === 'pending' ? 'pending' : ''} users found.</p>
+                                <p style={styles.emptySubtext}>
+                                    {filter === 'pending' ? 'New registrations will appear here.' : 'No users in the database.'}
+                                </p>
+                            </div>
                         </div>
                     ) : (
                         <div style={styles.tableContainer}>
@@ -90,19 +135,30 @@ const AdminPanel = () => {
                                             <td style={styles.td}>{user.clubName || user.organizationName || user.formerInstitution || 'N/A'}</td>
                                             <td style={styles.td}>
                                                 <div style={styles.actionButtons}>
+                                                    {user.verificationStatus === 'pending' && (
+                                                        <>
+                                                            <button
+                                                                style={styles.approveBtn}
+                                                                onClick={() => handleVerify(user._id, 'verified')}
+                                                                title="Approve User"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                style={styles.rejectBtn}
+                                                                onClick={() => handleVerify(user._id, 'rejected')}
+                                                                title="Reject User"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     <button
-                                                        style={styles.approveBtn}
-                                                        onClick={() => handleVerify(user._id, 'verified')}
-                                                        title="Approve User"
+                                                        style={styles.resetBtn}
+                                                        onClick={() => handleResetPassword(user._id)}
+                                                        title="Reset Password"
                                                     >
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        style={styles.rejectBtn}
-                                                        onClick={() => handleVerify(user._id, 'rejected')}
-                                                        title="Reject User"
-                                                    >
-                                                        Reject
+                                                        Reset PW
                                                     </button>
                                                 </div>
                                             </td>
@@ -164,8 +220,45 @@ const styles = {
         padding: '1.5rem',
         borderBottom: '1px solid #e2e8f0',
         display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+    },
+    cardHeaderLeft: {
+        display: 'flex',
         alignItems: 'center',
         gap: '1rem',
+    },
+    filterControls: {
+        display: 'flex',
+        gap: '0.5rem',
+        backgroundColor: '#f1f5f9',
+        padding: '0.25rem',
+        borderRadius: '8px',
+    },
+    filterBtn: {
+        padding: '0.5rem 1rem',
+        border: 'none',
+        backgroundColor: 'transparent',
+        color: '#64748b',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '0.875rem',
+        fontWeight: '600',
+        transition: 'all 0.2s',
+    },
+    filterBtnActive: {
+        padding: '0.5rem 1rem',
+        border: 'none',
+        backgroundColor: 'white',
+        color: '#0f172a',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '0.875rem',
+        fontWeight: '600',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s',
     },
     cardTitle: {
         margin: 0,
@@ -238,6 +331,17 @@ const styles = {
     rejectBtn: {
         padding: '0.5rem 1rem',
         backgroundColor: '#ef4444',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '0.875rem',
+        fontWeight: '500',
+        transition: 'background-color 0.2s',
+    },
+    resetBtn: {
+        padding: '0.5rem 1rem',
+        backgroundColor: '#f59e0b', // Amber
         color: 'white',
         border: 'none',
         borderRadius: '6px',

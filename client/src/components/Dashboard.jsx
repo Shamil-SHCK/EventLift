@@ -27,6 +27,7 @@ const Dashboard = () => {
 
     const handleLogout = () => {
         logoutUser();
+        setUser(null); // Clear local user state
         navigate('/login');
     };
 
