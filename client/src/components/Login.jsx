@@ -98,17 +98,17 @@ const styles = {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: '#f5f5f5',
-        padding: '15px', // Responsive padding
+        backgroundColor: '#f8fafc', // Slate-50: Clean, light off-white
+        padding: '15px',
     },
     formCard: {
         backgroundColor: 'white',
-        padding: '30px', // Adjusted padding
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        padding: '2.5rem',
+        borderRadius: '12px',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         width: '100%',
         maxWidth: '450px',
-        boxSizing: 'border-box', // Ensure proper box model
+        boxSizing: 'border-box',
     },
     title: {
         textAlign: 'center',
