@@ -5,9 +5,16 @@ import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import './App.css';
 
-function App() {
+// Protected Route Component to ensure auth check happens on render
+const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem('token');
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
+function App() {
   return (
     <Router>
       <Routes>
@@ -15,11 +22,19 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route
           path="/dashboard"
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/admin"
-          element={isAuthenticated ? <AdminPanel /> : <Navigate to="/login" />}
+          element={
+            <ProtectedRoute>
+              <AdminPanel />
+            </ProtectedRoute>
+          }
         />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -27,4 +42,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
