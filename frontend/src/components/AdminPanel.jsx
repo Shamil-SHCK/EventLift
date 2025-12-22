@@ -8,6 +8,17 @@ const AdminPanel = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const [selectedDoc, setSelectedDoc] = useState(null);
+    const [zoomLevel, setZoomLevel] = useState(1);
+
+    const handleViewDoc = (docUrl) => {
+        setSelectedDoc(`http://localhost:5000/${docUrl}`);
+        setZoomLevel(1); // Reset zoom when opening new doc
+    };
+
+    const closeModal = () => {
+        setSelectedDoc(null);
+    };
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -71,6 +82,73 @@ const AdminPanel = () => {
 
     return (
         <div style={styles.container}>
+            {/* Modal for viewing document */}
+            {selectedDoc && (
+                <div style={styles.modalOverlay} onClick={closeModal}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button style={styles.closeButton} onClick={closeModal}>&times;</button>
+                        <div style={styles.modalHeader}>
+                            <h3 style={styles.modalTitle}>Verification Document</h3>
+                            {!selectedDoc.toLowerCase().endsWith('.pdf') && (
+                                <div style={styles.zoomControls}>
+                                    <button
+                                        style={styles.zoomBtn}
+                                        onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.25))}
+                                        title="Zoom Out"
+                                    >
+                                        -
+                                    </button>
+                                    <span style={styles.zoomLevel}>{Math.round(zoomLevel * 100)}%</span>
+                                    <button
+                                        style={styles.zoomBtn}
+                                        onClick={() => setZoomLevel(prev => Math.min(3, prev + 0.25))}
+                                        title="Zoom In"
+                                    >
+                                        +
+                                    </button>
+                                    <button
+                                        style={styles.zoomBtn}
+                                        onClick={() => setZoomLevel(1)}
+                                        title="Reset Zoom"
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div style={styles.docViewer}>
+                            {selectedDoc.toLowerCase().endsWith('.pdf') ? (
+                                <iframe
+                                    src={selectedDoc}
+                                    title="Verification Document"
+                                    style={styles.iframe}
+                                />
+                            ) : (
+                                <div style={{
+                                    overflow: 'auto',
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                }}>
+                                    <img
+                                        src={selectedDoc}
+                                        alt="Verification Document"
+                                        style={{
+                                            ...styles.docImage,
+                                            transform: `scale(${zoomLevel})`,
+                                            transition: 'transform 0.2s ease-in-out',
+                                            cursor: zoomLevel > 1 ? 'grab' : 'default'
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <header style={styles.header}>
                 <h1 style={styles.title}>Admin Verification Panel</h1>
                 <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
@@ -136,14 +214,12 @@ const AdminPanel = () => {
                                             <td style={styles.td}>{user.clubName || user.organizationName || user.formerInstitution || 'N/A'}</td>
                                             <td style={styles.td}>
                                                 {user.verificationDocument ? (
-                                                    <a
-                                                        href={`http://localhost:5000/${user.verificationDocument}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        style={styles.link}
+                                                    <button
+                                                        onClick={() => handleViewDoc(user.verificationDocument)}
+                                                        style={styles.viewDocBtn}
                                                     >
                                                         View Doc
-                                                    </a>
+                                                    </button>
                                                 ) : (
                                                     <span style={{ color: '#999' }}>N/A</span>
                                                 )}
@@ -389,6 +465,117 @@ const styles = {
         justifyContent: 'center',
         alignItems: 'center',
         color: '#64748b',
+    },
+    // Modal Styles
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+        padding: '2rem',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '2rem',
+        maxWidth: '900px',
+        width: '100%',
+        maxHeight: '90vh',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    modalHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1rem',
+        paddingRight: '2rem', // Space for close button
+    },
+    modalTitle: {
+        margin: 0,
+        color: '#1e293b',
+        fontSize: '1.25rem',
+        fontWeight: 'bold',
+    },
+    zoomControls: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        backgroundColor: '#f1f5f9',
+        padding: '0.25rem 0.5rem',
+        borderRadius: '8px',
+    },
+    zoomBtn: {
+        width: '30px',
+        height: '30px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        border: '1px solid #cbd5e1',
+        backgroundColor: 'white',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        color: '#475569',
+        fontSize: '1.1rem',
+    },
+    zoomLevel: {
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        color: '#475569',
+        width: '50px',
+        textAlign: 'center',
+    },
+    closeButton: {
+        position: 'absolute',
+        top: '1rem',
+        right: '1rem',
+        background: 'none',
+        border: 'none',
+        fontSize: '2rem',
+        lineHeight: 1,
+        cursor: 'pointer',
+        color: '#64748b',
+        padding: '0.5rem',
+    },
+    docViewer: {
+        flex: 1,
+        minHeight: '400px',
+        overflow: 'auto',
+        backgroundColor: '#f1f5f9',
+        borderRadius: '8px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iframe: {
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        minHeight: '600px',
+    },
+    docImage: {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+    },
+    viewDocBtn: {
+        backgroundColor: 'transparent',
+        color: '#0284c7',
+        border: '1px solid #0284c7',
+        padding: '0.4rem 0.8rem',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '0.8rem',
+        fontWeight: '600',
+        transition: 'all 0.2s',
     },
 };
 
