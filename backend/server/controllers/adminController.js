@@ -49,3 +49,37 @@ export const verifyUser = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Get all users
+// @route   GET /api/admin/users
+// @access  Private/Admin
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select('-password');
+        res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Reset user password
+// @route   PUT /api/admin/users/:userId/reset-password
+// @access  Private/Admin
+export const resetUserPassword = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.password = 'ChangeMe@123';
+        await user.save();
+
+        res.json({ message: 'Password reset successfully to ChangeMe@123' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

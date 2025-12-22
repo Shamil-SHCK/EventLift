@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, updateUserProfile } from '../services/api';
+import { getCurrentUser, updateUserProfile, changeUserPassword } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -11,6 +11,11 @@ const Profile = () => {
         phone: '',
         logoUrl: '',
         description: '',
+    });
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -44,6 +49,10 @@ const Profile = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handlePasswordChange = (e) => {
+        setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -57,6 +66,33 @@ const Profile = () => {
             setError(err.message || 'Failed to update profile');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePasswordSubmit = async (e) => {
+        e.preventDefault();
+        setMessage('');
+        setError('');
+
+        if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+            setError('New passwords do not match');
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
+        try {
+            await changeUserPassword({
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword
+            });
+            setMessage('Password changed successfully!');
+            setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+        } catch (err) {
+            setError(err.message || 'Failed to change password');
         }
     };
 
@@ -150,6 +186,48 @@ const Profile = () => {
 
                     <button type="submit" disabled={saving} style={styles.saveButton}>
                         {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </form>
+
+                <hr style={styles.divider} />
+
+                <h3 style={styles.sectionTitle}>Change Password</h3>
+                <form onSubmit={handlePasswordSubmit} style={styles.form}>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Current Password</label>
+                        <input
+                            type="password"
+                            name="currentPassword"
+                            value={passwordData.currentPassword}
+                            onChange={handlePasswordChange}
+                            style={styles.input}
+                            required
+                        />
+                    </div>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>New Password</label>
+                        <input
+                            type="password"
+                            name="newPassword"
+                            value={passwordData.newPassword}
+                            onChange={handlePasswordChange}
+                            style={styles.input}
+                            required
+                        />
+                    </div>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Confirm New Password</label>
+                        <input
+                            type="password"
+                            name="confirmNewPassword"
+                            value={passwordData.confirmNewPassword}
+                            onChange={handlePasswordChange}
+                            style={styles.input}
+                            required
+                        />
+                    </div>
+                    <button type="submit" style={styles.secondaryButton}>
+                        Update Password
                     </button>
                 </form>
             </div>
@@ -251,6 +329,29 @@ const styles = {
         color: '#991b1b',
         borderRadius: '6px',
         marginBottom: '1.5rem',
+    },
+    divider: {
+        margin: '2rem 0',
+        border: 'none',
+        borderTop: '1px solid #e2e8f0',
+    },
+    sectionTitle: {
+        fontSize: '1.25rem',
+        fontWeight: 'bold',
+        color: '#1e293b',
+        marginBottom: '1rem',
+    },
+    secondaryButton: {
+        padding: '0.75rem',
+        backgroundColor: '#475569',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        fontSize: '1rem',
+        fontWeight: '600',
+        cursor: 'pointer',
+        marginTop: '1rem',
+        transition: 'background-color 0.2s',
     },
 };
 
