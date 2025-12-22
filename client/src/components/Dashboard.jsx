@@ -88,9 +88,14 @@ const Dashboard = () => {
         <div style={styles.container}>
             <nav style={styles.navbar}>
                 <h1 style={styles.logo}>Sponsorship Platform</h1>
-                <button onClick={handleLogout} style={styles.logoutButton}>
-                    Logout
-                </button>
+                <div style={styles.navLinks}>
+                    <button onClick={() => navigate('/profile')} style={styles.profileButton}>
+                        Edit Profile
+                    </button>
+                    <button onClick={handleLogout} style={styles.logoutButton}>
+                        Logout
+                    </button>
+                </div>
             </nav>
 
             <div style={styles.content}>
@@ -155,6 +160,21 @@ const styles = {
         color: '#2196F3',
         fontSize: '1.5rem',
         flexShrink: 0,
+    },
+    navLinks: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+    },
+    profileButton: {
+        padding: '0.5rem 1rem',
+        backgroundColor: '#e2e8f0',
+        color: '#475569',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.9rem',
+        fontWeight: 'bold',
     },
     logoutButton: {
         padding: '0.5rem 1rem',

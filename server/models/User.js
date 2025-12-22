@@ -53,6 +53,15 @@ const userSchema = new mongoose.Schema(
             enum: ['pending', 'verified', 'rejected'],
             default: 'pending',
         },
+        phone: {
+            type: String,
+        },
+        logoUrl: {
+            type: String,
+        },
+        description: {
+            type: String,
+        },
     },
     {
         timestamps: true,

@@ -114,3 +114,46 @@ export const getMe = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+  try {
+    const allowedUpdates = [
+      'clubName', 'organizationName', 'formerInstitution',
+      'phone', 'logoUrl', 'description'
+    ];
+
+    // Filter req.body to only allow specific fields to be updated
+    const updates = Object.keys(req.body)
+      .filter(key => allowedUpdates.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = req.body[key];
+        return obj;
+      }, {});
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      clubName: user.clubName,
+      organizationName: user.organizationName,
+      formerInstitution: user.formerInstitution,
+      verificationStatus: user.verificationStatus,
+      phone: user.phone,
+      logoUrl: user.logoUrl,
+      description: user.description
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
