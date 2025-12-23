@@ -97,7 +97,43 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                 </header>
 
                 <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">
-                    {children}
+                    {/* Verification Status Check */}
+                    {user && user.role !== 'administrator' && user.verificationStatus !== 'verified' ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto">
+                            {user.verificationStatus === 'pending' ? (
+                                <>
+                                    <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                        <Bell className="w-10 h-10" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 mb-3">Application Under Review</h2>
+                                    <p className="text-slate-500 text-lg mb-8">
+                                        Thanks for verifying your email! Your account is currently pending administrative approval.
+                                        We review all registrations to ensure the safety of our community.
+                                        Please check back later.
+                                    </p>
+                                    <button onClick={handleLogout} className="px-6 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium rounded-lg transition-colors">
+                                        Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+                                        <LogOut className="w-10 h-10" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 mb-3">Application Declined</h2>
+                                    <p className="text-slate-500 text-lg mb-8">
+                                        Unfortunately, your registration request has been declined by our administrators.
+                                        If you believe this is a mistake, please contact support.
+                                    </p>
+                                    <button onClick={handleLogout} className="px-6 py-2.5 bg-red-600 text-white hover:bg-red-700 font-medium rounded-lg transition-colors">
+                                        Logout
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    ) : (
+                        children
+                    )}
                 </div>
             </main>
         </div>
