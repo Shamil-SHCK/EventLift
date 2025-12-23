@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react';
 import { getCurrentUser, updateUserProfile, changeUserPassword } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import {
+    ArrowLeft,
+    User,
+    Building2,
+    Link as LinkIcon,
+    Phone,
+    FileText,
+    Save,
+    Lock,
+    Loader,
+    CheckCircle,
+    XCircle
+} from 'lucide-react';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -52,7 +65,25 @@ const Profile = () => {
     const handlePasswordChange = (e) => {
         setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
     };
-
+    const handleBackToDashboard = () => {
+        const role = user.role;
+        switch (role) {
+            case 'administrator':
+                navigate('/admin/dashboard');
+                break;
+            case 'company':
+                navigate('/company/dashboard');
+                break;
+            case 'club-admin':
+                navigate('/club/dashboard');
+                break;
+            case 'alumni-individual':
+                navigate('/alumni/dashboard');
+                break;
+            default:
+                navigate('/');
+        }
+    };
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -96,263 +127,228 @@ const Profile = () => {
         }
     };
 
-    if (loading) return <div style={styles.loading}>Loading profile...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    );
 
     return (
-        <div style={styles.container}>
-            <div style={styles.card}>
-                <div style={styles.header}>
-                    <h2 style={styles.title}>Edit Profile</h2>
-                    <button onClick={() => navigate('/dashboard')} style={styles.backButton}>Back to Dashboard</button>
+        <div className="min-h-screen bg-slate-50 py-12 px-6">
+            <div className="max-w-4xl mx-auto">
+                <button
+                    onClick={() => handleBackToDashboard()}
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-semibold mb-8 transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5" /> Back to Dashboard
+                </button>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Sidebar / Info Card */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
+                            <div className="w-24 h-24 mx-auto bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg">
+                                {user?.name.charAt(0)}
+                            </div>
+                            <h2 className="text-xl font-bold font-heading text-slate-900">{user?.name}</h2>
+                            <p className="text-slate-500 text-sm mb-4">{user?.email}</p>
+                            <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-full">
+                                {user?.role}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Main Settings Area */}
+                    <div className="lg:col-span-2 space-y-8">
+
+                        {/* Status Messages */}
+                        {message && (
+                            <div className="p-4 bg-green-50 border border-green-100 text-green-700 rounded-xl font-medium flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5" /> {message}
+                            </div>
+                        )}
+                        {error && (
+                            <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-medium flex items-center gap-2">
+                                <XCircle className="w-5 h-5" /> {error}
+                            </div>
+                        )}
+
+                        {/* Profile Details Form */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <User className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-bold font-heading text-slate-900">Profile Details</h3>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                {user.role === 'club-admin' && (
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">Club Name</label>
+                                        <div className="relative">
+                                            <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="clubName"
+                                                value={formData.clubName}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {user.role === 'company' && (
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">Organization Name</label>
+                                        <div className="relative">
+                                            <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="organizationName"
+                                                value={formData.organizationName}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {user.role === 'alumni-individual' && (
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">Former Institution</label>
+                                        <div className="relative">
+                                            <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="formerInstitution"
+                                                value={formData.formerInstitution}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">Phone Number</label>
+                                        <div className="relative">
+                                            <Phone className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="phone"
+                                                value={formData.phone}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                                placeholder="+1 234 567 8900"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">Logo/Avatar URL</label>
+                                        <div className="relative">
+                                            <LinkIcon className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="logoUrl"
+                                                value={formData.logoUrl}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                                placeholder="https://example.com/logo.png"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-slate-700">Description / Bio</label>
+                                    <div className="relative">
+                                        <FileText className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                        <textarea
+                                            name="description"
+                                            value={formData.description}
+                                            onChange={handleChange}
+                                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans min-h-[100px]"
+                                            placeholder="Tell us about yourself..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-70"
+                                >
+                                    {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save Changes
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Security Form */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                                    <Lock className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-bold font-heading text-slate-900">Security</h3>
+                            </div>
+
+                            <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-slate-700">Current Password</label>
+                                    <input
+                                        type="password"
+                                        name="currentPassword"
+                                        value={passwordData.currentPassword}
+                                        onChange={handlePasswordChange}
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">New Password</label>
+                                        <input
+                                            type="password"
+                                            name="newPassword"
+                                            value={passwordData.newPassword}
+                                            onChange={handlePasswordChange}
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-slate-700">Confirm New Password</label>
+                                        <input
+                                            type="password"
+                                            name="confirmNewPassword"
+                                            value={passwordData.confirmNewPassword}
+                                            onChange={handlePasswordChange}
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
+                                >
+                                    <Lock className="w-4 h-4" />
+                                    Update Password
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
                 </div>
-
-                {message && <div style={styles.success}>{message}</div>}
-                {error && <div style={styles.error}>{error}</div>}
-
-                <form onSubmit={handleSubmit} style={styles.form}>
-                    {user.role === 'club-admin' && (
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Club Name</label>
-                            <input
-                                type="text"
-                                name="clubName"
-                                value={formData.clubName}
-                                onChange={handleChange}
-                                style={styles.input}
-                            />
-                        </div>
-                    )}
-
-                    {user.role === 'company' && (
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Organization Name</label>
-                            <input
-                                type="text"
-                                name="organizationName"
-                                value={formData.organizationName}
-                                onChange={handleChange}
-                                style={styles.input}
-                            />
-                        </div>
-                    )}
-
-                    {user.role === 'alumni-individual' && (
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Former Institution</label>
-                            <input
-                                type="text"
-                                name="formerInstitution"
-                                value={formData.formerInstitution}
-                                onChange={handleChange}
-                                style={styles.input}
-                            />
-                        </div>
-                    )}
-
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Phone Number</label>
-                        <input
-                            type="text"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            style={styles.input}
-                            placeholder="+1 234 567 8900"
-                        />
-                    </div>
-
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Logo URL / Avatar</label>
-                        <input
-                            type="text"
-                            name="logoUrl"
-                            value={formData.logoUrl}
-                            onChange={handleChange}
-                            style={styles.input}
-                            placeholder="https://example.com/logo.png"
-                        />
-                    </div>
-
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Description / Bio</label>
-                        <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            style={{ ...styles.input, minHeight: '100px' }}
-                            placeholder="Tell us about yourself..."
-                        />
-                    </div>
-
-                    <button type="submit" disabled={saving} style={styles.saveButton}>
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </form>
-
-                <hr style={styles.divider} />
-
-                <h3 style={styles.sectionTitle}>Change Password</h3>
-                <form onSubmit={handlePasswordSubmit} style={styles.form}>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Current Password</label>
-                        <input
-                            type="password"
-                            name="currentPassword"
-                            value={passwordData.currentPassword}
-                            onChange={handlePasswordChange}
-                            style={styles.input}
-                            required
-                        />
-                    </div>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>New Password</label>
-                        <input
-                            type="password"
-                            name="newPassword"
-                            value={passwordData.newPassword}
-                            onChange={handlePasswordChange}
-                            style={styles.input}
-                            required
-                        />
-                    </div>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Confirm New Password</label>
-                        <input
-                            type="password"
-                            name="confirmNewPassword"
-                            value={passwordData.confirmNewPassword}
-                            onChange={handlePasswordChange}
-                            style={styles.input}
-                            required
-                        />
-                    </div>
-                    <button type="submit" style={styles.secondaryButton}>
-                        Update Password
-                    </button>
-                </form>
             </div>
         </div>
     );
-};
-
-const styles = {
-    container: {
-        minHeight: '100vh',
-        backgroundColor: '#f8fafc',
-        padding: '2rem',
-        display: 'flex',
-        justifyContent: 'center',
-    },
-    loading: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        color: '#64748b',
-    },
-    card: {
-        backgroundColor: 'white',
-        padding: '2.5rem',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        width: '100%',
-        maxWidth: '600px',
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2rem',
-    },
-    title: {
-        fontSize: '1.5rem',
-        fontWeight: 'bold',
-        color: '#1e293b',
-        margin: 0,
-    },
-    backButton: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#e2e8f0',
-        color: '#475569',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '600',
-    },
-    form: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem',
-    },
-    formGroup: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-    },
-    label: {
-        fontSize: '0.875rem',
-        fontWeight: '600',
-        color: '#475569',
-    },
-    input: {
-        padding: '0.75rem',
-        borderRadius: '6px',
-        border: '1px solid #cbd5e1',
-        fontSize: '1rem',
-        color: '#1e293b',
-        outline: 'none',
-        transition: 'border-color 0.2s',
-    },
-    saveButton: {
-        padding: '0.75rem',
-        backgroundColor: '#2563eb',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        fontSize: '1rem',
-        fontWeight: '600',
-        cursor: 'pointer',
-        marginTop: '1rem',
-        transition: 'background-color 0.2s',
-    },
-    success: {
-        padding: '1rem',
-        backgroundColor: '#dcfce7',
-        color: '#166534',
-        borderRadius: '6px',
-        marginBottom: '1.5rem',
-    },
-    error: {
-        padding: '1rem',
-        backgroundColor: '#fee2e2',
-        color: '#991b1b',
-        borderRadius: '6px',
-        marginBottom: '1.5rem',
-    },
-    divider: {
-        margin: '2rem 0',
-        border: 'none',
-        borderTop: '1px solid #e2e8f0',
-    },
-    sectionTitle: {
-        fontSize: '1.25rem',
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginBottom: '1rem',
-    },
-    secondaryButton: {
-        padding: '0.75rem',
-        backgroundColor: '#475569',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        fontSize: '1rem',
-        fontWeight: '600',
-        cursor: 'pointer',
-        marginTop: '1rem',
-        transition: 'background-color 0.2s',
-    },
 };
 
 export default Profile;

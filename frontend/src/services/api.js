@@ -21,13 +21,34 @@ export const registerUser = async (userData) => {
     throw new Error(data.message || 'Registration failed');
   }
 
-  // Save token to localStorage
-  if (data.token) {
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data));
-  }
+  // NOTE: We don't save token here anymore because of OTP flow
 
   return data;
+};
+
+// Verify OTP
+export const verifyUserOTP = async (data) => {
+  const response = await fetch(`${API_URL}/auth/verify-otp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    throw new Error(responseData.message || 'OTP verification failed');
+  }
+
+  // Save token to localStorage
+  if (responseData.token) {
+    localStorage.setItem('token', responseData.token);
+    localStorage.setItem('user', JSON.stringify(responseData));
+  }
+
+  return responseData;
 };
 
 // Login user

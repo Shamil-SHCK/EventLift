@@ -2,20 +2,33 @@ import { useState, useEffect } from 'react';
 import { getCurrentUser, logoutUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from './AdminPanel';
+import {
+    LayoutDashboard,
+    LogOut,
+    User,
+    Bell,
+    Settings,
+    ChevronDown,
+    Menu,
+    X,
+    Building2,
+    GraduationCap,
+    Users
+} from 'lucide-react';
 
 const Dashboard = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const userData = await getCurrentUser();
-                setUser(userData);
-            } catch (err) {
-                console.error('Failed to fetch user', err);
-                // If fetch fails (likely token invalid), logout and redirect
+                const data = await getCurrentUser();
+                setUser(data);
+            } catch (error) {
+                console.error('Failed to fetch user', error);
                 logoutUser();
                 navigate('/login');
             } finally {
@@ -28,291 +41,175 @@ const Dashboard = () => {
 
     const handleLogout = () => {
         logoutUser();
-        setUser(null); // Clear local user state
-        navigate('/login');
+        setUser(null);
+        navigate('/');
     };
 
     if (loading) {
         return (
-            <div style={styles.container}>
-                <div style={styles.loading}>Loading dashboard...</div>
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
-    if (user?.verificationStatus === 'pending') {
-        return (
-            <div style={styles.container}>
-                <div style={styles.pendingContainer}>
-                    <h2 style={styles.pendingHeading}>Application Under Review</h2>
-                    <p style={styles.pendingText}>
-                        Welcome, {user.name}! Your {user.role} account has been created successfully.
-                    </p>
-                    <p style={styles.pendingSubText}>
-                        You cannot post events or gigs until an Administrator verifies your credentials.
-                        Please check back later.
-                    </p>
-                    <button
-                        onClick={handleLogout}
-                        style={styles.pendingButton}
-                        onMouseOver={(e) => e.target.style.backgroundColor = '#a16207'}
-                        onMouseOut={(e) => e.target.style.backgroundColor = '#ca8a04'}
-                    >
-                        Logout
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    const RoleBadge = ({ role }) => {
+        const styles = {
+            'administrator': 'bg-purple-100 text-purple-700 border-purple-200',
+            'company': 'bg-blue-100 text-blue-700 border-blue-200',
+            'club-admin': 'bg-green-100 text-green-700 border-green-200',
+            'alumni-individual': 'bg-amber-100 text-amber-700 border-amber-200'
+        };
 
-    if (user?.verificationStatus === 'rejected') {
         return (
-            <div style={styles.container}>
-                <div style={styles.rejectedContainer}>
-                    <h2 style={styles.rejectedHeading}>Application Rejected</h2>
-                    <p style={styles.rejectedText}>
-                        Your application was reviewed and declined. Please contact support for details.
-                    </p>
-                    <button
-                        onClick={handleLogout}
-                        style={styles.rejectedButton}
-                        onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
-                        onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
-                    >
-                        Logout
-                    </button>
-                </div>
-            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${styles[role] || 'bg-gray-100 text-gray-700'}`}>
+                {role?.replace('-', ' ')}
+            </span>
         );
-    }
+    };
 
     return (
-        <div style={styles.container}>
-            <nav style={styles.navbar}>
-                <h1 style={styles.logo}>Sponsorship Platform</h1>
-                <div style={styles.navLinks}>
-                    <button onClick={() => navigate('/profile')} style={styles.profileButton}>
-                        Edit Profile
+        <div className="min-h-screen bg-slate-50 font-sans flex">
+            {/* Sidebar - Mobile: Overlay, Desktop: Static */}
+            <aside className={`
+                fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                <div className="h-full flex flex-col">
+                    {/* Brand */}
+                    <div className="h-16 flex items-center px-6 border-b border-slate-800">
+                        <span className="text-xl font-bold font-heading tracking-tight text-white">EventLift</span>
+                    </div>
+
+                    {/* Navigation */}
+                    <div className="flex-1 py-6 px-4 space-y-2">
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Menu</div>
+
+                        <button className="w-full flex items-center gap-3 px-3 py-2.5 bg-blue-600 rounded-lg text-white font-medium transition-all shadow-lg shadow-blue-500/20">
+                            <LayoutDashboard className="w-5 h-5" /> Dashboard
+                        </button>
+
+                        <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                            <User className="w-5 h-5" /> Profile
+                        </button>
+
+                        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                            <Bell className="w-5 h-5" /> Notifications
+                            <span className="ml-auto bg-red-500 text-white text-xs py-0.5 px-2 rounded-full">2</span>
+                        </button>
+
+                        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                            <Settings className="w-5 h-5" /> Settings
+                        </button>
+                    </div>
+
+                    {/* User Profile Snippet Bottom */}
+                    <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md">
+                                {user?.name.charAt(0)}
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
+                                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-all border border-transparent hover:border-red-400/20"
+                        >
+                            <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Overlay for mobile sidebar */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+
+            {/* Main Content */}
+            <main className="flex-1 lg:ml-64 min-h-screen flex flex-col">
+                {/* Top Header Mobile */}
+                <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:hidden sticky top-0 z-30">
+                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600">
+                        <Menu className="w-6 h-6" />
                     </button>
-                    <button onClick={handleLogout} style={styles.logoutButton}>
-                        Logout
-                    </button>
-                </div>
-            </nav>
+                    <span className="font-bold text-slate-900">EventLift</span>
+                    <div className="w-8"></div> {/* Spacer */}
+                </header>
 
-            <div style={styles.content}>
-                <div style={styles.welcomeCard}>
-                    <h2 style={styles.greeting}>Welcome, {user?.name}!</h2>
-                    <div style={styles.userInfo}>
-                        <p><strong>Email:</strong> {user?.email}</p>
-                        <p><strong>Role:</strong> <span style={styles.roleTag}>{user?.role}</span></p>
-                        <p><strong>Status:</strong> <span style={{
-                            ...styles.statusTag,
-                            backgroundColor: user?.verificationStatus === 'verified' ? '#e8f5e9' : '#fff3e0',
-                            color: user?.verificationStatus === 'verified' ? '#2e7d32' : '#ef6c00'
-                        }}>{user?.verificationStatus}</span></p>
-                        {user?.clubName && <p><strong>Club:</strong> {user.clubName}</p>}
-                        {user?.organizationName && <p><strong>Organization:</strong> {user.organizationName}</p>}
+                <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">
+                    {/* Welcome Header */}
+                    <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl lg:text-4xl font-bold font-heading text-slate-900 mb-2">
+                                Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">{user?.name}</span>
+                            </h1>
+                            <p className="text-slate-500 text-lg">Here's what's happening today.</p>
+                        </div>
+                        <RoleBadge role={user?.role} />
                     </div>
-                </div>
 
-                <div style={styles.dashboardGrid}>
-                    {/* Placeholder for future dashboard widgets */}
-                    <div style={styles.widget}>
-                        <h3>Quick Actions</h3>
-                        <p>Coming soon...</p>
-                    </div>
-                    <div style={styles.widget}>
-                        <h3>Recent Activity</h3>
-                        <p>No recent activity.</p>
-                    </div>
-                </div>
+                    {/* Stats / Quick Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        {/* Dynamic cards based on role could go here. For now, generic placeholders matching style */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                                {user?.role === 'company' ? <Building2 className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-1">
+                                {user?.role === 'administrator' ? '12' : '0'}
+                            </h3>
+                            <p className="text-slate-500 font-medium text-sm">
+                                {user?.role === 'administrator' ? 'Pending Verifications' : 'Active Events'}
+                            </p>
+                        </div>
 
-                {user?.role === 'administrator' && (
-                    <div style={{ marginTop: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', color: '#1e293b' }}>Administration</h3>
-                        <AdminPanel isEmbedded={true} />
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
+                                <GraduationCap className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-1">
+                                {user?.role === 'administrator' ? '45' : '₹0'}
+                            </h3>
+                            <p className="text-slate-500 font-medium text-sm">
+                                {user?.role === 'administrator' ? 'Active Users' : 'Total Raised'}
+                            </p>
+                        </div>
                     </div>
-                )}
-            </div>
+
+                    {/* Admin Panel Embedded */}
+                    {user?.role === 'administrator' && (
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div className="p-6 border-b border-slate-100">
+                                <h3 className="text-lg font-bold font-heading text-slate-900">User Verification Management</h3>
+                            </div>
+                            <div className="p-0"> {/* AdminPanel has its own padding we should adjust later, but for now passing simple prop */}
+                                <AdminPanel isEmbedded={true} />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Other Role Empty States */}
+                    {user?.role !== 'administrator' && (
+                        <div className="bg-white rounded-2xl p-12 text-center border dashed border-slate-200">
+                            <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <LayoutDashboard className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">Dashboard Coming Soon</h3>
+                            <p className="text-slate-500">We are building specific tools for {user?.role?.replace('-', ' ')}s.</p>
+                        </div>
+                    )}
+
+                </div>
+            </main>
         </div>
     );
-};
-
-const styles = {
-    container: {
-        minHeight: '100vh',
-        backgroundColor: '#f0f2f5',
-        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    loading: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#666',
-    },
-    navbar: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1rem 2rem',
-        backgroundColor: '#ffffff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        flexWrap: 'wrap',
-    },
-    logo: {
-        margin: 0,
-        color: '#2196F3',
-        fontSize: '1.5rem',
-        flexShrink: 0,
-    },
-    navLinks: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-    },
-    profileButton: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#e2e8f0',
-        color: '#475569',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '0.9rem',
-        fontWeight: 'bold',
-    },
-    logoutButton: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#f44336',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '0.9rem',
-        fontWeight: 'bold',
-        marginTop: '0.5rem', // Spacing for mobile wrap
-    },
-    content: {
-        padding: '2rem',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        width: '100%',
-        boxSizing: 'border-box',
-    },
-    welcomeCard: {
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        marginBottom: '2rem',
-    },
-    greeting: {
-        marginTop: 0,
-        color: '#333',
-        fontSize: 'clamp(1.5rem, 5vw, 2rem)', // Responsive font size
-    },
-    userInfo: {
-        marginTop: '1rem',
-        lineHeight: '1.6',
-        color: '#555',
-    },
-    roleTag: {
-        backgroundColor: '#e3f2fd',
-        color: '#1976d2',
-        padding: '0.2rem 0.5rem',
-        borderRadius: '12px',
-        fontSize: '0.85rem',
-        textTransform: 'capitalize',
-        whiteSpace: 'nowrap',
-    },
-    statusTag: {
-        padding: '0.2rem 0.5rem',
-        borderRadius: '12px',
-        fontSize: '0.85rem',
-        marginLeft: '0.5rem',
-        fontWeight: 'bold',
-        whiteSpace: 'nowrap',
-    },
-    dashboardGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', // Auto-responsive grid
-        gap: '1.5rem',
-    },
-    widget: {
-        backgroundColor: 'white',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        minWidth: '0', // Prevents overflow in flex/grid items
-    },
-    pendingContainer: {
-        padding: '2rem',
-        maxWidth: '42rem',
-        margin: '5rem auto 0',
-        textAlign: 'center',
-        backgroundColor: '#fefce8',
-        border: '1px solid #fef08a',
-        borderRadius: '0.5rem',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    },
-    pendingHeading: {
-        fontSize: '1.5rem',
-        fontWeight: 'bold',
-        color: '#854d0e',
-        marginBottom: '1rem',
-    },
-    pendingText: {
-        color: '#374151',
-        marginBottom: '1rem',
-    },
-    pendingSubText: {
-        color: '#4b5563',
-        marginBottom: '1.5rem',
-    },
-    pendingButton: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#ca8a04',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        fontWeight: 'bold',
-    },
-    rejectedContainer: {
-        padding: '2rem',
-        maxWidth: '42rem',
-        margin: '5rem auto 0',
-        textAlign: 'center',
-        backgroundColor: '#fef2f2',
-        border: '1px solid #fecaca',
-        borderRadius: '0.5rem',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    },
-    rejectedHeading: {
-        fontSize: '1.5rem',
-        fontWeight: 'bold',
-        color: '#991b1b',
-        marginBottom: '1rem',
-    },
-    rejectedText: {
-        color: '#374151',
-        marginBottom: '1.5rem',
-    },
-    rejectedButton: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#dc2626',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        transition: 'background-color 0.2s',
-    },
 };
 
 export default Dashboard;

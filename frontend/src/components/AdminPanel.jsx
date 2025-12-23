@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
 import { getPendingUsers, getAllUsers, verifyUser, resetUserPassword, logoutUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import {
+    Download,
+    Eye,
+    CheckCircle,
+    XCircle,
+    RefreshCcw,
+    Search,
+    Filter,
+    FileText,
+    ZoomIn,
+    ZoomOut,
+    RotateCcw,
+    X
+} from 'lucide-react';
 
 const AdminPanel = ({ isEmbedded = false }) => {
     const [users, setUsers] = useState([]);
@@ -13,7 +27,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
     const handleViewDoc = (docUrl) => {
         setSelectedDoc(`http://localhost:5000/${docUrl}`);
-        setZoomLevel(1); // Reset zoom when opening new doc
+        setZoomLevel(1);
     };
 
     const closeModal = () => {
@@ -47,12 +61,9 @@ const AdminPanel = ({ isEmbedded = false }) => {
     const handleVerify = async (userId, status) => {
         try {
             await verifyUser(userId, status);
-            // If viewing pending, remove from list. If layout is 'all', maybe just update status? 
-            // For simplicity, just refetch or update local state.
             if (filter === 'pending') {
                 setUsers(users.filter((user) => user._id !== userId));
             } else {
-                // Update the specific user in the list
                 setUsers(users.map(u => u._id === userId ? { ...u, verificationStatus: status } : u));
             }
         } catch (err) {
@@ -66,7 +77,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
         }
         try {
             await resetUserPassword(userId);
-            alert('Password reset successfully to "ChangeMe@123"');
+            alert('Password reset successfully');
         } catch (err) {
             alert('Failed to reset password: ' + err.message);
         }
@@ -74,73 +85,56 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
     const handleLogout = () => {
         logoutUser();
-        setUsers([]); // Clear displayed data
-        navigate('/login');
+        setUsers([]);
+        navigate('/');
     };
 
-    if (loading) return <div style={styles.loading}>Loading...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center p-12 text-slate-500">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mr-3"></div>
+            Loading data...
+        </div>
+    );
 
     return (
-        <div style={isEmbedded ? { ...styles.container, minHeight: 'auto' } : styles.container}>
-            {/* Modal for viewing document */}
+        <div className="w-full">
+            {/* Document Viewer Modal */}
             {selectedDoc && (
-                <div style={styles.modalOverlay} onClick={closeModal}>
-                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <button style={styles.closeButton} onClick={closeModal}>&times;</button>
-                        <div style={styles.modalHeader}>
-                            <h3 style={styles.modalTitle}>Verification Document</h3>
-                            {!selectedDoc.toLowerCase().endsWith('.pdf') && (
-                                <div style={styles.zoomControls}>
-                                    <button
-                                        style={styles.zoomBtn}
-                                        onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.25))}
-                                        title="Zoom Out"
-                                    >
-                                        -
-                                    </button>
-                                    <span style={styles.zoomLevel}>{Math.round(zoomLevel * 100)}%</span>
-                                    <button
-                                        style={styles.zoomBtn}
-                                        onClick={() => setZoomLevel(prev => Math.min(3, prev + 0.25))}
-                                        title="Zoom In"
-                                    >
-                                        +
-                                    </button>
-                                    <button
-                                        style={styles.zoomBtn}
-                                        onClick={() => setZoomLevel(1)}
-                                        title="Reset Zoom"
-                                    >
-                                        Reset
-                                    </button>
-                                </div>
-                            )}
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4" onClick={closeModal}>
+                    <div className="bg-white rounded-xl overflow-hidden w-full max-w-5xl h-[90vh] flex flex-col relative shadow-2xl animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+
+                        {/* Modal Header */}
+                        <div className="bg-white border-b border-slate-200 p-4 flex justify-between items-center">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                Verification Document
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {!selectedDoc.toLowerCase().endsWith('.pdf') && (
+                                    <div className="flex items-center bg-slate-100 rounded-lg p-1 mr-4">
+                                        <button onClick={() => setZoomLevel(p => Math.max(0.5, p - 0.25))} className="p-2 hover:bg-white rounded-md transition-colors" title="Zoom Out"><ZoomOut className="w-4 h-4 text-slate-600" /></button>
+                                        <span className="w-12 text-center text-xs font-bold text-slate-600">{Math.round(zoomLevel * 100)}%</span>
+                                        <button onClick={() => setZoomLevel(p => Math.min(3, p + 0.25))} className="p-2 hover:bg-white rounded-md transition-colors" title="Zoom In"><ZoomIn className="w-4 h-4 text-slate-600" /></button>
+                                        <button onClick={() => setZoomLevel(1)} className="p-2 hover:bg-white rounded-md transition-colors ml-1" title="Reset"><RotateCcw className="w-4 h-4 text-slate-600" /></button>
+                                    </div>
+                                )}
+                                <button onClick={closeModal} className="p-2 hover:bg-red-50 text-slate-500 hover:text-red-500 rounded-full transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
                         </div>
-                        <div style={styles.docViewer}>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 bg-slate-100 overflow-hidden flex items-center justify-center relative inner-shadow">
                             {selectedDoc.toLowerCase().endsWith('.pdf') ? (
-                                <iframe
-                                    src={selectedDoc}
-                                    title="Verification Document"
-                                    style={styles.iframe}
-                                />
+                                <iframe src={selectedDoc} title="Document" className="w-full h-full border-none" />
                             ) : (
-                                <div style={{
-                                    overflow: 'auto',
-                                    width: '100%',
-                                    height: '100%',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center'
-                                }}>
+                                <div className="overflow-auto w-full h-full flex items-center justify-center p-8">
                                     <img
                                         src={selectedDoc}
-                                        alt="Verification Document"
-                                        style={{
-                                            ...styles.docImage,
-                                            transform: `scale(${zoomLevel})`,
-                                            transition: 'transform 0.2s ease-in-out',
-                                            cursor: zoomLevel > 1 ? 'grab' : 'default'
-                                        }}
+                                        alt="Document"
+                                        style={{ transform: `scale(${zoomLevel})` }}
+                                        className="transition-transform duration-200 ease-out max-w-full shadow-lg"
                                     />
                                 </div>
                             )}
@@ -149,436 +143,142 @@ const AdminPanel = ({ isEmbedded = false }) => {
                 </div>
             )}
 
-            {!isEmbedded && (
-                <header style={styles.header}>
-                    <h1 style={styles.title}>Admin Verification Panel</h1>
-                    <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
-                </header>
-            )}
+            {/* Header / Filter Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 p-6 bg-slate-50/50">
+                <div className="flex bg-slate-200/50 p-1 rounded-lg">
+                    <button
+                        onClick={() => setFilter('pending')}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${filter === 'pending'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        Pending Review
+                    </button>
+                    <button
+                        onClick={() => setFilter('all')}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${filter === 'all'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        All Users
+                    </button>
+                </div>
 
-            <div style={styles.content}>
-                {error && <div style={styles.error}>{error}</div>}
-
-                <div style={styles.card}>
-                    <div style={styles.cardHeader}>
-                        <div style={styles.cardHeaderLeft}>
-                            <h2 style={styles.cardTitle}>{filter === 'pending' ? 'Pending Applications' : 'All Users'}</h2>
-                            <span style={styles.badge}>{users.length} {filter === 'pending' ? 'pending' : 'users'}</span>
-                        </div>
-                        <div style={styles.filterControls}>
-                            <button
-                                style={filter === 'pending' ? styles.filterBtnActive : styles.filterBtn}
-                                onClick={() => setFilter('pending')}
-                            >
-                                Pending
-                            </button>
-                            <button
-                                style={filter === 'all' ? styles.filterBtnActive : styles.filterBtn}
-                                onClick={() => setFilter('all')}
-                            >
-                                All Users
-                            </button>
-                        </div>
-                    </div>
-
-                    {users.length === 0 ? (
-                        <div style={styles.emptyState}>
-                            <div style={styles.emptyState}>
-                                <p>No {filter === 'pending' ? 'pending' : ''} users found.</p>
-                                <p style={styles.emptySubtext}>
-                                    {filter === 'pending' ? 'New registrations will appear here.' : 'No users in the database.'}
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={styles.tableContainer}>
-                            <table style={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th style={styles.th}>Name</th>
-                                        <th style={styles.th}>Email</th>
-                                        <th style={styles.th}>Role</th>
-                                        <th style={styles.th}>Affiliation</th>
-                                        <th style={styles.th}>Document</th>
-                                        <th style={styles.th}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((user) => (
-                                        <tr key={user._id} style={styles.tr}>
-                                            <td style={styles.td}>
-                                                <div style={styles.userName}>{user.name}</div>
-                                            </td>
-                                            <td style={styles.td}>{user.email}</td>
-                                            <td style={styles.td}>
-                                                <span style={styles.roleTag}>{user.role}</span>
-                                            </td>
-                                            <td style={styles.td}>{user.clubName || user.organizationName || user.formerInstitution || 'N/A'}</td>
-                                            <td style={styles.td}>
-                                                {user.verificationDocument ? (
-                                                    <button
-                                                        onClick={() => handleViewDoc(user.verificationDocument)}
-                                                        style={styles.viewDocBtn}
-                                                    >
-                                                        View Doc
-                                                    </button>
-                                                ) : (
-                                                    <span style={{ color: '#999' }}>N/A</span>
-                                                )}
-                                            </td>
-                                            <td style={styles.td}>
-                                                <div style={styles.actionButtons}>
-                                                    {user.verificationStatus === 'pending' && (
-                                                        <>
-                                                            <button
-                                                                style={styles.approveBtn}
-                                                                onClick={() => handleVerify(user._id, 'verified')}
-                                                                title="Approve User"
-                                                            >
-                                                                Approve
-                                                            </button>
-                                                            <button
-                                                                style={styles.rejectBtn}
-                                                                onClick={() => handleVerify(user._id, 'rejected')}
-                                                                title="Reject User"
-                                                            >
-                                                                Reject
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    <button
-                                                        style={styles.resetBtn}
-                                                        onClick={() => handleResetPassword(user._id)}
-                                                        title="Reset Password"
-                                                    >
-                                                        Reset PW
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search users..."
+                        className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    />
                 </div>
             </div>
+
+            {error && (
+                <div className="mx-6 mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium flex items-center gap-2">
+                    <XCircle className="w-5 h-5" />
+                    {error}
+                </div>
+            )}
+
+            {/* Table */}
+            {users.length === 0 ? (
+                <div className="text-center py-20">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Filter className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 font-medium">No users found in this category.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-200 bg-slate-50/50">
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User Details</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role & Affiliation</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Verification</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {users.map((user) => (
+                                <tr key={user._id} className="hover:bg-slate-50/80 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
+                                                {user.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-slate-900">{user.name}</p>
+                                                <p className="text-sm text-slate-500">{user.email}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-1">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
+                                                ${user.role === 'club-admin' ? 'bg-green-100 text-green-700' :
+                                                    user.role === 'company' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-slate-100 text-slate-700'
+                                                }`}>
+                                                {user.role}
+                                            </span>
+                                            <p className="text-sm text-slate-600 max-w-[150px] truncate" title={user.clubName || user.organizationName || user.formerInstitution}>
+                                                {user.clubName || user.organizationName || user.formerInstitution || '-'}
+                                            </p>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {user.verificationDocument ? (
+                                            <button
+                                                onClick={() => handleViewDoc(user.verificationDocument)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-xs font-semibold"
+                                            >
+                                                <Eye className="w-3 h-3" /> View Document
+                                            </button>
+                                        ) : (
+                                            <span className="text-slate-400 text-xs italic">No document</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {user.verificationStatus === 'pending' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleVerify(user._id, 'verified')}
+                                                        className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                                                        title="Approve"
+                                                    >
+                                                        <CheckCircle className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleVerify(user._id, 'rejected')}
+                                                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                                        title="Reject"
+                                                    >
+                                                        <XCircle className="w-5 h-5" />
+                                                    </button>
+                                                </>
+                                            )}
+                                            <button
+                                                onClick={() => handleResetPassword(user._id)}
+                                                className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors"
+                                                title="Reset Password"
+                                            >
+                                                <RefreshCcw className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
-};
-
-const styles = {
-    container: {
-        minHeight: '100vh',
-        backgroundColor: '#f8fafc',
-        fontFamily: '"Inter", "Segoe UI", sans-serif',
-    },
-    header: {
-        backgroundColor: 'white',
-        padding: '1rem 2rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    title: {
-        margin: 0,
-        fontSize: '1.25rem',
-        color: '#1e293b',
-        fontWeight: '700',
-    },
-    logoutButton: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#f1f5f9',
-        color: '#475569',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '600',
-        transition: 'background-color 0.2s',
-    },
-    content: {
-        padding: '2rem',
-        maxWidth: '1200px',
-        margin: '0 auto',
-    },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        overflow: 'hidden',
-    },
-    cardHeader: {
-        padding: '1.5rem',
-        borderBottom: '1px solid #e2e8f0',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-    },
-    cardHeaderLeft: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-    },
-    filterControls: {
-        display: 'flex',
-        gap: '0.5rem',
-        backgroundColor: '#f1f5f9',
-        padding: '0.25rem',
-        borderRadius: '8px',
-    },
-    filterBtn: {
-        padding: '0.5rem 1rem',
-        border: 'none',
-        backgroundColor: 'transparent',
-        color: '#64748b',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '600',
-        transition: 'all 0.2s',
-    },
-    filterBtnActive: {
-        padding: '0.5rem 1rem',
-        border: 'none',
-        backgroundColor: 'white',
-        color: '#0f172a',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '600',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s',
-    },
-    cardTitle: {
-        margin: 0,
-        fontSize: '1.1rem',
-        color: '#334155',
-        fontWeight: '600',
-    },
-    badge: {
-        backgroundColor: '#fee2e2',
-        color: '#991b1b',
-        padding: '0.25rem 0.75rem',
-        borderRadius: '9999px',
-        fontSize: '0.75rem',
-        fontWeight: '700',
-    },
-    tableContainer: {
-        overflowX: 'auto',
-    },
-    table: {
-        width: '100%',
-        borderCollapse: 'collapse',
-        textAlign: 'left',
-    },
-    th: {
-        padding: '1rem 1.5rem',
-        backgroundColor: '#f8fafc',
-        color: '#64748b',
-        fontSize: '0.75rem',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        borderBottom: '1px solid #e2e8f0',
-    },
-    tr: {
-        borderBottom: '1px solid #f1f5f9',
-    },
-    td: {
-        padding: '1rem 1.5rem',
-        color: '#334155',
-        fontSize: '0.9rem',
-    },
-    userName: {
-        fontWeight: '600',
-        color: '#1e293b',
-    },
-    roleTag: {
-        backgroundColor: '#e0f2fe',
-        color: '#0369a1',
-        padding: '0.25rem 0.75rem',
-        borderRadius: '9999px',
-        fontSize: '0.75rem',
-        fontWeight: '600',
-        textTransform: 'capitalize',
-    },
-    actionButtons: {
-        display: 'flex',
-        gap: '0.75rem',
-    },
-    approveBtn: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#22c55e',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '500',
-        transition: 'background-color 0.2s',
-    },
-    rejectBtn: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#ef4444',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '500',
-        transition: 'background-color 0.2s',
-    },
-    resetBtn: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#f59e0b', // Amber
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '500',
-        transition: 'background-color 0.2s',
-    },
-    emptyState: {
-        padding: '4rem 2rem',
-        textAlign: 'center',
-        color: '#64748b',
-    },
-    emptySubtext: {
-        fontSize: '0.875rem',
-        marginTop: '0.5rem',
-        color: '#94a3b8',
-    },
-    error: {
-        padding: '1rem',
-        backgroundColor: '#fee2e2',
-        color: '#991b1b',
-        borderRadius: '8px',
-        marginBottom: '1.5rem',
-        border: '1px solid #fecaca',
-    },
-    loading: {
-        height: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        color: '#64748b',
-    },
-    // Modal Styles
-    modalOverlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-        padding: '2rem',
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '2rem',
-        maxWidth: '900px',
-        width: '100%',
-        maxHeight: '90vh',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    modalHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '1rem',
-        paddingRight: '2rem', // Space for close button
-    },
-    modalTitle: {
-        margin: 0,
-        color: '#1e293b',
-        fontSize: '1.25rem',
-        fontWeight: 'bold',
-    },
-    zoomControls: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        backgroundColor: '#f1f5f9',
-        padding: '0.25rem 0.5rem',
-        borderRadius: '8px',
-    },
-    zoomBtn: {
-        width: '30px',
-        height: '30px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        border: '1px solid #cbd5e1',
-        backgroundColor: 'white',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        color: '#475569',
-        fontSize: '1.1rem',
-    },
-    zoomLevel: {
-        fontSize: '0.9rem',
-        fontWeight: '600',
-        color: '#475569',
-        width: '50px',
-        textAlign: 'center',
-    },
-    closeButton: {
-        position: 'absolute',
-        top: '1rem',
-        right: '1rem',
-        background: 'none',
-        border: 'none',
-        fontSize: '2rem',
-        lineHeight: 1,
-        cursor: 'pointer',
-        color: '#64748b',
-        padding: '0.5rem',
-    },
-    docViewer: {
-        flex: 1,
-        minHeight: '400px',
-        overflow: 'auto',
-        backgroundColor: '#f1f5f9',
-        borderRadius: '8px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iframe: {
-        width: '100%',
-        height: '100%',
-        border: 'none',
-        minHeight: '600px',
-    },
-    docImage: {
-        maxWidth: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
-    },
-    viewDocBtn: {
-        backgroundColor: 'transparent',
-        color: '#0284c7',
-        border: '1px solid #0284c7',
-        padding: '0.4rem 0.8rem',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '0.8rem',
-        fontWeight: '600',
-        transition: 'all 0.2s',
-    },
 };
 
 export default AdminPanel;

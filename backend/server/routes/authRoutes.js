@@ -5,6 +5,7 @@ import {
   getMe,
   updateProfile,
   changePassword,
+  verifyOTP,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -14,6 +15,7 @@ import upload from '../middleware/uploadMiddleware.js';
 
 router.post('/register', upload.single('verificationDocument'), registerUser);
 router.post('/login', loginUser);
+router.post('/verify-otp', verifyOTP);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.put('/password', protect, changePassword);

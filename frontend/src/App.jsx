@@ -1,7 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
-import Dashboard from './components/Dashboard';
+import VerifyOTP from './components/VerifyOTP';
+import AdminDashboard from './components/AdminDashboard';
+import ClubDashboard from './components/ClubDashboard';
+import CompanyDashboard from './components/CompanyDashboard';
+import AlumniDashboard from './components/AlumniDashboard';
 import Profile from './components/Profile';
 import AdminPanel from './components/AdminPanel';
 import LandingPage from './components/LandingPage';
@@ -23,15 +27,15 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     // Redirect to the appropriate dashboard based on the user's role
     switch (userRole) {
       case 'administrator':
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/admin/dashboard" replace />;
       case 'company':
-        return <Navigate to="/company-dashboard" replace />;
+        return <Navigate to="/company/dashboard" replace />;
       case 'club-admin':
-        return <Navigate to="/club-dashboard" replace />;
+        return <Navigate to="/club/dashboard" replace />;
       case 'alumni-individual':
-        return <Navigate to="/alumni-dashboard" replace />;
+        return <Navigate to="/alumni/dashboard" replace />;
       default:
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/" replace />;
     }
   }
 
@@ -44,37 +48,38 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
 
         {/* Protected Routes */}
         <Route
-          path="/dashboard"
+          path="/admin/dashboard"
           element={
-            <ProtectedRoute>
-              <Dashboard />
+            <ProtectedRoute allowedRoles={['administrator']}>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/company-dashboard"
+          path="/company/dashboard"
           element={
             <ProtectedRoute allowedRoles={['company']}>
-              <Dashboard />
+              <CompanyDashboard />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/club-dashboard"
+          path="/club/dashboard"
           element={
             <ProtectedRoute allowedRoles={['club-admin']}>
-              <Dashboard />
+              <ClubDashboard />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/alumni-dashboard"
+          path="/alumni/dashboard"
           element={
             <ProtectedRoute allowedRoles={['alumni-individual']}>
-              <Dashboard />
+              <AlumniDashboard />
             </ProtectedRoute>
           }
         />
@@ -82,19 +87,12 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
               <Profile />
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={['administrator']}>
-              <AdminPanel />
-            </ProtectedRoute>
-          }
-        />
+
         <Route path="/" element={<LandingPage />} />
       </Routes>
     </Router>
