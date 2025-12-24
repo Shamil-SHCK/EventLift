@@ -60,10 +60,8 @@ const userSchema = new mongoose.Schema(
             type: String,
         },
         verificationDocument: {
-            type: String,
-            required: function () {
-                return this.role === 'club-admin' || this.role === 'company';
-            },
+            data: Buffer,
+            contentType: String
         },
         description: {
             type: String,

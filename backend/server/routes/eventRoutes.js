@@ -1,14 +1,24 @@
 import express from 'express';
-import { createEvent, getEvents } from '../controllers/eventController.js';
-import { protect, checkVerificationStatus } from '../middleware/authMiddleware.js';
+import {
+    createEvent,
+    getEvents,
+    getEventById,
+    updateEvent,
+    sponsorEvent
+} from '../controllers/eventController.js';
+import { protect, checkVerificationStatus, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Public route or Protected route (viewing events might be public?)
+// Public/Open routes
 router.get('/', getEvents);
 
-// Protected route with verification check
-// User must be logged in (protect) AND verified (checkVerificationStatus) to create an event
-router.post('/', protect, checkVerificationStatus, createEvent);
+import upload from '../middleware/uploadMiddleware.js';
+
+// Protected routes
+router.post('/', protect, checkVerificationStatus, authorize('club-admin'), upload.fields([{ name: 'poster', maxCount: 1 }, { name: 'brochure', maxCount: 1 }]), createEvent);
+router.get('/:id', protect, getEventById);
+router.put('/:id', protect, checkVerificationStatus, authorize('club-admin', 'administrator'), upload.fields([{ name: 'poster', maxCount: 1 }, { name: 'brochure', maxCount: 1 }]), updateEvent);
+router.post('/:id/sponsor', protect, checkVerificationStatus, authorize('company', 'alumni-individual'), sponsorEvent);
 
 export default router;

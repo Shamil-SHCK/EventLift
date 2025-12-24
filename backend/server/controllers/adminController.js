@@ -5,8 +5,17 @@ import User from '../models/User.js';
 // @access  Private/Admin
 export const getPendingUsers = async (req, res) => {
     try {
-        const users = await User.find({ verificationStatus: 'pending' }).select('-password');
-        res.json(users);
+        const users = await User.find({ verificationStatus: 'pending' }).select('-password -verificationDocument.data');
+        const usersWithDocUrl = users.map(user => {
+            const u = user.toObject();
+            if (user.verificationDocument && user.verificationDocument.contentType) {
+                u.verificationDocument = `api/files/user/${user._id}/document`;
+            } else {
+                u.verificationDocument = null;
+            }
+            return u;
+        });
+        res.json(usersWithDocUrl);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -29,20 +38,22 @@ export const verifyUser = async (req, res) => {
             req.params.userId,
             { verificationStatus: status },
             { new: true, runValidators: false } // runValidators: false is key here
-        ).select('-password');
+        ).select('-password -verificationDocument.data');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        const u = user.toObject();
+        if (user.verificationDocument && user.verificationDocument.contentType) {
+            u.verificationDocument = `api/files/user/${user._id}/document`;
+        } else {
+            u.verificationDocument = null;
+        }
+
         res.json({
             message: `User marked as ${status}`,
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                verificationStatus: user.verificationStatus
-            }
+            user: u
         });
     } catch (error) {
         console.error(error);
@@ -55,8 +66,17 @@ export const verifyUser = async (req, res) => {
 // @access  Private/Admin
 export const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select('-password');
-        res.json(users);
+        const users = await User.find().select('-password -verificationDocument.data');
+        const usersWithDocUrl = users.map(user => {
+            const u = user.toObject();
+            if (user.verificationDocument && user.verificationDocument.contentType) {
+                u.verificationDocument = `api/files/user/${user._id}/document`;
+            } else {
+                u.verificationDocument = null;
+            }
+            return u;
+        });
+        res.json(usersWithDocUrl);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });

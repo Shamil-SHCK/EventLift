@@ -30,7 +30,10 @@ export const registerUser = async (req, res) => {
     };
 
     if (req.file) {
-      userData.verificationDocument = req.file.path.replace(/\\/g, "/");
+      userData.verificationDocument = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype
+      };
     }
 
     // Add conditional fields based on role
@@ -141,6 +144,7 @@ export const verifyOTP = async (req, res) => {
       formerInstitution: user.formerInstitution,
       verificationStatus: user.verificationStatus,
       token: token,
+      verificationDocument: user.verificationDocument ? `api/files/user/${user._id}/document` : null
     });
 
   } catch (error) {
