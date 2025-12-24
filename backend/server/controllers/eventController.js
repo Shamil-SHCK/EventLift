@@ -43,8 +43,8 @@ export const createEvent = async (req, res) => {
         const e = event.toObject();
         if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
         if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
-        delete e.poster.data;
-        delete e.brochure.data;
+        if (e.poster) delete e.poster.data;
+        if (e.brochure) delete e.brochure.data;
 
         res.status(201).json(e);
     } catch (error) {
