@@ -9,7 +9,7 @@ import crypto from 'crypto';
 // @access  Public
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, clubName, organizationName, formerInstitution } = req.body;
+    const { name, email, password, role, clubName, collegeName, organizationName, formerInstitution } = req.body;
 
     // Check if user already exists in main User collection
     const userExists = await User.findOne({ email });
@@ -39,6 +39,9 @@ export const registerUser = async (req, res) => {
     // Add conditional fields based on role
     if (role === 'club-admin' && clubName) {
       userData.clubName = clubName;
+      if (collegeName) {
+        userData.collegeName = collegeName;
+      }
     }
 
     if (role === 'company' && organizationName) {
@@ -116,6 +119,7 @@ export const verifyOTP = async (req, res) => {
       isEmailVerified: true,
       verificationStatus: 'pending',
       clubName: pendingUser.clubName,
+      collegeName: pendingUser.collegeName,
       organizationName: pendingUser.organizationName,
       formerInstitution: pendingUser.formerInstitution,
       verificationDocument: pendingUser.verificationDocument,
@@ -140,6 +144,7 @@ export const verifyOTP = async (req, res) => {
       email: user.email,
       role: user.role,
       clubName: user.clubName,
+      collegeName: user.collegeName,
       organizationName: user.organizationName,
       formerInstitution: user.formerInstitution,
       verificationStatus: user.verificationStatus,
@@ -176,6 +181,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         clubName: user.clubName,
+        collegeName: user.collegeName,
         organizationName: user.organizationName,
         formerInstitution: user.formerInstitution,
         verificationStatus: user.verificationStatus,
@@ -203,6 +209,7 @@ export const getMe = async (req, res) => {
       email: user.email,
       role: user.role,
       clubName: user.clubName,
+      collegeName: user.collegeName,
       organizationName: user.organizationName,
       formerInstitution: user.formerInstitution,
       verificationStatus: user.verificationStatus,
@@ -219,7 +226,7 @@ export const getMe = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const allowedUpdates = [
-      'clubName', 'organizationName', 'formerInstitution',
+      'clubName', 'collegeName', 'organizationName', 'formerInstitution',
       'phone', 'logoUrl', 'description'
     ];
 
@@ -243,6 +250,7 @@ export const updateProfile = async (req, res) => {
       email: user.email,
       role: user.role,
       clubName: user.clubName,
+      collegeName: user.collegeName,
       organizationName: user.organizationName,
       formerInstitution: user.formerInstitution,
       verificationStatus: user.verificationStatus,

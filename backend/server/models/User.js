@@ -36,6 +36,12 @@ const userSchema = new mongoose.Schema(
                 return this.role === 'club-admin';
             },
         },
+        collegeName: {
+            type: String,
+            required: function () {
+                return this.role === 'club-admin';
+            },
+        },
         organizationName: {
             type: String,
             required: function () {

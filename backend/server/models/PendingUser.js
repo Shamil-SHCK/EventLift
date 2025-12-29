@@ -29,6 +29,7 @@ const pendingUserSchema = new mongoose.Schema(
             default: 'club-admin',
         },
         clubName: { type: String },
+        collegeName: { type: String },
         organizationName: { type: String },
         formerInstitution: { type: String },
         verificationDocument: {

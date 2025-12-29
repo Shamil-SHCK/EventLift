@@ -11,6 +11,7 @@ const Register = () => {
         confirmPassword: '',
         role: 'club-admin',
         clubName: '',
+        collegeName: '',
         organizationName: '',
         formerInstitution: '',
     });
@@ -22,7 +23,7 @@ const Register = () => {
 
     const [verificationFile, setVerificationFile] = useState(null);
 
-    const { name, email, password, confirmPassword, role, clubName, organizationName, formerInstitution } = formData;
+    const { name, email, password, confirmPassword, role, clubName, collegeName, organizationName, formerInstitution } = formData;
 
     const handleChange = (e) => {
         if (e.target.name === 'verificationDocument') {
@@ -53,6 +54,11 @@ const Register = () => {
             return;
         }
 
+        if (role === 'club-admin' && !collegeName) {
+            setError('College name is required for club registration');
+            return;
+        }
+
         if (role === 'company' && !organizationName) {
             setError('Organization name is required for company registration');
             return;
@@ -79,6 +85,7 @@ const Register = () => {
 
             if (role === 'club-admin') {
                 data.append('clubName', clubName);
+                data.append('collegeName', collegeName);
             }
 
             if (role === 'company') {
@@ -237,23 +244,43 @@ const Register = () => {
                     </div>
 
                     {role === 'club-admin' && (
-                        <div className="space-y-2 animate-fadeIn">
-                            <label className="block text-sm font-semibold text-slate-700">Club Name</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                                    <Building2 className="w-5 h-5" />
+                        <>
+                            <div className="space-y-2 animate-fadeIn">
+                                <label className="block text-sm font-semibold text-slate-700">Club Name</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                        <Building2 className="w-5 h-5" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="clubName"
+                                        value={clubName}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                                        placeholder="e.g. Robotics Club"
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    name="clubName"
-                                    value={clubName}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                                    placeholder="e.g. Robotics Club"
-                                />
                             </div>
-                        </div>
+
+                            <div className="space-y-2 animate-fadeIn">
+                                <label className="block text-sm font-semibold text-slate-700">College Name</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                        <GraduationCap className="w-5 h-5" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="collegeName"
+                                        value={collegeName}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                                        placeholder="e.g. IIT Delhi"
+                                    />
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     {role === 'company' && (
