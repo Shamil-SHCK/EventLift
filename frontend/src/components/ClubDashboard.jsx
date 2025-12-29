@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, logoutUser, createEvent, getEvents } from '../services/api';
+import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import { Rocket, Target, DollarSign, Calendar, Plus, X, Upload, MapPin, Tag, Clock } from 'lucide-react';
@@ -12,6 +12,8 @@ const ClubDashboard = () => {
     const [showSponsorsModal, setShowSponsorsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editId, setEditId] = useState(null);
     const navigate = useNavigate();
 
     const handleViewSponsors = (event) => {
@@ -47,9 +49,11 @@ const ClubDashboard = () => {
                 // Fetch Events
                 const eventsData = await getEvents();
                 // Filter events created by this club
-                const myEvents = eventsData.filter(event =>
-                    event.organizer && event.organizer._id === userData._id
-                );
+                const myEvents = eventsData.filter(event => {
+                    if (!event.organizer) return false;
+                    const orgId = typeof event.organizer === 'object' ? event.organizer._id : event.organizer;
+                    return orgId === userData._id;
+                });
                 setEvents(myEvents);
             } catch (error) {
                 console.error('Failed to fetch data', error);
@@ -81,22 +85,61 @@ const ClubDashboard = () => {
             if (files.poster) data.append('poster', files.poster);
             if (files.brochure) data.append('brochure', files.brochure);
 
-            const newEvent = await createEvent(data);
+            if (isEditing) {
+                const updatedEvent = await updateEvent(editId, data);
+                setEvents(events.map(e => e._id === editId ? { ...updatedEvent, organizer: user } : e));
+                alert('Event Updated Successfully!');
+            } else {
+                const newEvent = await createEvent(data);
+                setEvents([...events, { ...newEvent, organizer: user }]);
+                alert('Event Created Successfully!');
+            }
 
-            // Add to local state (with some mock/default fields to avoid full refresh)
-            setEvents([...events, { ...newEvent, organizer: user }]); // Optimistic update
-
-            setShowModal(false);
-            setFormData({
-                title: '', description: '', date: '', time: '', location: '', category: 'Technical', budget: ''
-            });
-            setFiles({ poster: null, brochure: null });
-            alert('Event Created Successfully!');
+            handleCloseModal();
         } catch (error) {
             alert(error.message);
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleEditEvent = (event) => {
+        setIsEditing(true);
+        setEditId(event._id);
+        setFormData({
+            title: event.title,
+            description: event.description,
+            date: event.date ? new Date(event.date).toISOString().split('T')[0] : '', // Format date for input
+            time: event.time || '',
+            location: event.location,
+            category: event.category,
+            budget: event.budget
+        });
+        // We can't pre-fill file inputs for security, but backend will keep old ones if not sent
+        setFiles({ poster: null, brochure: null });
+        setShowModal(true);
+    };
+
+    const handleDeleteEvent = async (eventId) => {
+        if (window.confirm('Are you sure you want to delete this event?')) {
+            try {
+                await deleteEvent(eventId);
+                setEvents(events.filter(e => e._id !== eventId));
+            } catch (error) {
+                console.error(error);
+                alert('Failed to delete event');
+            }
+        }
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setIsEditing(false);
+        setEditId(null);
+        setFormData({
+            title: '', description: '', date: '', time: '', location: '', category: 'Technical', budget: ''
+        });
+        setFiles({ poster: null, brochure: null });
     };
 
     if (loading) return (
@@ -120,7 +163,7 @@ const ClubDashboard = () => {
                     <p className="text-slate-500 text-lg">Manage your events and sponsorships.</p>
                 </div>
                 <button
-                    onClick={() => setShowModal(true)}
+                    onClick={() => { setIsEditing(false); setShowModal(true); }}
                     className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all"
                 >
                     <Plus className="w-5 h-5" /> New Event
@@ -170,7 +213,7 @@ const ClubDashboard = () => {
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-2">Create Your First Event</h3>
                     <p className="text-slate-500 max-w-md mx-auto mb-6">Start by creating an event to attract sponsors and manage your fundraising campaigns effectively.</p>
-                    <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
+                    <button onClick={() => { setIsEditing(false); setShowModal(true); }} className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
                         Create Event
                     </button>
                 </div>
@@ -215,10 +258,19 @@ const ClubDashboard = () => {
                                     >
                                         Sponsors
                                     </button>
-                                    <button className="flex-1 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors">
+                                    <button
+                                        onClick={() => handleEditEvent(event)}
+                                        className="flex-1 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
+                                    >
                                         Edit
                                     </button>
                                 </div>
+                                <button
+                                    onClick={() => handleDeleteEvent(event._id)}
+                                    className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"
+                                >
+                                    Delete Event
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -279,15 +331,15 @@ const ClubDashboard = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
                         <button
-                            onClick={() => setShowModal(false)}
+                            onClick={handleCloseModal}
                             className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
 
                         <div className="p-8 border-b border-slate-100">
-                            <h2 className="text-2xl font-bold font-heading text-slate-900">Create New Event</h2>
-                            <p className="text-slate-500">Share your event details to attract sponsors.</p>
+                            <h2 className="text-2xl font-bold font-heading text-slate-900">{isEditing ? 'Edit Event' : 'Create New Event'}</h2>
+                            <p className="text-slate-500">{isEditing ? 'Update your event details.' : 'Share your event details to attract sponsors.'}</p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-8 space-y-6">
@@ -409,7 +461,7 @@ const ClubDashboard = () => {
                                 disabled={submitting}
                                 className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-70"
                             >
-                                {submitting ? 'Creating Event...' : 'Launch Event'}
+                                {submitting ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Event' : 'Launch Event')}
                             </button>
                         </form>
                     </div>

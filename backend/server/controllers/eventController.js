@@ -72,7 +72,9 @@ export const getEvents = async (req, res) => {
 
             // Flatten organizer profile into organizer object if profile exists
             if (e.organizer && e.organizer.profile) {
+                const organizerId = e.organizer._id; // Preserve User ID
                 e.organizer = { ...e.organizer, ...e.organizer.profile };
+                e.organizer._id = organizerId; // Restore User ID
                 delete e.organizer.profile;
             }
 
@@ -119,7 +121,9 @@ export const getEventById = async (req, res) => {
 
             // Flatten organizer profile
             if (e.organizer && e.organizer.profile) {
+                const organizerId = e.organizer._id; // Preserve User ID
                 e.organizer = { ...e.organizer, ...e.organizer.profile };
+                e.organizer._id = organizerId; // Restore User ID
                 delete e.organizer.profile;
             }
 
@@ -127,7 +131,9 @@ export const getEventById = async (req, res) => {
             if (e.sponsors) {
                 e.sponsors = e.sponsors.map(s => {
                     if (s.sponsor && s.sponsor.profile) {
+                        const sponsorId = s.sponsor._id; // Preserve User ID
                         s.sponsor = { ...s.sponsor, ...s.sponsor.profile };
+                        s.sponsor._id = sponsorId; // Restore User ID
                         delete s.sponsor.profile;
                     }
                     return s;
@@ -232,6 +238,31 @@ export const sponsorEvent = async (req, res) => {
             raised: event.raised,
             sponsorship
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Delete event
+// @route   DELETE /api/events/:id
+// @access  Private (Organizer only)
+export const deleteEvent = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id);
+
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Check ownership
+        if (event.organizer.toString() !== req.user._id.toString() && req.user.role !== 'administrator') {
+            return res.status(401).json({ message: 'Not authorized to delete this event' });
+        }
+
+        await Event.deleteOne({ _id: event._id });
+
+        res.json({ message: 'Event removed' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });

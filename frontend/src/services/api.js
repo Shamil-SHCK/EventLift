@@ -347,3 +347,23 @@ export const sponsorEvent = async (id, amount) => {
 
   return data;
 };
+
+// Delete event
+export const deleteEvent = async (id) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/events/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete event');
+  }
+
+  return data;
+};
