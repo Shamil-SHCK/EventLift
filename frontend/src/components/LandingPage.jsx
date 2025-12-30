@@ -270,14 +270,14 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div>
                         <div className="text-2xl font-bold font-heading text-white mb-2">EventLift</div>
-                        <p>Academic Project – B.Tech Final Year</p>
+                        <p>S6 Academic Project – B.Tech Third Year</p>
                     </div>
                     <div className="flex gap-8">
                         <a href="#" className="hover:text-white transition-colors">About</a>
                         <a href="#" className="hover:text-white transition-colors">Transparency Promise</a>
                         <a href="#" className="hover:text-white transition-colors">Contact</a>
                     </div>
-                    <p>© 2025 EventLift. All rights reserved.</p>
+                    <p>© 2026 EventLift. All rights reserved.</p>
                 </div>
             </footer>
         </div>
