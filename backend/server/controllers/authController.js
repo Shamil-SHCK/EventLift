@@ -314,12 +314,37 @@ export const updateProfile = async (req, res) => {
       }, {});
 
     // Check if user has a profile, if not create one (migration safety)    assuming already profile exists for the user
-    // let user = await User.findById(req.user._id);
-    // if (!user.profile) {
-    //   const newProfile = await Profile.create({ user: user._id });
-    //   user.profile = newProfile._id;
-    //   await user.save();
-    // }
+    let user = await User.findById(req.user._id);
+    if (!user.profile) {
+      let profile;
+      if(user.role ==='club-admnin'){
+          profile = await ClubProfile.create({
+          user: user._id,
+          name: user.name,
+          email:user.email,
+          clubName: user.clubName,
+          collegeName: user.collegeName
+        });
+      }
+      if(user.role ==='company'){
+        profile = await CompanyProfile.create({
+          user: user._id,
+          name: user.name,
+          email:user.email,
+          organizationName: user.organizationName
+        });
+      }
+      if(user.role ==='alumni-individual'){
+        profile = await AlumniProfile.create({
+          user: user._id,
+          name: user.name,
+          email: user.email,
+          formerInstitution: user.formerInstitution
+        });
+      }
+      user.profile = profile._id;
+      await user.save();
+    }
     
     //find the user to update the profile
     user = await User.findById(req.user._id).select('-password');
