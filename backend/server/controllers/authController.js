@@ -1,6 +1,9 @@
 import User from '../models/User.js';
 import PendingUser from '../models/PendingUser.js';
-import Profile from '../models/Profile.js';
+// import Profile from '../models/Profile.js';
+import AlumniProfile from '../models/AlumniProfile.js';
+import ClubProfile from '../models/ClubProfile.js';
+import CompanyProfile from '../models/CompanyProfile.js';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
@@ -136,23 +139,55 @@ export const verifyOTP = async (req, res) => {
       password: pendingUser.password,
       role: pendingUser.role,
       isEmailVerified: true,
-      verificationStatus: 'pending'
-    });
-
-    // Create Profile with detailed info
-    const profile = await Profile.create({
-      user: user._id,
-      name: pendingUser.name,
-      clubName: pendingUser.clubName,
-      collegeName: pendingUser.collegeName,
-      organizationName: pendingUser.organizationName,
-      formerInstitution: pendingUser.formerInstitution,
+      verificationStatus: 'pending',
       verificationDocument: pendingUser.verificationDocument,
-      phone: pendingUser.phone,
-      logoUrl: pendingUser.logoUrl,
-      description: pendingUser.description
-    });
+    }); 
+    
+    // Create Profile with detailed info
+    let profile;
+    if(pendingUser.role ==='club-admnin'){
+        profile = await ClubProfile.create({
+        user: user._id,
+        name: pendingUser.name,
+        email:pendingUser.email,
+        clubName: pendingUser.clubName,
+        collegeName: pendingUser.collegeName
+      });
+    }
+    if(pendingUser.role ==='company'){
+       profile = await CompanyProfile.create({
+        user: user._id,
+        name: pendingUser.name,
+        email:pendingUser.email,
+        organizationName: pendingUser.organizationName
+      });
+    }
+    if(pendingUser.role ==='alumni-individual'){
+       profile = await AlumniProfile.create({
+        user: user._id,
+        name: pendingUser.name,
+        email: pendingUser.email,
+        formerInstitution: pendingUser.formerInstitution
+      });
+    }
 
+    console.log("profile created")
+
+    
+
+    // const profile = await Profile.create({
+    //   user: user._id,
+    //   name: pendingUser.name,
+    //   clubName: pendingUser.clubName,
+    //   collegeName: pendingUser.collegeName,
+    //   organizationName: pendingUser.organizationName,
+    //   formerInstitution: pendingUser.formerInstitution,
+    //   verificationDocument: pendingUser.verificationDocument,
+    //   phone: pendingUser.phone,
+    //   logoUrl: pendingUser.logoUrl,
+    //   description: pendingUser.description
+    // });
+    console.log(profile)
     // Link profile to user
     user.profile = profile._id;
     await user.save();
@@ -278,19 +313,46 @@ export const updateProfile = async (req, res) => {
         return obj;
       }, {});
 
-    // Check if user has a profile, if not create one (migration safety)
-    let user = await User.findById(req.user._id);
-    if (!user.profile) {
-      const newProfile = await Profile.create({ user: user._id });
-      user.profile = newProfile._id;
-      await user.save();
+    // Check if user has a profile, if not create one (migration safety)    assuming already profile exists for the user
+    // let user = await User.findById(req.user._id);
+    // if (!user.profile) {
+    //   const newProfile = await Profile.create({ user: user._id });
+    //   user.profile = newProfile._id;
+    //   await user.save();
+    // }
+    
+    //find the user to update the profile
+    user = await User.findById(req.user._id).select('-password');
+    // find profile by roles
+    if(user.role === "club-admin"){
+      const profile = await ClubProfile.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: updates },
+        { new: true, upsert: true }
+      );
     }
+    if(user.role === "alumni-individual"){
+      const profile = await AlumniProfile.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: updates },
+        { new: true, upsert: true }
+      );
+    }
+    if(user.role === "company"){
+      const profile = await CompanyProfile.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: updates },
+        { new: true, upsert: true }
+      );
+    }  
 
-    const profile = await Profile.findOneAndUpdate(
-      { user: req.user._id },
-      { $set: updates },
-      { new: true, upsert: true }
-    );
+
+
+    // const profile = await Profile.findOneAndUpdate(
+    //   { user: req.user._id },
+    //   { $set: updates },
+    //   { new: true, upsert: true }
+    // );
 
     // Fetch refreshed user info
     user = await User.findById(req.user._id).select('-password');

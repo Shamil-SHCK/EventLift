@@ -24,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 import fileRoutes from './routes/fileRoutes.js';
+import mongoose from 'mongoose';
 
 // Routes
 app.use('/api/auth', authRoutes);

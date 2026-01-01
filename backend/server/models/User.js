@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema(
         otpExpire: {
             type: Date,
         },
+        verificationDocument: {
+            data: Buffer,
+            contentType: String
+        }
     },
     {
         timestamps: true,
