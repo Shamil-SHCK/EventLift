@@ -6,38 +6,49 @@ import User from '../models/User.js';
 export const getPendingUsers = async (req, res) => {
     try {
         const users = await User.find({ verificationStatus: 'pending' })
-            .select('-password')
-            .populate('profile'); // Populate profile
-
+            .select('-password -verificationDocument.data')
+            .populate('profile') // Populate profile
+            .lean();
+        console.log(users[0])
         const usersWithDocUrl = users.map(user => {
-            const u = user.toObject();
+            const u = user;
+            if (user.verificationDocument && user.verificationDocument.contentType) {
+                u.verificationDocument = `api/files/user/${user._id}/document`;
+            } else {
+                u.verificationDocument = null;
+            }
+
+
             if (user.profile) {
                 // Merge profile into user object
                 const uProfile = user.profile;
-                if (uProfile.verificationDocument && uProfile.verificationDocument.contentType) {
-                    u.verificationDocument = `api/files/user/${user._id}/document`; // Document moved to profile, route likely needs handling but this keeps API consistent
-                    // Wait, files are fetched by user ID. If document is in profile, fileController needs to find it.
-                    // The requirement is just to show essential info.
-                    // We need to merge all profile fields back to top level for admin dashboard to work without changes.
-                    u.clubName = uProfile.clubName;
-                    u.collegeName = uProfile.collegeName;
-                    u.organizationName = uProfile.organizationName;
-                    u.formerInstitution = uProfile.formerInstitution;
-                }
+                // if (uProfile.verificationDocument && uProfile.verificationDocument.contentType) {
+                //     u.verificationDocument = `api/files/user/${user._id}/document`; // Document moved to profile, route likely needs handling but this keeps API consistent
+                //     // Wait, files are fetched by user ID. If document is in profile, fileController needs to find it.
+                //     // The requirement is just to show essential info.
+                //     // We need to merge all profile fields back to top level for admin dashboard to work without changes.
+                //     u.clubName = uProfile.clubName;
+                //     u.collegeName = uProfile.collegeName;
+                //     u.organizationName = uProfile.organizationName;
+                //     u.formerInstitution = uProfile.formerInstitution;
+                // }
                 // Also merge document status logic if needed, but let's assume fileController is unchanged for now
                 // Actually, fileController finds User. We need to update that too if we moved document. 
                 // For now, let's just make sure profile data is visible.
-                u.clubName = uProfile.clubName || u.clubName;
-                u.collegeName = uProfile.collegeName || u.collegeName;
-                u.organizationName = uProfile.organizationName || u.organizationName;
-                u.formerInstitution = uProfile.formerInstitution || u.formerInstitution;
+                // u.clubName = uProfile.clubName || u.clubName;
+                // u.collegeName = uProfile.collegeName || u.collegeName;
+                // u.organizationName = uProfile.organizationName || u.organizationName;
+                // u.formerInstitution = uProfile.formerInstitution || u.formerInstitution;
 
+
+                u.clubName = uProfile.clubName;
+                u.collegeName = uProfile.collegeName;
+                u.organizationName = uProfile.organizationName;
+                u.formerInstitution = uProfile.formerInstitution;
                 // Handle verification document specifically
-                if (uProfile.verificationDocument && uProfile.verificationDocument.contentType) {
-                    u.verificationDocument = `api/files/user/${user._id}/document`;
-                } else {
-                    u.verificationDocument = null;
-                }
+                // if (uProfile.verificationDocument && uProfile.verificationDocument.contentType) {
+                //   u.verificationDocument = `api/files/user/${user._id}/document`;
+                //}
             }
             return u;
         });
@@ -93,10 +104,11 @@ export const verifyUser = async (req, res) => {
 export const getAllUsers = async (req, res) => {
     try {
         const users = await User.find()
-            .select('-password')
-            .populate('profile');
+            .select('-password -verificationDocument.data')
+            .populate('profile')
+            .lean();
         const usersWithDocUrl = users.map(user => {
-            const u = user.toObject();
+            const u = user;
 
             if (user.profile) {
                 const uProfile = user.profile;
@@ -105,13 +117,11 @@ export const getAllUsers = async (req, res) => {
                 u.organizationName = uProfile.organizationName;
                 u.formerInstitution = uProfile.formerInstitution;
 
-                if (uProfile.verificationDocument && uProfile.verificationDocument.contentType) {
+                if (user.verificationDocument && user.verificationDocument.contentType) {
                     u.verificationDocument = `api/files/user/${user._id}/document`;
                 } else {
                     u.verificationDocument = null;
                 }
-            } else {
-                u.verificationDocument = null;
             }
 
             return u;

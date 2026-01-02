@@ -10,12 +10,12 @@ import PendingUser from '../models/PendingUser.js';
 // @access  Private (Admin or Owner)
 export const getUserDocument = async (req, res) => {
     try {
-        let user = await User.findById(req.params.id).populate('profile');
+        let user = await User.findById(req.params.id);
 
         let doc = null;
 
-        if (user && user.profile) {
-            doc = user.profile.verificationDocument;
+        if (user) {
+            doc = user.verificationDocument;
         }
 
         // If not in main User or Profile, check PendingUser (for admin verification during registration)

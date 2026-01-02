@@ -36,6 +36,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
     useEffect(() => {
         const fetchUsers = async () => {
+            setLoading(true);
             try {
                 let data;
                 if (filter === 'pending') {
@@ -149,8 +150,8 @@ const AdminPanel = ({ isEmbedded = false }) => {
                     <button
                         onClick={() => setFilter('pending')}
                         className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${filter === 'pending'
-                                ? 'bg-white text-blue-600 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         Pending Review
@@ -158,8 +159,8 @@ const AdminPanel = ({ isEmbedded = false }) => {
                     <button
                         onClick={() => setFilter('all')}
                         className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${filter === 'all'
-                                ? 'bg-white text-blue-600 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         All Users

@@ -6,6 +6,7 @@ import ClubProfile from '../models/ClubProfile.js';
 import CompanyProfile from '../models/CompanyProfile.js';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
+import { getUserProfile, createUserProfile } from '../utils/UserProfilesHandler.js';
 import crypto from 'crypto';
 
 // @desc    Register new user
@@ -144,49 +145,34 @@ export const verifyOTP = async (req, res) => {
     }); 
     
     // Create Profile with detailed info
-    let profile;
-    if(pendingUser.role ==='club-admnin'){
-        profile = await ClubProfile.create({
-        user: user._id,
-        name: pendingUser.name,
-        email:pendingUser.email,
-        clubName: pendingUser.clubName,
-        collegeName: pendingUser.collegeName
-      });
-    }
-    if(pendingUser.role ==='company'){
-       profile = await CompanyProfile.create({
-        user: user._id,
-        name: pendingUser.name,
-        email:pendingUser.email,
-        organizationName: pendingUser.organizationName
-      });
-    }
-    if(pendingUser.role ==='alumni-individual'){
-       profile = await AlumniProfile.create({
-        user: user._id,
-        name: pendingUser.name,
-        email: pendingUser.email,
-        formerInstitution: pendingUser.formerInstitution
-      });
-    }
+    let profile = await createUserProfile(pendingUser) ;
+    // if(pendingUser.role ==='club-admin'){
+    //     profile = await ClubProfile.create({
+    //     user: user._id,
+    //     name: pendingUser.name,
+    //     email:pendingUser.email,
+    //     clubName: pendingUser.clubName,
+    //     collegeName: pendingUser.collegeName
+    //   });
+    // }
+    // if(pendingUser.role ==='company'){
+    //    profile = await CompanyProfile.create({
+    //     user: user._id,
+    //     name: pendingUser.name,
+    //     email:pendingUser.email,
+    //     organizationName: pendingUser.organizationName
+    //   });
+    // }
+    // if(pendingUser.role ==='alumni-individual'){
+    //    profile = await AlumniProfile.create({
+    //     user: user._id,
+    //     name: pendingUser.name,
+    //     email: pendingUser.email,
+    //     formerInstitution: pendingUser.formerInstitution
+    //   });
+    // }
 
     console.log("profile created")
-
-    
-
-    // const profile = await Profile.create({
-    //   user: user._id,
-    //   name: pendingUser.name,
-    //   clubName: pendingUser.clubName,
-    //   collegeName: pendingUser.collegeName,
-    //   organizationName: pendingUser.organizationName,
-    //   formerInstitution: pendingUser.formerInstitution,
-    //   verificationDocument: pendingUser.verificationDocument,
-    //   phone: pendingUser.phone,
-    //   logoUrl: pendingUser.logoUrl,
-    //   description: pendingUser.description
-    // });
     console.log(profile)
     // Link profile to user
     user.profile = profile._id;
@@ -227,7 +213,7 @@ export const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Check for user email
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password -verificationDocument');
 
     if (user && (await user.matchPassword(password))) {
       // With the new flow, isEmailVerified should always be true for users in the main DB,
@@ -271,7 +257,7 @@ export const loginUser = async (req, res) => {
 // @access  Private
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('profile');
+    const user = await User.findById(req.user._id).select('-verificationDocument -password').populate('profile');
     const profile = user.profile || {};
 
     res.json({
@@ -313,58 +299,36 @@ export const updateProfile = async (req, res) => {
         return obj;
       }, {});
 
-    // Check if user has a profile, if not create one (migration safety)    assuming already profile exists for the user
+    // Check if user has a profile, if not create one (migration safety)    
     let user = await User.findById(req.user._id);
+    let profile;
     if (!user.profile) {
-      let profile;
-      if(user.role ==='club-admnin'){
-          profile = await ClubProfile.create({
-          user: user._id,
-          name: user.name,
-          email:user.email,
-          clubName: user.clubName,
-          collegeName: user.collegeName
-        });
-      }
-      if(user.role ==='company'){
-        profile = await CompanyProfile.create({
-          user: user._id,
-          name: user.name,
-          email:user.email,
-          organizationName: user.organizationName
-        });
-      }
-      if(user.role ==='alumni-individual'){
-        profile = await AlumniProfile.create({
-          user: user._id,
-          name: user.name,
-          email: user.email,
-          formerInstitution: user.formerInstitution
-        });
+        profile = await getUserProfile(user)
       }
       user.profile = profile._id;
       await user.save();
-    }
+    
     
     //find the user to update the profile
     user = await User.findById(req.user._id).select('-password');
+
     // find profile by roles
     if(user.role === "club-admin"){
-      const profile = await ClubProfile.findOneAndUpdate(
+       profile = await ClubProfile.findOneAndUpdate(
         { user: req.user._id },
         { $set: updates },
         { new: true, upsert: true }
       );
     }
     if(user.role === "alumni-individual"){
-      const profile = await AlumniProfile.findOneAndUpdate(
+       profile = await AlumniProfile.findOneAndUpdate(
         { user: req.user._id },
         { $set: updates },
         { new: true, upsert: true }
       );
     }
     if(user.role === "company"){
-      const profile = await CompanyProfile.findOneAndUpdate(
+       profile = await CompanyProfile.findOneAndUpdate(
         { user: req.user._id },
         { $set: updates },
         { new: true, upsert: true }

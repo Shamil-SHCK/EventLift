@@ -32,12 +32,17 @@ const userSchema = new mongoose.Schema(
         },
         profile: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Profile'
+            refPath: 'profileType'
+        },
+        profileType: {
+            type: String,
+            enum: ['ClubProfile', 'AlumniProfile', 'CompanyProfile'],
         },
         verificationStatus: {
             type: String,
             enum: ['pending', 'verified', 'rejected'],
             default: 'pending',
+            index: true,
         },
         isEmailVerified: {
             type: Boolean,

@@ -1,6 +1,9 @@
 import Event from '../models/Event.js';
 import User from '../models/User.js';
 import Profile from '../models/Profile.js';
+import ClubProfile from '../models/ClubProfile.js';
+import AlumniProfile from '../models/AlumniProfile.js';
+import CompanyProfile from '../models/CompanyProfile.js';
 
 // @desc    Create new event
 // @route   POST /api/events
@@ -66,10 +69,11 @@ export const getEvents = async (req, res) => {
                 select: 'name profile',
                 populate: { path: 'profile', select: 'clubName logoUrl' }
             })
-            .sort({ date: 1 }); // Sort by date (nearest first)
+            .sort({ date: 1 }) // Sort by date (nearest first)
+            .lean();
 
         const eventsWithUrls = events.map(event => {
-            const e = event.toObject();
+            const e = event;
 
             // Flatten organizer profile into organizer object if profile exists
             if (e.organizer && e.organizer.profile) {
@@ -227,15 +231,19 @@ export const sponsorEvent = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
         console.log(user.profile);
-        const profile = await Profile.findById(user.profile);
-        console.log(profile);
-        console.log(profile.name)
+        let profile;
+        if(user.role === 'club-admin') profile = await ClubProfile.findById(user.profile);
+        if(user.role === 'company') profile = await CompanyProfile.findById(user.profile);
+        if(user.role === 'alumni-individual') profile = await AlumniProfile.findById(user.profile);
         if (!profile) {
             return res.status(404).json({ message: 'Profile not found' });
         }
+        console.log(profile);
+        console.log(profile.name)
+        
         const sponsorship = {
             sponsor: user.profile,
-            name: profile.name? profile.name : profile.organizationName? profile.organizationName : "",
+            name: profile.organizationName ? profile.organizationName : profile.name  ? profile.name : "",
             amount: Number(amount),
             date: Date.now()
         };
