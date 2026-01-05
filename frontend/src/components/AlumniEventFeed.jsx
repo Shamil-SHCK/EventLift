@@ -141,7 +141,7 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                                             <span className="text-xs">{event.organizer?.clubName?.[0] || 'C'}</span>
                                         )}
                                     </span>
-                                    {event.organizer.profile?.clubName || 'Unknown Club'}
+                                    {event.organizer?.clubName || 'Unknown Club'}
                                 </p>
                             </div>
                         </div>

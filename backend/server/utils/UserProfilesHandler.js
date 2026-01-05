@@ -32,7 +32,7 @@ export const createUserProfile = async (pendingUser, user) =>{
             profileData.formerInstitution = pendingUser.formerInstitution
             profile = await AlumniProfile.create(profileData)
         }
-        
+        console.log(profile)
         return profile
     }catch(error){
         console.log(error)

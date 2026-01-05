@@ -142,11 +142,11 @@ export const verifyOTP = async (req, res) => {
       isEmailVerified: true,
       verificationStatus: 'pending',
       verificationDocument: pendingUser.verificationDocument,
-    }); 
-    
+    });
+
     // Create Profile with detailed info
-    let profile = await createUserProfile(pendingUser, user) ;
-   
+    let profile = await createUserProfile(pendingUser, user);
+
 
     console.log("profile created")
     console.log(profile)
@@ -278,38 +278,38 @@ export const updateProfile = async (req, res) => {
     // Check if user has a profile, if not create one (migration safety)    
     let user = await User.findById(req.user._id);
     let profile;
-    if (!user.profile) {
-        profile = await getUserProfile(user)
-      }
-      user.profile = profile._id;
-      await user.save();
-    
-    
+    if (user.profile) {
+      profile = await getUserProfile(user)
+    }
+    user.profile = profile._id;
+    await user.save();
+
+
     //find the user to update the profile
     user = await User.findById(req.user._id).select('-password');
 
     // find profile by roles
-    if(user.role === "club-admin"){
-       profile = await ClubProfile.findOneAndUpdate(
+    if (user.role === "club-admin") {
+      profile = await ClubProfile.findOneAndUpdate(
         { user: req.user._id },
         { $set: updates },
         { new: true, upsert: true }
       );
     }
-    if(user.role === "alumni-individual"){
-       profile = await AlumniProfile.findOneAndUpdate(
+    if (user.role === "alumni-individual") {
+      profile = await AlumniProfile.findOneAndUpdate(
         { user: req.user._id },
         { $set: updates },
         { new: true, upsert: true }
       );
     }
-    if(user.role === "company"){
-       profile = await CompanyProfile.findOneAndUpdate(
+    if (user.role === "company") {
+      profile = await CompanyProfile.findOneAndUpdate(
         { user: req.user._id },
         { $set: updates },
         { new: true, upsert: true }
       );
-    }  
+    }
 
 
 

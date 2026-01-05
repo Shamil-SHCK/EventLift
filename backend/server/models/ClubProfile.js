@@ -2,34 +2,34 @@ import mongoose from "mongoose";
 
 const clubProfileSchemna = mongoose.Schema(
     {
-        user:{
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User",
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
-            unique:true
+            unique: true
         },
-        name:{
-            type:String,
-            required:true,
-        },
-        email:{
-            type:String,
-            requied:true,
-            unique:true
-        },
-        clubName:{
+        name: {
             type: String,
             required: true,
         },
-        collegeName:{
-            type:String,
-            required:true
+        email: {
+            type: String,
+            requied: true,
+            unique: true
         },
-        events:[{
-            event:{
+        clubName: {
+            type: String,
+            required: true,
+        },
+        collegeName: {
+            type: String,
+            required: true
+        },
+        events: [{
+            event: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref:"Event",
-                required:true
+                ref: "Event",
+                required: true
             }
         }],
         phone: {
@@ -46,7 +46,7 @@ const clubProfileSchemna = mongoose.Schema(
     {
         timestamps: true
     }
-) 
+)
 
 
 const ClubProfile = mongoose.model("ClubProfile", clubProfileSchemna)

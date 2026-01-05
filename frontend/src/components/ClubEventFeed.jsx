@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getEvents } from '../services/api';
+import { getEvents, getEventById } from '../services/api';
 import { Rocket, Calendar, MapPin, Search } from 'lucide-react';
 
 // Club Feed - View Only (Clubs generally don't sponsor others in this context, but can see them)
@@ -14,9 +14,11 @@ const ClubEventFeed = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const data = await getEvents();
+                const data = await getEventById();
                 setEvents(data);
                 setFilteredEvents(data);
+                console.log(data);
+                console.log(events);
             } catch (error) {
                 console.error('Failed to fetch events', error);
             } finally {
@@ -41,7 +43,6 @@ const ClubEventFeed = () => {
         if (selectedCategory !== 'All') {
             result = result.filter(e => e.category === selectedCategory);
         }
-
         setFilteredEvents(result);
     }, [searchQuery, selectedCategory, events]);
 

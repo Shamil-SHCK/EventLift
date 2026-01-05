@@ -29,7 +29,7 @@ export const createEvent = async (req, res) => {
                 };
             }
         }
-
+        const profile = await getUserProfile(req.user);
         const event = await Event.create({
             title,
             description,
@@ -38,13 +38,12 @@ export const createEvent = async (req, res) => {
             location,
             category,
             budget,
-            organizer: req.user._id,
+            organizer: profile._id,
             poster,
             brochure
         });
-        
+
         // Link Event With the Profile
-        const profile = await getUserProfile(req.user);
         if (profile) {
             const eventData = {
                 event: event._id
@@ -52,7 +51,7 @@ export const createEvent = async (req, res) => {
             profile.events.push(eventData);
             await profile.save();
         }
-        if(!profile){
+        if (!profile) {
             res.status(404).json({ message: 'Profile not found' });
         }
 
@@ -80,25 +79,17 @@ export const getEvents = async (req, res) => {
             .select('-poster.data -brochure.data')
             .populate({
                 path: 'organizer',
-                select: 'name profile',
-                populate: { path: 'profile', select: 'clubName logoUrl' }
+                select: 'name clubName logoUrl'
             })
             .sort({ date: 1 }) // Sort by date (nearest first)
             .lean();
-
         const eventsWithUrls = events.map(event => {
             const e = event;
+            // console.log(e);
+            // Organizer is now ClubProfile, so clubName is directly accessible
+            // Log to debug if needed
+            // console.log(e.organizer);
 
-            // Flatten organizer profile into organizer object if profile exists
-            if (e.organizer && e.organizer.profile) {
-                console.log(e.organizer)
-                const organizerId = e.organizer._id; // Preserve User ID
-                e.organizer = { ...e.organizer, ...e.organizer.profile };
-                e.organizer._id = organizerId; // Restore User ID
-                // delete e.organizer.profile;
-                 e.organizer.clubName = e.organizer.profile.clubName;
-            }
-           
             if (event.poster && event.poster.contentType) {
                 e.poster = `api/files/event/${event._id}/poster`;
             } else {
@@ -128,24 +119,31 @@ export const getEventById = async (req, res) => {
             .select('-poster.data -brochure.data')
             .populate({
                 path: 'organizer',
-                select: 'name profile',
-                populate: { path: 'profile', select: 'clubName description logoUrl' }
+                select: 'name clubName description logoUrl'
             })
             .populate({
                 path: 'sponsors.sponsor',
                 select: 'name role profile',
                 populate: { path: 'profile', select: 'organizationName formerInstitution logoUrl' }
             });
-
+            console.log(event);
         if (event) {
             const e = event.toObject();
 
-            // Flatten organizer profile
-            if (e.organizer && e.organizer.profile) {
-                const organizerId = e.organizer._id; // Preserve User ID
-                e.organizer = { ...e.organizer, ...e.organizer.profile };
-                e.organizer._id = organizerId; // Restore User ID
-                delete e.organizer.profile;
+            // Organizer is now ClubProfile, no need to flatten nested profile
+            // e.organizer properties are already available
+
+            // Flatten sponsor profiles
+            if (e.sponsors) {
+                e.sponsors = e.sponsors.map(s => {
+                    if (s.sponsor && s.sponsor.profile) {
+                        const sponsorId = s.sponsor._id; // Preserve User ID
+                        s.sponsor = { ...s.sponsor, ...s.sponsor.profile };
+                        s.sponsor._id = sponsorId; // Restore User ID
+                        delete s.sponsor.profile;
+                    }
+                    return s;
+                });
             }
 
             // Flatten sponsor profiles
@@ -246,20 +244,21 @@ export const sponsorEvent = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        console.log(user.profile);
+        console.log(user);
         let profile;
-        if(user.role === 'club-admin') profile = await ClubProfile.findById(user.profile);
-        if(user.role === 'company') profile = await CompanyProfile.findById(user.profile);
-        if(user.role === 'alumni-individual') profile = await AlumniProfile.findById(user.profile);
+        // if(user.role === 'club-admin') profile = await ClubProfile.findById(user.profile);
+        // if(user.role === 'company') profile = await CompanyProfile.findById(user.profile);
+        // if(user.role === 'alumni-individual') profile = await AlumniProfile.findById(user.profile);
+        profile = await getUserProfile(user);
         if (!profile) {
             return res.status(404).json({ message: 'Profile not found' });
         }
         console.log(profile);
         console.log(profile.name)
-        
+
         const sponsorship = {
             sponsor: user.profile,
-            name: profile.organizationName ? profile.organizationName : profile.name  ? profile.name : "",
+            name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
             amount: Number(amount),
             date: Date.now()
         };
@@ -303,7 +302,7 @@ export const deleteEvent = async (req, res) => {
             return res.status(404).json({ message: 'Profile not found' });
         }
         await Event.deleteOne({ _id: event._id });
-        await profile.events.pull({ event: event._id});
+        await profile.events.pull({ event: event._id });
         await profile.save();
 
         res.json({ message: 'Event removed' });
