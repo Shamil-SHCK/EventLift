@@ -50,11 +50,13 @@ const ClubDashboard = () => {
                 const eventsData = await getEvents();
                 // Filter events created by this club
                 const myEvents = eventsData.filter(event => {
+                    console.log(event)
                     if (!event.organizer) return false;
                     const orgId = typeof event.organizer === 'object' ? event.organizer._id : event.organizer;
                     return orgId === userData._id;
                 });
                 setEvents(myEvents);
+                console.log(myEvents);
             } catch (error) {
                 console.error('Failed to fetch data', error);
                 logoutUser();
