@@ -118,7 +118,7 @@ const GigOpportunities = () => {
 
                                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                                     <div className="text-xs text-gray-500">
-                                        Posted by <span className="font-medium text-gray-900">{gig.company?.companyName || 'Unknown'}</span>
+                                        Posted by <span className="font-medium text-gray-900">{gig.company?.name || 'Unknown'}</span>
                                     </div>
                                     <button
                                         onClick={() => handleAccept(gig._id)}

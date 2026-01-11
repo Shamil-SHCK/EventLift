@@ -22,7 +22,22 @@ export const getAllGigs = async (req, res) => {
         if (category) query.category = category;
         if (minBudget) query.budget = { $gte: minBudget };
 
-        const gigs = await Gig.find(query).populate('company', 'companyName');
+        // Populate company (User) and then populate its profile to get specific company details if needed
+        // Or just use the User's 'name' which is required
+        const gigs = await Gig.find(query).populate({
+            path: 'company',
+            select: 'name email'
+        });
+        res.json(gigs);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// 4. Feature: Get Company's posted gigs
+export const getMyGigs = async (req, res) => {
+    try {
+        const gigs = await Gig.find({ company: req.user.id })
+            .populate('assignedClub', 'name email')
+            .sort({ createdAt: -1 });
         res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };

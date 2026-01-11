@@ -24,6 +24,11 @@ export const getOpenGigs = (filters) => {
     return request(`/gigs${queryString}`, { method: 'GET' });
 };
 
+// Feature: Get Company's posted gigs
+export const getMyGigs = () => {
+    return request('/gigs/my-gigs', { method: 'GET' });
+};
+
 // Backlog: Accept gig work 
 export const acceptGig = (gigId) => {
     return request(`/gigs/${gigId}/accept`, { method: 'PUT' });
