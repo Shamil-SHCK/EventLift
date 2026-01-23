@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent } from '../services/api';
+import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
-import { Rocket, Target, DollarSign, Calendar, Plus, X, Upload, MapPin, Tag, Clock } from 'lucide-react';
+import { Rocket, DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react';
+import ClubEventList from './ClubEventList';
+import CreateEventModal from './CreateEventModal';
 
 const ClubDashboard = () => {
     const [user, setUser] = useState(null);
     const [events, setEvents] = useState([]);
+    const [acceptedGigs, setAcceptedGigs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [showSponsorsModal, setShowSponsorsModal] = useState(false);
@@ -15,6 +19,8 @@ const ClubDashboard = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
     const navigate = useNavigate();
+
+    const [viewMode, setViewMode] = useState('events'); // 'events' or 'gigs'
 
     const handleViewSponsors = (event) => {
         setSelectedEvent(event);
@@ -49,15 +55,32 @@ const ClubDashboard = () => {
 
                 // Fetch Events
                 const eventsData = await getEvents();
+                console.log('Fetched Events:', eventsData);
+                console.log('Current User:', userData);
+
                 // Filter events created by this club
                 const myEvents = eventsData.filter(event => {
                     console.log(event)
                     if (!event.organizer) return false;
+
+                    // Check Logic 1: ID Match
                     const orgId = typeof event.organizer === 'object' ? event.organizer._id : event.organizer;
-                    return orgId === userData.profile;
+                    const idMatch = String(orgId) === String(userData._id);
+
+                    // Check Logic 2: Club Name Match (Fallback)
+                    const orgClubName = typeof event.organizer === 'object' ? event.organizer.clubName : null;
+                    const nameMatch = userData.clubName && orgClubName && userData.clubName === orgClubName;
+
+                    return idMatch || nameMatch;
                 });
+                console.log('Filtered Events:', myEvents);
+                console.log('Filtered Events:', myEvents);
                 setEvents(myEvents);
-                console.log(myEvents);
+
+                // Fetch Accepted Gigs
+                const gigsData = await getAcceptedGigs();
+                setAcceptedGigs(gigsData);
+
             } catch (error) {
                 console.error('Failed to fetch data', error);
                 logoutUser();
@@ -159,6 +182,72 @@ const ClubDashboard = () => {
     const totalRaised = events.reduce((sum, event) => sum + (event.raised || 0), 0);
     const activeEvents = events.filter(e => new Date(e.date) >= new Date()).length;
 
+    const handleMarkGigDone = async (gigId) => {
+        if (window.confirm('Are you sure you want to mark this gig as done?')) {
+            try {
+                const updatedGig = await markGigComplete(gigId);
+                setAcceptedGigs(acceptedGigs.map(g => g._id === gigId ? { ...g, status: 'completed' } : g));
+            } catch (error) {
+                console.error(error);
+                alert('Failed to update gig status');
+            }
+        }
+    };
+
+    const AcceptedGigsSection = () => (
+        <div className="mt-8">
+            <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
+                <Briefcase className="w-6 h-6 text-indigo-600" />
+                Accepted <span className="text-indigo-600">Gigs</span>
+            </h2>
+
+            {acceptedGigs.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {acceptedGigs.map(gig => (
+                        <div key={gig._id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+                            {gig.status === 'completed' && (
+                                <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
+                                    COMPLETED
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 line-clamp-1 mb-1">{gig.title}</h3>
+                                    <p className="text-sm text-slate-500 font-medium">
+                                        by <span className="text-indigo-600">{gig.company?.organizationName || gig.company?.name || 'Unknown Company'}</span>
+                                    </p>
+                                </div>
+                                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full text-nowrap ml-2">
+                                    {gig.category}
+                                </span>
+                            </div>
+
+                            <p className="text-slate-600 text-sm mb-6 line-clamp-2 leading-relaxed">{gig.description}</p>
+
+                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
+                                <div className="font-bold text-slate-900 text-lg">₹{gig.budget.toLocaleString()}</div>
+                                {gig.status !== 'completed' && (
+                                    <button
+                                        onClick={() => handleMarkGigDone(gig._id)}
+                                        className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm shadow-green-200"
+                                    >
+                                        Mark Done
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center">
+                    <p className="text-slate-500">You haven't accepted any gigs yet.</p>
+                    <button onClick={() => navigate('/club/gig-opportunities')} className="text-indigo-600 font-bold hover:underline mt-2">Browse Gigs</button>
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <DashboardLayout user={user}>
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -168,12 +257,14 @@ const ClubDashboard = () => {
                     </h1>
                     <p className="text-slate-500 text-lg">Manage your events and sponsorships.</p>
                 </div>
-                <button
-                    onClick={() => { setIsEditing(false); setShowModal(true); }}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all"
-                >
-                    <Plus className="w-5 h-5" /> New Event
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => { setIsEditing(false); setShowModal(true); }}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all"
+                    >
+                        <Plus className="w-5 h-5" /> New Event
+                    </button>
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -203,76 +294,48 @@ const ClubDashboard = () => {
                 </div>
             </div>
 
-            {/* Event List */}
-            {events.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center border dashed border-slate-200">
-                    <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Rocket className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Create Your First Event</h3>
-                    <p className="text-slate-500 max-w-md mx-auto mb-6">Start by creating an event to attract sponsors and manage your fundraising campaigns effectively.</p>
-                    <button onClick={() => { setIsEditing(false); setShowModal(true); }} className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
-                        Create Event
+            {/* View Toggle */}
+            <div className="flex mb-8">
+                <div className="bg-blue-600 p-1 rounded-xl inline-flex shadow-inner">
+                    <button
+                        onClick={() => setViewMode('events')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'events'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Your Events
+                    </button>
+                    <button
+                        onClick={() => setViewMode('gigs')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'gigs'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Accepted Gigs
                     </button>
                 </div>
+            </div>
+
+            {/* Content Area */}
+            {viewMode === 'events' ? (
+                <div className="mb-8 animate-fadeIn">
+                    <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
+                        <Calendar className="w-6 h-6 text-indigo-600" />
+                        Your <span className="text-indigo-600">Events</span>
+                    </h2>
+                    <ClubEventList
+                        events={events}
+                        handleViewSponsors={handleViewSponsors}
+                        handleEditEvent={handleEditEvent}
+                        handleDeleteEvent={handleDeleteEvent}
+                        openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
+                    />
+                </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {events.map(event => (
-                        <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group">
-                            <div className="h-48 bg-slate-100 relative overflow-hidden">
-                                {event.poster ? (
-                                    <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
-                                        <Rocket className="w-12 h-12" />
-                                    </div>
-                                )}
-                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-700">
-                                    {event.category}
-                                </div>
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold font-heading text-slate-900 mb-2 truncate" title={event.title}>{event.title}</h3>
-                                <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
-                                    <div className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {new Date(event.date).toLocaleDateString()}</div>
-                                    <div className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {event.location}</div>
-                                </div>
-                                <div className="mb-6">
-                                    <div className="flex justify-between text-sm font-semibold mb-1">
-                                        <span className="text-slate-700">₹{event.raised || 0} raised</span>
-                                        <span className="text-slate-400">Target: ₹{event.budget}</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-blue-600 rounded-full"
-                                            style={{ width: `${Math.min(100, ((event.raised || 0) / event.budget) * 100)}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleViewSponsors(event)}
-                                        className="flex-1 py-2.5 rounded-lg border border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-                                    >
-                                        Sponsors
-                                    </button>
-                                    <button
-                                        onClick={() => handleEditEvent(event)}
-                                        className="flex-1 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
-                                    >
-                                        Edit
-                                    </button>
-                                </div>
-                                <button
-                                    onClick={() => handleDeleteEvent(event._id)}
-                                    className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"
-                                >
-                                    Delete Event
-                                </button>
-                            </div>
-                        </div>
-                    ))} 
-                    
+                <div className="animate-fadeIn">
+                    <AcceptedGigsSection />
                 </div>
             )}
 
@@ -299,10 +362,10 @@ const ClubDashboard = () => {
                                         <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-slate-200 text-slate-400 font-bold overflow-hidden">
-                                                    {s.sponsor.logoUrl ? <img src={s.sponsor.logoUrl} alt="logo" className="w-full h-full object-cover" /> : (s.name?s.name[0] : 'C')}
+                                                    {s.sponsor.logoUrl ? <img src={s.sponsor.logoUrl} alt="logo" className="w-full h-full object-cover" /> : (s.name ? s.name[0] : 'C')}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-slate-900">{/*{s.organizationName?.organizationName || s.name?.name || 'Unknown Sponsor'}*/}{s.name? s.name : 'Unknown Sponsor'}</h4>
+                                                    <h4 className="font-bold text-slate-900">{s.name ? s.name : 'Unknown Sponsor'}</h4>
                                                     <p className="text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
@@ -326,146 +389,17 @@ const ClubDashboard = () => {
             )}
 
             {/* Create Event Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl relative shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
-                        <button
-                            onClick={handleCloseModal}
-                            className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-
-                        <div className="p-8 border-b border-slate-100">
-                            <h2 className="text-2xl font-bold font-heading text-slate-900">{isEditing ? 'Edit Event' : 'Create New Event'}</h2>
-                            <p className="text-slate-500">{isEditing ? 'Update your event details.' : 'Share your event details to attract sponsors.'}</p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2 col-span-2">
-                                    <label className="text-sm font-bold text-slate-700">Event Title</label>
-                                    <input
-                                        type="text" name="title" required
-                                        value={formData.title} onChange={handleInputChange}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
-                                        placeholder="e.g. TechNova 2025"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Date</label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="date" name="date" required
-                                            value={formData.date} onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Time</label>
-                                    <div className="relative">
-                                        <Clock className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="time" name="time" required
-                                            value={formData.time} onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Location</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="text" name="location" required
-                                            value={formData.location} onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
-                                            placeholder="e.g. Main Auditorium"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Category</label>
-                                    <div className="relative">
-                                        <Tag className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
-                                        <select
-                                            name="category" required
-                                            value={formData.category} onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all appearance-none"
-                                        >
-                                            <option value="Technical">Technical</option>
-                                            <option value="Cultural">Cultural</option>
-                                            <option value="Sports">Sports</option>
-                                            <option value="Workshop">Workshop</option>
-                                            <option value="Seminar">Seminar</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 col-span-2">
-                                    <label className="text-sm font-bold text-slate-700">Description</label>
-                                    <textarea
-                                        name="description" required
-                                        value={formData.description} onChange={handleInputChange}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all min-h-[100px]"
-                                        placeholder="Describe your event highlights..."
-                                    />
-                                </div>
-
-                                <div className="space-y-2 col-span-2">
-                                    <label className="text-sm font-bold text-slate-700">Budget Goal (₹)</label>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="number" name="budget" required min="0"
-                                            value={formData.budget} onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
-                                            placeholder="50000"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Event Poster</label>
-                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                            <p className="text-xs text-slate-500">{files.poster ? files.poster.name : "Upload Image"}</p>
-                                        </div>
-                                        <input type="file" name="poster" onChange={handleFileChange} accept="image/*" className="hidden" />
-                                    </label>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Sponsorship Brochure (PDF)</label>
-                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                            <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF"}</p>
-                                        </div>
-                                        <input type="file" name="brochure" onChange={handleFileChange} accept=".pdf" className="hidden" />
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={submitting}
-                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-70"
-                            >
-                                {submitting ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Event' : 'Launch Event')}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <CreateEventModal
+                isOpen={showModal}
+                onClose={handleCloseModal}
+                onSubmit={handleSubmit}
+                isEditing={isEditing}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                files={files}
+                handleFileChange={handleFileChange}
+                submitting={submitting}
+            />
         </DashboardLayout>
     );
 };

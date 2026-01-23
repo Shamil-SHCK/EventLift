@@ -24,11 +24,13 @@ app.use(express.urlencoded({ extended: true }));
 
 
 import fileRoutes from './routes/fileRoutes.js';
+import gigRoutes from './routes/gigRoutes.js';
 import mongoose from 'mongoose';
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/gigs', gigRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/files', fileRoutes);
 

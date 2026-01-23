@@ -16,6 +16,17 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, role, clubName, collegeName, organizationName, formerInstitution } = req.body;
 
+    // Validate role-specific required fields
+    if (role === 'club-admin' && (!clubName || !collegeName)) {
+      return res.status(400).json({ message: 'Club Name and College Name are required for Club Admins' });
+    }
+    if (role === 'company' && !organizationName) {
+      return res.status(400).json({ message: 'Organization Name is required for Company accounts' });
+    }
+    if (role === 'alumni-individual' && !formerInstitution) {
+      return res.status(400).json({ message: 'Former Institution is required for Alumni accounts' });
+    }
+
     // Check if user already exists in main User collection
     const userExists = await User.findOne({ email });
 
@@ -133,6 +144,16 @@ export const verifyOTP = async (req, res) => {
       description: pendingUser.description
     };
 
+    // Check if a user with this email already exists (Ghost user from failed verification)
+    const existingUser = await User.findOne({ email: pendingUser.email });
+    if (existingUser) {
+      await User.findByIdAndDelete(existingUser._id);
+    }
+    // Also cleanup any orphaned profiles to prevent duplicate key errors
+    await ClubProfile.deleteOne({ email: pendingUser.email });
+    await CompanyProfile.deleteOne({ email: pendingUser.email });
+    await AlumniProfile.deleteOne({ email: pendingUser.email });
+
     // Create new user in main collection (Essentials only)
     const user = await User.create({
       name: pendingUser.name,
@@ -145,13 +166,48 @@ export const verifyOTP = async (req, res) => {
     });
 
     // Create Profile with detailed info
-    let profile = await createUserProfile(pendingUser, user);
-
+    let profile = await createUserProfile(pendingUser, user._id);
+    // if(pendingUser.role ==='club-admin'){
+    //     profile = await ClubProfile.create({
+    //     user: user._id,
+    //     name: pendingUser.name,
+    //     email:pendingUser.email,
+    //     clubName: pendingUser.clubName,
+    //     collegeName: pendingUser.collegeName
+    //   });
+    // }
+    // if(pendingUser.role ==='company'){
+    //    profile = await CompanyProfile.create({
+    //     user: user._id,
+    //     name: pendingUser.name,
+    //     email:pendingUser.email,
+    //     organizationName: pendingUser.organizationName
+    //   });
+    // }
+    // if(pendingUser.role ==='alumni-individual'){
+    //    profile = await AlumniProfile.create({
+    //     user: user._id,
+    //     name: pendingUser.name,
+    //     email: pendingUser.email,
+    //     formerInstitution: pendingUser.formerInstitution
+    //   });
+    // }
 
     console.log("profile created")
     console.log(profile)
+
+    if (!profile) {
+      // Rollback user creation if profile failed (optional but good practice)
+      await User.findByIdAndDelete(user._id);
+      throw new Error('Failed to create user profile');
+    }
+
     // Link profile to user
     user.profile = profile._id;
+    if (user.role === 'club-admin') user.profileType = 'ClubProfile';
+    else if (user.role === 'company') user.profileType = 'CompanyProfile';
+    else if (user.role === 'alumni-individual') user.profileType = 'AlumniProfile';
+
     await user.save();
 
     // Calculate token
@@ -177,6 +233,21 @@ export const verifyOTP = async (req, res) => {
 
   } catch (error) {
     console.error(error);
+    // Rollback: Attempt to delete the user if it was created but the process failed (and wasn't caught earlier)
+    if (req.body.email) {
+      try {
+        const ghostUser = await User.findOne({ email: req.body.email });
+        // Ensure we only delete if it was just created (optional: check createdAt) - but for now, email uniqueness implies it's the one we failed to fully setup.
+        // Actually, we check if it is verified or not. If it is verified, we shouldn't delete active users. 
+        // But verifyOTP is for new users. 
+        if (ghostUser) {
+          await User.findByIdAndDelete(ghostUser._id);
+          console.log("Rolled back ghost user:", req.body.email);
+        }
+      } catch (cleanupError) {
+        console.error("Cleanup failed:", cleanupError);
+      }
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -284,6 +355,13 @@ export const updateProfile = async (req, res) => {
     }
     user.profile = profile._id;
     await user.save();
+
+
+    if (!user.profile) {
+      profile = await getUserProfile(user)
+      user.profile = profile._id;
+      await user.save();
+    }
 
 
     //find the user to update the profile

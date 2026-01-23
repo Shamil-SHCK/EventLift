@@ -8,6 +8,7 @@ import {
     Bell,
     Settings,
     Menu,
+    Briefcase
 } from 'lucide-react';
 
 const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
@@ -39,6 +40,12 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                         <button onClick={() => navigate(`/${user?.role === 'administrator' ? 'admin' : user?.role === 'club-admin' ? 'club' : user?.role === 'alumni-individual' ? 'alumni' : 'company'}/dashboard`)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             <LayoutDashboard className="w-5 h-5" /> Dashboard
                         </button>
+
+                        {user?.role === 'club-admin' && (
+                            <button onClick={() => navigate('/club/gig-opportunities')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                                <Briefcase className="w-5 h-5" /> Gig Works
+                            </button>
+                        )}
 
                         <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
                             <User className="w-5 h-5" /> Profile

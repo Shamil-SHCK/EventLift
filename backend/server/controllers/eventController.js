@@ -56,6 +56,17 @@ export const createEvent = async (req, res) => {
         }
 
 
+        // Link Event With the Profile
+        if (profile) {
+            const eventData = {
+                event: event._id
+            }
+            profile.events.push(eventData);
+            await profile.save();
+        }
+        if (!profile) {
+            res.status(404).json({ message: 'Profile not found' });
+        }
         // Return object with URLs
         const e = event.toObject();
         if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
@@ -256,8 +267,10 @@ export const sponsorEvent = async (req, res) => {
         console.log(profile);
         console.log(profile.name)
 
+
         const sponsorship = {
             sponsor: user.profile,
+            name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
             name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
             amount: Number(amount),
             date: Date.now()
@@ -267,6 +280,13 @@ export const sponsorEvent = async (req, res) => {
         event.raised += Number(amount);
 
         await event.save();
+
+        // Add to Sponsor Profile
+        if (profile) {
+            if (!profile.sponseredEvents) profile.sponseredEvents = [];
+            profile.sponseredEvents.push({ event: event._id });
+            await profile.save();
+        }
 
         res.json({
             message: 'Sponsorship committed successfully',
@@ -304,6 +324,13 @@ export const deleteEvent = async (req, res) => {
         await Event.deleteOne({ _id: event._id });
         await profile.events.pull({ event: event._id });
         await profile.save();
+
+        // Remove from Club Profile
+        const clubProfile = await ClubProfile.findOne({ user: req.user._id });
+        if (clubProfile) {
+            clubProfile.events = clubProfile.events.filter(e => e.event.toString() !== req.params.id);
+            await clubProfile.save();
+        }
 
         res.json({ message: 'Event removed' });
     } catch (error) {

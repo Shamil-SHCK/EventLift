@@ -14,7 +14,7 @@ const clubProfileSchemna = mongoose.Schema(
         },
         email: {
             type: String,
-            requied: true,
+            required: true,
             unique: true
         },
         clubName: {

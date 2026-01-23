@@ -9,6 +9,8 @@ import AlumniDashboard from './components/AlumniDashboard';
 import Profile from './components/Profile';
 import AdminPanel from './components/AdminPanel';
 import LandingPage from './components/LandingPage';
+import CreateGigForm from './components/CreateGigForm';
+import GigOpportunities from './components/GigOpportunities';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -80,6 +82,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['alumni-individual']}>
               <AlumniDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/company/create-gig"
+          element={
+            <ProtectedRoute allowedRoles={['company']}>
+              <CreateGigForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/club/gig-opportunities"
+          element={
+            <ProtectedRoute allowedRoles={['club-admin']}>
+              <GigOpportunities />
             </ProtectedRoute>
           }
         />
