@@ -20,6 +20,8 @@ const ClubDashboard = () => {
     const [editId, setEditId] = useState(null);
     const navigate = useNavigate();
 
+    const [viewMode, setViewMode] = useState('events'); // 'events' or 'gigs'
+
     const handleViewSponsors = (event) => {
         setSelectedEvent(event);
         setShowSponsorsModal(true);
@@ -188,7 +190,7 @@ const ClubDashboard = () => {
     };
 
     const AcceptedGigsSection = () => (
-        <div className="mb-10 mt-16 pt-10 border-t border-slate-100">
+        <div className="mt-8">
             <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
                 <Briefcase className="w-6 h-6 text-indigo-600" />
                 Accepted <span className="text-indigo-600">Gigs</span>
@@ -208,7 +210,7 @@ const ClubDashboard = () => {
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900 line-clamp-1 mb-1">{gig.title}</h3>
                                     <p className="text-sm text-slate-500 font-medium">
-                                        by <span className="text-indigo-600">{gig.company?.name || 'Unknown Company'}</span>
+                                        by <span className="text-indigo-600">{gig.company?.organizationName || gig.company?.name || 'Unknown Company'}</span>
                                     </p>
                                 </div>
                                 <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full text-nowrap ml-2">
@@ -252,12 +254,6 @@ const ClubDashboard = () => {
                 </div>
                 <div className="flex gap-3">
                     <button
-                        onClick={() => navigate('/club/gig-opportunities')}
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl shadow-sm border border-indigo-100 hover:bg-indigo-50 hover:-translate-y-1 transition-all"
-                    >
-                        <Briefcase className="w-5 h-5" /> Find Gigs
-                    </button>
-                    <button
                         onClick={() => { setIsEditing(false); setShowModal(true); }}
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all"
                     >
@@ -293,23 +289,50 @@ const ClubDashboard = () => {
                 </div>
             </div>
 
-            {/* Event List */}
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
-                    <Calendar className="w-6 h-6 text-indigo-600" />
-                    Your <span className="text-indigo-600">Events</span>
-                </h2>
-                <ClubEventList
-                    events={events}
-                    handleViewSponsors={handleViewSponsors}
-                    handleEditEvent={handleEditEvent}
-                    handleDeleteEvent={handleDeleteEvent}
-                    openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
-                />
+            {/* View Toggle */}
+            <div className="flex mb-8">
+                <div className="bg-blue-600 p-1 rounded-xl inline-flex shadow-inner">
+                    <button
+                        onClick={() => setViewMode('events')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'events'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Your Events
+                    </button>
+                    <button
+                        onClick={() => setViewMode('gigs')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'gigs'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Accepted Gigs
+                    </button>
+                </div>
             </div>
 
-            {/* Accepted Gigs Section */}
-            <AcceptedGigsSection />
+            {/* Content Area */}
+            {viewMode === 'events' ? (
+                <div className="mb-8 animate-fadeIn">
+                    <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
+                        <Calendar className="w-6 h-6 text-indigo-600" />
+                        Your <span className="text-indigo-600">Events</span>
+                    </h2>
+                    <ClubEventList
+                        events={events}
+                        handleViewSponsors={handleViewSponsors}
+                        handleEditEvent={handleEditEvent}
+                        handleDeleteEvent={handleDeleteEvent}
+                        openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
+                    />
+                </div>
+            ) : (
+                <div className="animate-fadeIn">
+                    <AcceptedGigsSection />
+                </div>
+            )}
 
             {/* View Sponsors Modal */}
             {showSponsorsModal && selectedEvent && (
@@ -337,7 +360,7 @@ const ClubDashboard = () => {
                                                     {s.sponsor.logoUrl ? <img src={s.sponsor.logoUrl} alt="logo" className="w-full h-full object-cover" /> : (s.name ? s.name[0] : 'C')}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-slate-900">{/*{s.organizationName?.organizationName || s.name?.name || 'Unknown Sponsor'}*/}{s.name ? s.name : 'Unknown Sponsor'}</h4>
+                                                    <h4 className="font-bold text-slate-900">{s.name ? s.name : 'Unknown Sponsor'}</h4>
                                                     <p className="text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</p>
                                                 </div>
                                             </div>

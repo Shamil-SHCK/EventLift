@@ -7,7 +7,7 @@ const gigSchema = new mongoose.Schema({
     category: { type: String, required: true },    // Backlog: Filter gigs by category 
 
     // Who posted it?
-    company: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    company: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyProfile', required: true },
 
     // Who accepted it? (Initially null)
     assignedClub: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

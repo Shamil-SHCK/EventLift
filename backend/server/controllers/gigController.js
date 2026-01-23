@@ -1,12 +1,20 @@
 import Gig from '../models/Gig.js';
+import CompanyProfile from '../models/CompanyProfile.js';
 
 // 1. Backlog: Publish gig work & Gig work posting form
 export const createGig = async (req, res) => {
     try {
         const { title, description, budget, category } = req.body;
+
+        // Find the company profile for this user
+        const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
+        if (!companyProfile) {
+            return res.status(404).json({ msg: 'Company profile not found. Please complete your profile first.' });
+        }
+
         const newGig = new Gig({
             title, description, budget, category,
-            company: req.user.id // Assumes auth middleware sets req.user
+            company: companyProfile._id
         });
         await newGig.save();
         res.status(201).json(newGig);
@@ -22,11 +30,10 @@ export const getAllGigs = async (req, res) => {
         if (category) query.category = category;
         if (minBudget) query.budget = { $gte: minBudget };
 
-        // Populate company (User) and then populate its profile to get specific company details if needed
-        // Or just use the User's 'name' which is required
+        // Populate company (CompanyProfile)
         const gigs = await Gig.find(query).populate({
             path: 'company',
-            select: 'name email'
+            select: 'name email organizationName logoUrl phone description'
         });
         res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -35,7 +42,12 @@ export const getAllGigs = async (req, res) => {
 // 4. Feature: Get Company's posted gigs
 export const getMyGigs = async (req, res) => {
     try {
-        const gigs = await Gig.find({ company: req.user.id })
+        const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
+        if (!companyProfile) {
+            return res.status(404).json({ msg: 'Company profile not found' });
+        }
+
+        const gigs = await Gig.find({ company: companyProfile._id })
             .populate('assignedClub', 'name email')
             .sort({ createdAt: -1 });
         res.json(gigs);
@@ -61,7 +73,7 @@ export const acceptGig = async (req, res) => {
 export const getAcceptedGigs = async (req, res) => {
     try {
         const gigs = await Gig.find({ assignedClub: req.user.id })
-            .populate('company', 'name email profile profileType') // Populate company details
+            .populate('company', 'name email organizationName logoUrl phone description') // Populate company profile details
             .sort({ createdAt: -1 });
         res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }

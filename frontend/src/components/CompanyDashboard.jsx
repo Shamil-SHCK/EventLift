@@ -184,7 +184,7 @@ const CompanyDashboard = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 {gig.assignedClub ? (
-                                                    <span className="font-medium text-slate-900">{gig.assignedClub.name}</span>
+                                                    <span className="font-medium text-slate-900">{gig.assignedClub.clubName || gig.assignedClub.name}</span>
                                                 ) : (
                                                     <span className="text-slate-400 italic">--</span>
                                                 )}
