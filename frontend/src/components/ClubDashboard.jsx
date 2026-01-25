@@ -68,10 +68,18 @@ const ClubDashboard = () => {
                 ]);
 
                 // Filter events created by this club
+                // The user specifically requested to match event id and profile id from club profile
                 const myEvents = eventsData.filter(event => {
+                    // Check if the event is in the user's profile events list
+                    if (userData.profile && userData.profile.events && Array.isArray(userData.profile.events)) {
+                        return userData.profile.events.some(profileEvent => String(profileEvent.event) === String(event._id));
+                    }
+
+                    // Fallback to checking organizer ID if profile events list is empty or missing (legacy/safety)
                     if (!event.organizer) return false;
                     const orgId = typeof event.organizer === 'object' ? event.organizer._id : event.organizer;
-                    return String(orgId) === String(userData._id);
+                    const profileId = userData.profile && typeof userData.profile === 'object' ? userData.profile._id : userData.profile;
+                    return String(orgId) === String(profileId);
                 });
 
                 setEvents(myEvents);
@@ -178,10 +186,16 @@ const ClubDashboard = () => {
         </div>
     );
 
+
     // Calculate Stats
     const totalEvents = events.length;
     const totalRaised = events.reduce((sum, event) => sum + (event.raised || 0), 0);
     const activeEvents = events.filter(e => new Date(e.date) >= new Date()).length;
+
+    // Separate events
+    const upcomingEvents = events.filter(e => new Date(e.date) >= new Date()).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const pastEvents = events.filter(e => new Date(e.date) < new Date()).sort((a, b) => new Date(b.date) - new Date(a.date));
+
 
     const handleMarkGigDone = async (gigId) => {
         if (window.confirm('Are you sure you want to mark this gig as done?')) {
@@ -268,56 +282,42 @@ const ClubDashboard = () => {
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                    {stats.cards.map((card, index) => {
-                        // Dynamic Icon Map
-                        const iconMap = {
-                            'Calendar': Calendar,
-                            'Briefcase': Briefcase,
-                            'CheckCircle': CheckCircle || Plus, // Fallback
-                            'DollarSign': DollarSign,
-                            'Rocket': Rocket
-                        };
-                        const IconComponent = iconMap[card.icon] || Rocket;
+            {/* Custom Stats Grid for Funds */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                {/* Total Fund Raised Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
+                        <DollarSign className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{totalRaised.toLocaleString()}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Total Funds Raised</p>
+                </div>
 
-                        return (
-                            <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-                                    <IconComponent className="w-6 h-6" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-slate-900 mb-1">{card.value}</h3>
-                                <p className="text-slate-500 font-medium text-sm">{card.label}</p>
-                            </div>
-                        );
-                    })}
+                {/* Total Events Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                        <Calendar className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{totalEvents}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Total Events</p>
                 </div>
-            )}
 
-            {/* Latest Fundraising Events Ticker */}
-            <div className="mb-10 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-                <div className="flex items-center justify-between mb-4 relative z-10">
-                    <h3 className="font-bold font-heading text-lg flex items-center gap-2">
-                        <Rocket className="w-5 h-5 text-yellow-400" />
-                        Latest Fundraising Events
-                    </h3>
-                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-slate-300">Trending</span>
+                {/* Active Events Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                        <Rocket className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{activeEvents}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Active Events</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
-                    {latestEvents.slice(0, 3).map(event => (
-                        <div key={event._id} className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 hover:bg-white/20 transition-colors">
-                            <h4 className="font-bold text-white truncate">{event.title}</h4>
-                            <p className="text-xs text-slate-300 mb-2 truncate">by {event.organizer?.clubName || 'Unknown Club'}</p>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-yellow-400 font-bold">₹{event.budget?.toLocaleString() || 'N/A'} Goal</span>
-                                <span className="text-xs text-slate-400">{new Date(event.date).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    ))}
+                {/* Pending Gigs Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4">
+                        <Briefcase className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{acceptedGigs.filter(g => g.status !== 'completed').length}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Active Gigs</p>
                 </div>
-                {/* Decorative BG */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             </div>
 
             {/* View Toggle */}
@@ -346,18 +346,47 @@ const ClubDashboard = () => {
 
             {/* Content Area */}
             {viewMode === 'events' ? (
-                <div className="mb-8 animate-fadeIn">
-                    <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
-                        <Calendar className="w-6 h-6 text-indigo-600" />
-                        Your <span className="text-indigo-600">Events</span>
-                    </h2>
-                    <ClubEventList
-                        events={events}
-                        handleViewSponsors={handleViewSponsors}
-                        handleEditEvent={handleEditEvent}
-                        handleDeleteEvent={handleDeleteEvent}
-                        openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
-                    />
+                <div className="animate-fadeIn space-y-12">
+                    {/* Upcoming Events */}
+                    <section>
+                        <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
+                            <Rocket className="w-6 h-6 text-indigo-600" />
+                            Upcoming <span className="text-indigo-600">Events</span>
+                        </h2>
+                        {upcomingEvents.length > 0 ? (
+                            <ClubEventList
+                                events={upcomingEvents}
+                                handleViewSponsors={handleViewSponsors}
+                                handleEditEvent={handleEditEvent}
+                                handleDeleteEvent={handleDeleteEvent}
+                                openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
+                            />
+                        ) : (
+                            <div className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-200">
+                                <p className="text-slate-500">No upcoming events found.</p>
+                                <button onClick={() => { setIsEditing(false); setShowModal(true); }} className="text-indigo-600 font-bold hover:underline mt-2">Create one now</button>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Past Events */}
+                    {pastEvents.length > 0 && (
+                        <section>
+                            <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2 opacity-75">
+                                <Calendar className="w-6 h-6 text-slate-500" />
+                                Past <span className="text-slate-500">Events</span>
+                            </h2>
+                            <div className="opacity-80">
+                                <ClubEventList
+                                    events={pastEvents}
+                                    handleViewSponsors={handleViewSponsors}
+                                    handleEditEvent={handleEditEvent}
+                                    handleDeleteEvent={handleDeleteEvent}
+                                    openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
+                                />
+                            </div>
+                        </section>
+                    )}
                 </div>
             ) : (
                 <div className="animate-fadeIn">
@@ -429,5 +458,4 @@ const ClubDashboard = () => {
         </DashboardLayout>
     );
 };
-
 export default ClubDashboard;
