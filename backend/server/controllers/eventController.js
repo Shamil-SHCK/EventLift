@@ -5,6 +5,37 @@ import AlumniProfile from '../models/AlumniProfile.js';
 import CompanyProfile from '../models/CompanyProfile.js';
 import { getUserProfile } from '../utils/UserProfilesHandler.js';
 
+// @desc    Get logged in user's events
+// @route   GET /api/events/my
+// @access  Private
+export const getMyEvents = async (req, res) => {
+    try {
+        const profile = await getUserProfile(req.user);
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+
+        const events = await Event.find({ organizer: profile._id })
+            .select('-poster.data -brochure.data')
+            .sort({ date: 1 })
+            .lean();
+
+        const eventsWithUrls = events.map(event => {
+            const e = event;
+            if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
+            else e.poster = null;
+            if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
+            else e.brochure = null;
+            return e;
+        });
+
+        res.json(eventsWithUrls);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Create new event
 // @route   POST /api/events
 // @access  Private (Club Admin only)
@@ -30,6 +61,11 @@ export const createEvent = async (req, res) => {
             }
         }
         const profile = await getUserProfile(req.user);
+
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+
         const event = await Event.create({
             title,
             description,
@@ -56,17 +92,7 @@ export const createEvent = async (req, res) => {
         }
 
 
-        // Link Event With the Profile
-        if (profile) {
-            const eventData = {
-                event: event._id
-            }
-            profile.events.push(eventData);
-            await profile.save();
-        }
-        if (!profile) {
-            res.status(404).json({ message: 'Profile not found' });
-        }
+
         // Return object with URLs
         const e = event.toObject();
         if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
@@ -78,6 +104,46 @@ export const createEvent = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get latest events (limit 5)
+// @route   GET /api/events/latest
+// @access  Public
+export const getLatestEvents = async (req, res) => {
+    try {
+        const events = await Event.find()
+            .select('-poster.data -brochure.data')
+            .populate({
+                path: 'organizer',
+                select: 'name profile',
+                populate: { path: 'profile', select: 'clubName logoUrl' }
+            })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean();
+
+        const eventsWithUrls = events.map(event => {
+            const e = event;
+            if (e.organizer && e.organizer.profile) {
+                const organizerId = e.organizer._id;
+                e.organizer = { ...e.organizer, ...e.organizer.profile };
+                e.organizer._id = organizerId;
+                delete e.organizer.profile;
+            }
+            if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
+            else e.poster = null;
+
+            if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
+            else e.brochure = null;
+
+            return e;
+        });
+
+        res.json(eventsWithUrls);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
     }
 };
 
@@ -137,7 +203,7 @@ export const getEventById = async (req, res) => {
                 select: 'name role profile',
                 populate: { path: 'profile', select: 'organizationName formerInstitution logoUrl' }
             });
-            console.log(event);
+        console.log(event);
         if (event) {
             const e = event.toObject();
 

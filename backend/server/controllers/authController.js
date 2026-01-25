@@ -16,6 +16,10 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, role, clubName, collegeName, organizationName, formerInstitution } = req.body;
 
+    if (role === 'administrator') {
+      return res.status(400).json({ message: 'Administration registration is not allowed.' });
+    }
+
     // Validate role-specific required fields
     if (role === 'club-admin' && (!clubName || !collegeName)) {
       return res.status(400).json({ message: 'Club Name and College Name are required for Club Admins' });
@@ -143,6 +147,11 @@ export const verifyOTP = async (req, res) => {
       logoUrl: pendingUser.logoUrl,
       description: pendingUser.description
     };
+
+    // Prevent creating admin users via public info (double check, though filtered at registerUser too)
+    if (pendingUser.role === 'administrator') {
+      return res.status(400).json({ message: 'Administration registration is not allowed.' });
+    }
 
     // Check if a user with this email already exists (Ghost user from failed verification)
     const existingUser = await User.findOne({ email: pendingUser.email });

@@ -89,6 +89,19 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
 
     const categories = ['All', 'Technical', 'Cultural', 'Sports', 'Workshop', 'Seminar', 'Other'];
 
+    const isSponsorable = (event) => {
+        const isDatePassed = new Date(event.date) < new Date();
+        const isFullyFunded = (event.raised || 0) >= event.budget;
+        return event.status === 'open' && !isDatePassed && !isFullyFunded;
+    };
+
+    const getButtonText = (event) => {
+        if (event.status !== 'open') return 'Closed';
+        if (new Date(event.date) < new Date()) return 'Event Passed';
+        if ((event.raised || 0) >= event.budget) return 'Fully Funded';
+        return 'Sponsor Now';
+    };
+
     return (
         <div className="space-y-8">
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -186,10 +199,10 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                     )}
                                     <button
                                         onClick={() => handleSponsorClick(event)}
-                                        disabled={event.status !== 'open'}
+                                        disabled={!isSponsorable(event)}
                                         className={`px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${!event.brochure ? 'col-span-2' : ''}`}
                                     >
-                                        {event.status === 'open' ? 'Sponsor Now' : 'Closed'}
+                                        {getButtonText(event)}
                                     </button>
                                 </div>
                             </div>

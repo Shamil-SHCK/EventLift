@@ -1,19 +1,29 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
-import VerifyOTP from './components/VerifyOTP';
-import AdminDashboard from './components/AdminDashboard';
-import ClubDashboard from './components/ClubDashboard';
-import CompanyDashboard from './components/CompanyDashboard';
-import CompanyEvents from './components/CompanyEvents';
-import AlumniDashboard from './components/AlumniDashboard';
-import Profile from './components/Profile';
-import AdminPanel from './components/AdminPanel';
-import LandingPage from './components/LandingPage';
-import CreateGigForm from './components/CreateGigForm';
-import GigOpportunities from './components/GigOpportunities';
-import GigApplicants from './components/GigApplicants';
+import { lazy, Suspense } from 'react';
 import './App.css';
+
+// Lazy Load Components
+const Login = lazy(() => import('./components/Login'));
+const Register = lazy(() => import('./components/Register'));
+const VerifyOTP = lazy(() => import('./components/VerifyOTP'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const ClubDashboard = lazy(() => import('./components/ClubDashboard'));
+const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
+const CompanyEvents = lazy(() => import('./components/CompanyEvents'));
+const AlumniDashboard = lazy(() => import('./components/AlumniDashboard'));
+const Profile = lazy(() => import('./components/Profile'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const CreateGigForm = lazy(() => import('./components/CreateGigForm'));
+const GigOpportunities = lazy(() => import('./components/GigOpportunities'));
+const GigApplicants = lazy(() => import('./components/GigApplicants'));
+
+// Loading Fallback
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen bg-slate-50">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 // Protected Route Component with Role-Based Access Control
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -49,88 +59,90 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify-otp" element={<VerifyOTP />} />
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-otp" element={<VerifyOTP />} />
 
-        {/* Protected Routes */}
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['administrator']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/company/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['company']}>
-              <CompanyDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/company/events"
-          element={
-            <ProtectedRoute allowedRoles={['company']}>
-              <CompanyEvents />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/club/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['club-admin']}>
-              <ClubDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/alumni/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['alumni-individual']}>
-              <AlumniDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/company/create-gig"
-          element={
-            <ProtectedRoute allowedRoles={['company']}>
-              <CreateGigForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/club/gig-opportunities"
-          element={
-            <ProtectedRoute allowedRoles={['club-admin']}>
-              <GigOpportunities />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/company/gig/:id/applicants"
-          element={
-            <ProtectedRoute allowedRoles={['company']}>
-              <GigApplicants />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected Routes */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['administrator']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['company']}>
+                <CompanyDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company/events"
+            element={
+              <ProtectedRoute allowedRoles={['company']}>
+                <CompanyEvents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/club/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['club-admin']}>
+                <ClubDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alumni/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['alumni-individual']}>
+                <AlumniDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company/create-gig"
+            element={
+              <ProtectedRoute allowedRoles={['company']}>
+                <CreateGigForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/club/gig-opportunities"
+            element={
+              <ProtectedRoute allowedRoles={['club-admin']}>
+                <GigOpportunities />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company/gig/:id/applicants"
+            element={
+              <ProtectedRoute allowedRoles={['company']}>
+                <GigApplicants />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="/" element={<LandingPage />} />
-      </Routes>
+          <Route path="/" element={<LandingPage />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

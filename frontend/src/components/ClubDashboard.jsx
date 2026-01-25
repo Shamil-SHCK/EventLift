@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent } from '../services/api';
+import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent, getDashboardStats, getLatestEvents, getMyEvents } from '../services/api';
 import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
@@ -12,6 +12,9 @@ const ClubDashboard = () => {
     const [events, setEvents] = useState([]);
     const [acceptedGigs, setAcceptedGigs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState(null);
+    const [latestEvents, setLatestEvents] = useState([]);
+
     const [showModal, setShowModal] = useState(false);
     const [showSponsorsModal, setShowSponsorsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -46,45 +49,43 @@ const ClubDashboard = () => {
         const fetchData = async () => {
             try {
                 const userData = await getCurrentUser();
-                console.log(userData)
                 if (userData.role !== 'club-admin') {
                     navigate('/login');
                     return;
                 }
                 setUser(userData);
 
-                // Fetch Events
-                const eventsData = await getEvents();
-                console.log('Fetched Events:', eventsData);
-                console.log('Current User:', userData);
+                // Initialize empty arrays to prevent mapping errors if calls fail
+                setEvents([]);
+                setAcceptedGigs([]);
+
+                // Parallel Fetching
+                const [eventsData, gigsData, statsData, latestEventsData] = await Promise.all([
+                    getEvents(),
+                    getAcceptedGigs(),
+                    getDashboardStats(),
+                    getLatestEvents()
+                ]);
 
                 // Filter events created by this club
                 const myEvents = eventsData.filter(event => {
-                    console.log(event)
                     if (!event.organizer) return false;
-
-                    // Check Logic 1: ID Match
                     const orgId = typeof event.organizer === 'object' ? event.organizer._id : event.organizer;
-                    const idMatch = String(orgId) === String(userData._id);
-
-                    // Check Logic 2: Club Name Match (Fallback)
-                    const orgClubName = typeof event.organizer === 'object' ? event.organizer.clubName : null;
-                    const nameMatch = userData.clubName && orgClubName && userData.clubName === orgClubName;
-
-                    return idMatch || nameMatch;
+                    return String(orgId) === String(userData._id);
                 });
-                console.log('Filtered Events:', myEvents);
-                console.log('Filtered Events:', myEvents);
-                setEvents(myEvents);
 
-                // Fetch Accepted Gigs
-                const gigsData = await getAcceptedGigs();
+                setEvents(myEvents);
                 setAcceptedGigs(gigsData);
+                setStats(statsData);
+                setLatestEvents(latestEventsData);
 
             } catch (error) {
                 console.error('Failed to fetch data', error);
-                logoutUser();
-                navigate('/login');
+                // Don't logout immediately on data fetch error to allow debugging, unless unauthorized (handled in api.js usually)
+                if (error.response && error.response.status === 401) {
+                    logoutUser();
+                    navigate('/login');
+                }
             } finally {
                 setLoading(false);
             }
@@ -155,7 +156,7 @@ const ClubDashboard = () => {
             } catch (error) {
                 console.error(error);
                 alert('Failed to delete event');
-            }finally{
+            } finally {
                 setLoading(false)
             }
         }
@@ -268,30 +269,55 @@ const ClubDashboard = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4">
-                        <Rocket className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{totalEvents}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Total Events</p>
-                </div>
+            {stats && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                    {stats.cards.map((card, index) => {
+                        // Dynamic Icon Map
+                        const iconMap = {
+                            'Calendar': Calendar,
+                            'Briefcase': Briefcase,
+                            'CheckCircle': CheckCircle || Plus, // Fallback
+                            'DollarSign': DollarSign,
+                            'Rocket': Rocket
+                        };
+                        const IconComponent = iconMap[card.icon] || Rocket;
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
-                        <DollarSign className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{totalRaised.toLocaleString()}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Funds Raised</p>
+                        return (
+                            <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                                    <IconComponent className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-slate-900 mb-1">{card.value}</h3>
+                                <p className="text-slate-500 font-medium text-sm">{card.label}</p>
+                            </div>
+                        );
+                    })}
                 </div>
+            )}
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4">
-                        <Calendar className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{activeEvents}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Upcoming</p>
+            {/* Latest Fundraising Events Ticker */}
+            <div className="mb-10 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                    <h3 className="font-bold font-heading text-lg flex items-center gap-2">
+                        <Rocket className="w-5 h-5 text-yellow-400" />
+                        Latest Fundraising Events
+                    </h3>
+                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-slate-300">Trending</span>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                    {latestEvents.slice(0, 3).map(event => (
+                        <div key={event._id} className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 hover:bg-white/20 transition-colors">
+                            <h4 className="font-bold text-white truncate">{event.title}</h4>
+                            <p className="text-xs text-slate-300 mb-2 truncate">by {event.organizer?.clubName || 'Unknown Club'}</p>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-yellow-400 font-bold">₹{event.budget?.toLocaleString() || 'N/A'} Goal</span>
+                                <span className="text-xs text-slate-400">{new Date(event.date).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {/* Decorative BG */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             </div>
 
             {/* View Toggle */}

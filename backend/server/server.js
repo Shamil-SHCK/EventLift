@@ -26,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 
 import fileRoutes from './routes/fileRoutes.js';
 import gigRoutes from './routes/gigRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import mongoose from 'mongoose';
 
 // Routes
@@ -34,6 +35,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/gigs', gigRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

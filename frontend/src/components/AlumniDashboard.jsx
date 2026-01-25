@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logoutUser, getEvents } from '../services/api';
+import { getCurrentUser, logoutUser, getEvents, getDashboardStats } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import EventFeed from './EventFeed';
@@ -8,11 +8,7 @@ import { Heart, History, Award } from 'lucide-react';
 const AlumniDashboard = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        totalContributed: 0,
-        eventsSupported: 0,
-        impactBadges: 0
-    });
+    const [stats, setStats] = useState(null);
     const navigate = useNavigate();
 
     const fetchDashboardData = useCallback(async () => {
@@ -25,27 +21,8 @@ const AlumniDashboard = () => {
             setUser(userData);
 
             // Fetch Stats
-            const allEvents = await getEvents();
-            let invested = 0;
-            let active = 0;
-
-            allEvents.forEach(event => {
-                const mySponsorships = event.sponsors?.filter(s => {
-                    const sId = s.sponsor?._id || s.sponsor;
-                    return sId === userData._id;
-                }) || [];
-
-                if (mySponsorships.length > 0) {
-                    active++;
-                    mySponsorships.forEach(s => invested += s.amount);
-                }
-            });
-
-            setStats({
-                totalContributed: invested,
-                eventsSupported: active,
-                impactBadges: Math.floor(invested / 5000)
-            });
+            const statsData = await getDashboardStats();
+            setStats(statsData);
 
         } catch (error) {
             console.error('Failed to fetch dashboard data', error);
@@ -80,30 +57,25 @@ const AlumniDashboard = () => {
                 </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-4">
-                        <Heart className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{stats.totalContributed.toLocaleString()}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Total Contributed</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                {stats && stats.cards && stats.cards.map((card, index) => {
+                    const iconMap = {
+                        'Heart': Heart,
+                        'DollarSign': Award, // Using Award for Money/Contributed for variety or DollarSign
+                        'Award': Award
+                    };
+                    const IconComponent = iconMap[card.icon] || Heart;
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-4">
-                        <History className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{stats.eventsSupported}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Events Supported</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4">
-                        <Award className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{stats.impactBadges}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Impact Badges</p>
-                </div>
+                    return (
+                        <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-4">
+                                <IconComponent className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-1">{card.value}</h3>
+                            <p className="text-slate-500 font-medium text-sm">{card.label}</p>
+                        </div>
+                    );
+                })}
             </div>
 
             <div className="mb-8">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logoutUser, getEvents } from '../services/api';
+import { getCurrentUser, logoutUser, getEvents, getDashboardStats } from '../services/api';
 import { getMyGigs } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
@@ -9,11 +9,7 @@ import { Briefcase, CheckCircle, Search, TrendingUp, Plus } from 'lucide-react';
 const CompanyDashboard = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        activeSponsorships: 0,
-        clubsSupported: 0,
-        totalInvested: 0
-    });
+    const [stats, setStats] = useState(null);
     const [myGigs, setMyGigs] = useState([]);
     const [viewMode, setViewMode] = useState('ongoing'); // 'ongoing' or 'completed'
     const navigate = useNavigate();
@@ -28,32 +24,8 @@ const CompanyDashboard = () => {
             setUser(userData);
 
             // Fetch Stats
-            const allEvents = await getEvents();
-            let invested = 0;
-            let active = 0;
-            const clubs = new Set();
-
-            allEvents.forEach(event => {
-                const mySponsorships = event.sponsors?.filter(s => {
-                    const sId = s.sponsor?._id || s.sponsor;
-                    return sId === userData._id;
-                }) || [];
-
-                if (mySponsorships.length > 0) {
-                    active++;
-                    if (event.organizer) {
-                        const clubId = event.organizer._id || event.organizer;
-                        clubs.add(clubId);
-                    }
-                    mySponsorships.forEach(s => invested += s.amount);
-                }
-            });
-
-            setStats({
-                activeSponsorships: active,
-                clubsSupported: clubs.size,
-                totalInvested: invested
-            });
+            const statsData = await getDashboardStats();
+            setStats(statsData);
 
             // Fetch My Gigs
             try {
@@ -113,30 +85,26 @@ const CompanyDashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
-                        <Briefcase className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{stats.activeSponsorships}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Active Sponsorships</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                {stats && stats.cards && stats.cards.map((card, index) => {
+                    const iconMap = {
+                        'Briefcase': Briefcase,
+                        'Activity': CheckCircle, // Fallback
+                        'Heart': CheckCircle,
+                        'DollarSign': TrendingUp
+                    };
+                    const IconComponent = iconMap[card.icon] || Briefcase;
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
-                        <CheckCircle className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{stats.clubsSupported}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Clubs Supported</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-4">
-                        <TrendingUp className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{stats.totalInvested.toLocaleString()}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Total Invested</p>
-                </div>
+                    return (
+                        <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                                <IconComponent className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-1">{card.value}</h3>
+                            <p className="text-slate-500 font-medium text-sm">{card.label}</p>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* View Toggle */}

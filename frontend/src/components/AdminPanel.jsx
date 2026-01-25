@@ -13,8 +13,10 @@ import {
     ZoomIn,
     ZoomOut,
     RotateCcw,
+
     X
 } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
 const AdminPanel = ({ isEmbedded = false }) => {
     const [users, setUsers] = useState([]);
@@ -24,6 +26,16 @@ const AdminPanel = ({ isEmbedded = false }) => {
     const navigate = useNavigate();
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [zoomLevel, setZoomLevel] = useState(1);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        confirmColor: 'blue',
+        action: null
+    });
 
     const handleViewDoc = (docUrl) => {
         setSelectedDoc(`http://localhost:5000/${docUrl}`);
@@ -59,29 +71,66 @@ const AdminPanel = ({ isEmbedded = false }) => {
         fetchUsers();
     }, [navigate, filter]);
 
-    const handleVerify = async (userId, status) => {
-        try {
-            await verifyUser(userId, status);
-            if (filter === 'pending') {
-                setUsers(users.filter((user) => user._id !== userId));
-            } else {
-                setUsers(users.map(u => u._id === userId ? { ...u, verificationStatus: status } : u));
-            }
-        } catch (err) {
-            setError(err.message);
+    const openConfirmModal = (title, message, confirmText, confirmColor, action) => {
+        setConfirmModal({
+            isOpen: true,
+            title,
+            message,
+            confirmText,
+            confirmColor,
+            action
+        });
+    };
+
+    const handleConfirmAction = async () => {
+        if (confirmModal.action) {
+            setLoading(true); // Reuse loading state or add specific submitting state
+            await confirmModal.action();
+            setLoading(false);
+            setConfirmModal({ ...confirmModal, isOpen: false });
         }
     };
 
-    const handleResetPassword = async (userId) => {
-        if (!window.confirm('Are you sure you want to reset this user\'s password to "ChangeMe@123"?')) {
-            return;
-        }
-        try {
-            await resetUserPassword(userId);
-            alert('Password reset successfully');
-        } catch (err) {
-            alert('Failed to reset password: ' + err.message);
-        }
+    const handleVerify = (userId, status) => {
+        const isApprove = status === 'verified';
+        openConfirmModal(
+            isApprove ? 'Approve User' : 'Reject User',
+            isApprove
+                ? 'Are you sure you want to approve this user? They will be able to log in and use the platform.'
+                : 'Are you sure you want to reject this user? They will be notified via email.',
+            isApprove ? 'Approve' : 'Reject',
+            isApprove ? 'green' : 'red',
+            async () => {
+                try {
+                    await verifyUser(userId, status);
+                    if (filter === 'pending') {
+                        setUsers(prev => prev.filter((user) => user._id !== userId));
+                    } else {
+                        setUsers(prev => prev.map(u => u._id === userId ? { ...u, verificationStatus: status } : u));
+                    }
+                } catch (err) {
+                    setError(err.message);
+                }
+            }
+        );
+    };
+
+    const handleResetPassword = (userId) => {
+        openConfirmModal(
+            'Reset Password',
+            'Are you sure you want to reset this user\'s password to "ChangeMe@123"? This action cannot be undone.',
+            'Reset Password',
+            'red',
+            async () => {
+                try {
+                    await resetUserPassword(userId);
+                    alert('Password reset successfully');
+                } catch (err) {
+                    // alert('Failed to reset password: ' + err.message);
+                    setError('Failed to reset password: ' + err.message);
+                }
+            }
+        );
     };
 
     const handleLogout = () => {
@@ -99,6 +148,16 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
     return (
         <div className="w-full">
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={handleConfirmAction}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                confirmColor={confirmModal.confirmColor}
+                isLoading={loading && confirmModal.isOpen}
+            />
             {/* Document Viewer Modal */}
             {selectedDoc && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4" onClick={closeModal}>

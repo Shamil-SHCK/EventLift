@@ -15,6 +15,20 @@ export const getEvents = () => {
     });
 };
 
+// Get my events
+export const getMyEvents = () => {
+    return request('/events/my', {
+        method: 'GET',
+    });
+};
+
+// Get latest events
+export const getLatestEvents = () => {
+    return request('/events/latest', {
+        method: 'GET',
+    });
+};
+
 // Get single event
 export const getEventById = (id) => {
     return request(`/events/${id}`, {

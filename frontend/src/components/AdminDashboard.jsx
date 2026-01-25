@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, logoutUser } from '../services/api';
+import { getCurrentUser, logoutUser, getDashboardStats } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import AdminPanel from './AdminPanel';
@@ -8,6 +8,7 @@ import { Building2, GraduationCap, Users } from 'lucide-react';
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -19,6 +20,9 @@ const AdminDashboard = () => {
                     return;
                 }
                 setUser(data);
+
+                const statsData = await getDashboardStats();
+                setStats(statsData);
             } catch (error) {
                 console.error('Failed to fetch user', error);
                 logoutUser();
@@ -53,31 +57,22 @@ const AdminDashboard = () => {
             </div>
 
             {/* Stats / Quick Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-                        <Users className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">12</h3>
-                    <p className="text-slate-500 font-medium text-sm">Pending Verifications</p>
+            {stats && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                    {stats.cards.map((card, index) => {
+                        return (
+                            <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                                    {/* Simple icon logic or dynamic based on label */}
+                                    <Users className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-slate-900 mb-1">{card.value}</h3>
+                                <p className="text-slate-500 font-medium text-sm">{card.label}</p>
+                            </div>
+                        );
+                    })}
                 </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
-                        <GraduationCap className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">45</h3>
-                    <p className="text-slate-500 font-medium text-sm">Active Users</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
-                        <Building2 className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">8</h3>
-                    <p className="text-slate-500 font-medium text-sm">Organizations</p>
-                </div>
-            </div>
+            )}
 
             {/* Admin Panel Embedded */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
