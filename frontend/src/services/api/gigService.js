@@ -29,6 +29,11 @@ export const getMyGigs = () => {
     return request('/gigs/my-gigs', { method: 'GET' });
 };
 
+// Feature: Apply for a gig
+export const applyForGig = (gigId) => {
+    return request(`/gigs/${gigId}/apply`, { method: 'PUT' });
+};
+
 // Backlog: Accept gig work 
 export const acceptGig = (gigId) => {
     return request(`/gigs/${gigId}/accept`, { method: 'PUT' });
@@ -42,4 +47,17 @@ export const getAcceptedGigs = () => {
 // Feature: Mark gig as complete
 export const markGigComplete = (gigId) => {
     return request(`/gigs/${gigId}/complete`, { method: 'PUT' });
+};
+
+// Feature: Get Applicants (Company)
+export const getGigApplicants = (gigId) => {
+    return request(`/gigs/${gigId}/applicants`, { method: 'GET' });
+};
+
+// Feature: Manage Applicant (Accept/Reject)
+export const manageApplicant = (gigId, applicantId, action) => {
+    return request('/gigs/manage-applicant', {
+        method: 'POST',
+        body: { gigId, applicantId, action }
+    });
 };

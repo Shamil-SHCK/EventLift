@@ -49,23 +49,84 @@ export const getMyGigs = async (req, res) => {
 
         const gigs = await Gig.find({ company: companyProfile._id })
             .populate('assignedClub', 'name email')
+            .populate('applicants.club', 'name') // Populate applicant names for dashboard count/preview
             .sort({ createdAt: -1 });
         res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 // 3. Backlog: Accept gig work
-export const acceptGig = async (req, res) => {
+// 3. Application Flow: Club applies for gig
+export const applyForGig = async (req, res) => {
     try {
         const gig = await Gig.findById(req.params.id);
         if (!gig) return res.status(404).json({ msg: 'Gig not found' });
-        if (gig.status !== 'open') return res.status(400).json({ msg: 'Gig already taken' });
+        if (gig.status !== 'open') return res.status(400).json({ msg: 'Gig no longer accepting applications' });
 
-        gig.assignedClub = req.user.id;
-        gig.status = 'accepted';
+        // Check if already applied
+        const alreadyApplied = gig.applicants.some(app => app.club.toString() === req.user.id);
+        if (alreadyApplied) return res.status(400).json({ msg: 'Already applied' });
+
+        gig.applicants.push({ club: req.user.id });
         await gig.save();
 
         res.json(gig);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// Feature: Get Applicants (Company Only)
+export const getGigApplicants = async (req, res) => {
+    try {
+        const gig = await Gig.findById(req.params.id).populate('applicants.club', 'name email');
+        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+
+        const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
+        if (gig.company.toString() !== companyProfile._id.toString()) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        res.json(gig.applicants);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// Feature: Manage Applicant (Accept/Reject)
+export const manageApplicant = async (req, res) => {
+    try {
+        const { gigId, applicantId, action } = req.body; // action: 'accept' or 'reject'
+        const gig = await Gig.findById(gigId);
+
+        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+
+        const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
+        if (gig.company.toString() !== companyProfile._id.toString()) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        const applicantIndex = gig.applicants.findIndex(app => app.club.toString() === applicantId);
+        if (applicantIndex === -1) return res.status(404).json({ msg: 'Applicant not found' });
+
+        if (action === 'reject') {
+            gig.applicants[applicantIndex].status = 'rejected';
+        } else if (action === 'accept') {
+            gig.applicants[applicantIndex].status = 'accepted';
+            gig.assignedClub = applicantId;
+            gig.status = 'accepted';
+            // Reject others? Optional, keeping them pending for now or could bulk reject.
+        }
+
+        await gig.save();
+        res.json(gig);
+
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// Feature: Get my (Club's) applications
+export const getMyApplications = async (req, res) => {
+    try {
+        const gigs = await Gig.find({ 'applicants.club': req.user.id })
+            .populate('company', 'name email organizationName logoUrl phone description')
+            .sort({ createdAt: -1 });
+        res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 

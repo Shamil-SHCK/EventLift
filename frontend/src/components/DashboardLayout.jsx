@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { logoutUser } from '../services/api';
 import {
     LayoutDashboard,
@@ -8,16 +8,22 @@ import {
     Bell,
     Settings,
     Menu,
-    Briefcase
+    Briefcase,
+    Calendar
 } from 'lucide-react';
 
 const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = () => {
         logoutUser();
         navigate('/');
+    };
+
+    const isActive = (path) => {
+        return location.pathname === path;
     };
 
     return (
@@ -37,17 +43,47 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                     <div className="flex-1 py-6 px-4 space-y-2">
                         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Menu</div>
 
-                        <button onClick={() => navigate(`/${user?.role === 'administrator' ? 'admin' : user?.role === 'club-admin' ? 'club' : user?.role === 'alumni-individual' ? 'alumni' : 'company'}/dashboard`)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                        <button
+                            onClick={() => navigate(`/${user?.role === 'administrator' ? 'admin' : user?.role === 'club-admin' ? 'club' : user?.role === 'alumni-individual' ? 'alumni' : 'company'}/dashboard`)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${isActive(`/${user?.role === 'administrator' ? 'admin' : user?.role === 'club-admin' ? 'club' : user?.role === 'alumni-individual' ? 'alumni' : 'company'}/dashboard`)
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                }`}
+                        >
                             <LayoutDashboard className="w-5 h-5" /> Dashboard
                         </button>
 
                         {user?.role === 'club-admin' && (
-                            <button onClick={() => navigate('/club/gig-opportunities')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                            <button
+                                onClick={() => navigate('/club/gig-opportunities')}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${isActive('/club/gig-opportunities')
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    }`}
+                            >
                                 <Briefcase className="w-5 h-5" /> Gig Works
                             </button>
                         )}
 
-                        <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                        {user?.role === 'company' && (
+                            <button
+                                onClick={() => navigate('/company/events')}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${isActive('/company/events')
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    }`}
+                            >
+                                <Calendar className="w-5 h-5" /> Events
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => navigate('/profile')}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${isActive('/profile')
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                }`}
+                        >
                             <User className="w-5 h-5" /> Profile
                         </button>
 

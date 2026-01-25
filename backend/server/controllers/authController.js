@@ -305,7 +305,7 @@ export const loginUser = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-verificationDocument -password').populate('profile');
-    const profile = await getUserProfile(user);
+    const profile = await getUserProfile(user) || {};
 
     res.json({
       _id: user._id,
@@ -314,7 +314,7 @@ export const getMe = async (req, res) => {
       role: user.role,
       verificationStatus: user.verificationStatus,
       profile: user.profile,
-      // Profile fields
+      // Profile fields (safely accessed)
       clubName: profile.clubName,
       collegeName: profile.collegeName,
       organizationName: profile.organizationName,
