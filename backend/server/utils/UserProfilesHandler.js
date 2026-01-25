@@ -35,6 +35,7 @@ export const createUserProfile = async (userData, userId) => {
             profileData.formerInstitution = userData.formerInstitution
             profile = await AlumniProfile.create(profileData)
         }
+        console.log(profile)
 
         return profile
     } catch (error) {

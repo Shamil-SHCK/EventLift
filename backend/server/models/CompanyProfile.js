@@ -3,30 +3,30 @@ import mongoose from "mongoose";
 
 const companyProfileSchemna = mongoose.Schema(
     {
-        user:{
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User",
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
-            unique:true
+            unique: true
         },
-        name:{
-            type:String,
-            required:true,
-        },
-        email:{
-            type:String,
-            requied:true,
-            unique:true
-        },
-        organizationName:{
+        name: {
             type: String,
             required: true,
         },
-        sponseredEvents:[{
-            event:{
+        email: {
+            type: String,
+            requied: true,
+            unique: true
+        },
+        organizationName: {
+            type: String,
+            required: true,
+        },
+        sponseredEvents: [{
+            event: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref:"Event",
-                required:true
+                ref: "Event",
+                required: true
             }
         }],
         phone: {
@@ -42,7 +42,7 @@ const companyProfileSchemna = mongoose.Schema(
     {
         timestamps: true
     }
-) 
+)
 
 const CompanyProfile = mongoose.model("CompanyProfile", companyProfileSchemna)
 

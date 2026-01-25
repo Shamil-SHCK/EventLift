@@ -5,12 +5,14 @@ import VerifyOTP from './components/VerifyOTP';
 import AdminDashboard from './components/AdminDashboard';
 import ClubDashboard from './components/ClubDashboard';
 import CompanyDashboard from './components/CompanyDashboard';
+import CompanyEvents from './components/CompanyEvents';
 import AlumniDashboard from './components/AlumniDashboard';
 import Profile from './components/Profile';
 import AdminPanel from './components/AdminPanel';
 import LandingPage from './components/LandingPage';
 import CreateGigForm from './components/CreateGigForm';
 import GigOpportunities from './components/GigOpportunities';
+import GigApplicants from './components/GigApplicants';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -70,6 +72,14 @@ function App() {
           }
         />
         <Route
+          path="/company/events"
+          element={
+            <ProtectedRoute allowedRoles={['company']}>
+              <CompanyEvents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/club/dashboard"
           element={
             <ProtectedRoute allowedRoles={['club-admin']}>
@@ -98,6 +108,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['club-admin']}>
               <GigOpportunities />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/company/gig/:id/applicants"
+          element={
+            <ProtectedRoute allowedRoles={['company']}>
+              <GigApplicants />
             </ProtectedRoute>
           }
         />

@@ -34,12 +34,16 @@ const eventSchema = mongoose.Schema({
     organizer: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User'
+        ref: 'ClubProfile'
     },
     sponsors: [{
         sponsor: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Profile'
+            refPath: 'profileType'
+        },
+        profileType: {
+            type: String,
+            enum: ['AlumniProfile', 'CompanyProfile'],
         },
         name: {
             type: String,

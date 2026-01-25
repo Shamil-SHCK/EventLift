@@ -4,7 +4,7 @@ import { getMyGigs } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import EventFeed from './EventFeed';
-import { Briefcase, CheckCircle, Search, TrendingUp } from 'lucide-react';
+import { Briefcase, CheckCircle, Search, TrendingUp, Plus } from 'lucide-react';
 
 const CompanyDashboard = () => {
     const [user, setUser] = useState(null);
@@ -15,6 +15,7 @@ const CompanyDashboard = () => {
         totalInvested: 0
     });
     const [myGigs, setMyGigs] = useState([]);
+    const [viewMode, setViewMode] = useState('ongoing'); // 'ongoing' or 'completed'
     const navigate = useNavigate();
 
     const fetchDashboardData = useCallback(async () => {
@@ -81,6 +82,15 @@ const CompanyDashboard = () => {
         </div>
     );
 
+    // Filter Gigs
+    const displayedGigs = myGigs.filter(gig => {
+        if (viewMode === 'ongoing') {
+            return gig.status === 'open' || gig.status === 'accepted';
+        } else {
+            return gig.status === 'completed';
+        }
+    });
+
     return (
         <DashboardLayout user={user}>
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -93,14 +103,13 @@ const CompanyDashboard = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => navigate('/company/create-gig')}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center"
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all"
                     >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Post Gig
+                        <Plus className="w-5 h-5" /> Post Gig
                     </button>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-blue-100 text-blue-700 border-blue-200 flex items-center">
+                    {/* <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-blue-100 text-blue-700 border-blue-200 flex items-center">
                         Company
-                    </span>
+                    </span> */}{/* Hiding role badge as it might be redundant next to the big header */}
                 </div>
             </div>
 
@@ -130,21 +139,49 @@ const CompanyDashboard = () => {
                 </div>
             </div>
 
-            {/* My Posted Gigs Section */}
-            <div className="mb-10">
-                <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6">My Posted <span className="text-blue-600">Gigs</span></h2>
-                {myGigs.length === 0 ? (
+            {/* View Toggle */}
+            <div className="flex mb-8">
+                <div className="bg-blue-600 p-1 rounded-xl inline-flex shadow-inner">
+                    <button
+                        onClick={() => setViewMode('ongoing')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'ongoing'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Ongoing Gigs
+                    </button>
+                    <button
+                        onClick={() => setViewMode('completed')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'completed'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Completed
+                    </button>
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="mb-10 animate-fadeIn">
+                <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6">
+                    {viewMode === 'ongoing' ? 'Ongoing' : 'Completed'} <span className="text-blue-600">Gigs</span>
+                </h2>
+                {displayedGigs.length === 0 ? (
                     <div className="bg-white p-8 rounded-xl border border-slate-100 text-center">
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
                             <Briefcase className="w-8 h-8" />
                         </div>
-                        <p className="text-slate-500 mb-4">You haven't posted any gigs yet.</p>
-                        <button
-                            onClick={() => navigate('/company/create-gig')}
-                            className="text-indigo-600 font-bold hover:text-indigo-700"
-                        >
-                            Post your first Gig &rarr;
-                        </button>
+                        <p className="text-slate-500 mb-4">No {viewMode} gigs found.</p>
+                        {viewMode === 'ongoing' && (
+                            <button
+                                onClick={() => navigate('/company/create-gig')}
+                                className="text-indigo-600 font-bold hover:text-indigo-700"
+                            >
+                                Post your first Gig &rarr;
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -156,11 +193,12 @@ const CompanyDashboard = () => {
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Category</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Budget</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Applicants</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned To</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {myGigs.map(gig => (
+                                    {displayedGigs.map(gig => (
                                         <tr key={gig._id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="font-bold text-slate-900">{gig.title}</div>
@@ -182,6 +220,18 @@ const CompanyDashboard = () => {
                                                     {gig.status}
                                                 </span>
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {gig.status === 'open' ? (
+                                                    <button
+                                                        onClick={() => navigate(`/company/gig/${gig._id}/applicants`)}
+                                                        className="text-blue-600 font-bold hover:underline flex items-center gap-1"
+                                                    >
+                                                        {gig.applicants?.length || 0} Applicants
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-slate-400">{gig.applicants?.length} Applied</span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 {gig.assignedClub ? (
                                                     <span className="font-medium text-slate-900">{gig.assignedClub.clubName || gig.assignedClub.name}</span>
@@ -196,11 +246,6 @@ const CompanyDashboard = () => {
                         </div>
                     </div>
                 )}
-            </div>
-
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6">Explore <span className="text-blue-600">Events</span></h2>
-                <EventFeed userType="company" onSponsorshipSuccess={fetchDashboardData} />
             </div>
         </DashboardLayout>
     );
