@@ -1,7 +1,7 @@
 import React from 'react';
-import { Rocket, Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Rocket, Calendar, MapPin, DollarSign, FileText } from 'lucide-react';
 
-const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDeleteEvent, openCreateModal }) => {
+const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDeleteEvent, openCreateModal, handleOpenReport, isPast }) => {
     if (events.length === 0) {
         return (
             <div className="bg-white rounded-2xl p-12 text-center border dashed border-slate-200">
@@ -65,6 +65,14 @@ const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDele
                                 Edit
                             </button>
                         </div>
+                        {isPast && (
+                            <button
+                                onClick={() => handleOpenReport(event)}
+                                className="w-full mt-2 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+                            >
+                                <FileText className="w-4 h-4" /> Post Report
+                            </button>
+                        )}
                         <button
                             onClick={() => handleDeleteEvent(event._id)}
                             className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"

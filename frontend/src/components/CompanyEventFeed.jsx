@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getEvents, sponsorEvent } from '../services/api';
-import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search } from 'lucide-react';
+import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search, FileText } from 'lucide-react';
+import PostEventReportView from './PostEventReportView';
 
 const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const [events, setEvents] = useState([]);
@@ -14,6 +15,10 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [sponsorAmount, setSponsorAmount] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    // Report Modal State
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [viewReportEventId, setViewReportEventId] = useState(null);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -205,6 +210,14 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                         {getButtonText(event)}
                                     </button>
                                 </div>
+                                {event.status === 'completed' && (
+                                    <button
+                                        onClick={() => { setViewReportEventId(event._id); setShowReportModal(true); }}
+                                        className="w-full mt-3 py-2.5 rounded-xl bg-green-50 text-green-700 font-bold text-sm hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <FileText className="w-4 h-4" /> View Post-Event Report
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -283,6 +296,13 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {showReportModal && viewReportEventId && (
+                <PostEventReportView
+                    eventId={viewReportEventId}
+                    onClose={() => setShowReportModal(false)}
+                />
             )}
         </div>
     );

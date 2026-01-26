@@ -58,3 +58,9 @@ export const deleteEvent = (id) => {
         method: 'DELETE',
     });
 };
+// Get my sponsored events
+export const getMySponsoredEvents = () => {
+    return request('/events/sponsored', {
+        method: 'GET',
+    });
+};

@@ -40,7 +40,7 @@ export const getDashboardStats = async (req, res) => {
             const [companyProfile, totalPostedGigs, activeGigs] = await Promise.all([
                 CompanyProfile.findOne({ user: user._id }),
                 Gig.countDocuments({ company: user.profile }), // Assuming company gig stores profile ID? Or user ID? Check Gig model. Usually it's profile.
-                Gig.countDocuments({ company: user.profile, status: 'open' })
+                Gig.countDocuments({ company: user.profile, status: { $in: ['open', 'accepted'] } })
             ]);
 
             const sponsoredEvents = companyProfile && companyProfile.sponseredEvents ? companyProfile.sponseredEvents.length : 0;

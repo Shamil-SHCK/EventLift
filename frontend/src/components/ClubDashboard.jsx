@@ -6,6 +6,7 @@ import DashboardLayout from './DashboardLayout';
 import { Rocket, DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react';
 import ClubEventList from './ClubEventList';
 import CreateEventModal from './CreateEventModal';
+import PostEventReportForm from './PostEventReportForm';
 
 const ClubDashboard = () => {
     const [user, setUser] = useState(null);
@@ -21,6 +22,8 @@ const ClubDashboard = () => {
     const [submitting, setSubmitting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportEvent, setReportEvent] = useState(null);
     const navigate = useNavigate();
 
     const [viewMode, setViewMode] = useState('events'); // 'events' or 'gigs'
@@ -134,6 +137,11 @@ const ClubDashboard = () => {
         // We can't pre-fill file inputs for security, but backend will keep old ones if not sent
         setFiles({ poster: null, brochure: null });
         setShowModal(true);
+    };
+
+    const handleOpenReport = (event) => {
+        setReportEvent(event);
+        setShowReportModal(true);
     };
 
     const handleDeleteEvent = async (eventId) => {
@@ -363,7 +371,9 @@ const ClubDashboard = () => {
                                     handleViewSponsors={handleViewSponsors}
                                     handleEditEvent={handleEditEvent}
                                     handleDeleteEvent={handleDeleteEvent}
+                                    handleOpenReport={handleOpenReport}
                                     openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
+                                    isPast={true}
                                 />
                             </div>
                         </section>
@@ -436,6 +446,18 @@ const ClubDashboard = () => {
                 handleFileChange={handleFileChange}
                 submitting={submitting}
             />
+
+            {/* Post Event Report Modal */}
+            {showReportModal && reportEvent && (
+                <PostEventReportForm
+                    event={reportEvent}
+                    onClose={() => setShowReportModal(false)}
+                    onSuccess={() => {
+                        alert('Report Submitted Successfully!');
+                        // Optionally refresh events to show it as completed if status changed
+                    }}
+                />
+            )}
         </DashboardLayout>
     );
 };

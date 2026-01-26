@@ -1,4 +1,3 @@
-```javascript
 import { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser, getDashboardStats } from '../services/api';
 import { useNavigate } from 'react-router-dom';

@@ -404,3 +404,49 @@ export const deleteEvent = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Get events sponsored by logged in user (Company/Alumni)
+// @route   GET /api/events/sponsored
+// @access  Private
+export const getSponsoredEvents = async (req, res) => {
+    try {
+        const profile = await getUserProfile(req.user);
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+
+        // Find events where the sponsors array contains an entry with this user's profile ID
+        const events = await Event.find({ 'sponsors.sponsor': profile._id })
+            .select('-poster.data -brochure.data')
+            .populate('organizer', 'clubName name logoUrl') // Populate club details
+            .sort({ date: -1 })
+            .lean();
+
+        const eventsWithUrls = events.map(event => {
+            const e = event;
+
+            if (event.poster && event.poster.contentType) {
+                e.poster = `api/files/event/${event._id}/poster`;
+            } else {
+                e.poster = null;
+            }
+            if (event.brochure && event.brochure.contentType) {
+                e.brochure = `api/files/event/${event._id}/brochure`;
+            } else {
+                e.brochure = null;
+            }
+
+            // Add my contribution details to the event object for easy display
+            const mySponsorship = event.sponsors.find(s => s.sponsor.toString() === profile._id.toString());
+            e.myContribution = mySponsorship ? mySponsorship.amount : 0;
+            e.sponsoredDate = mySponsorship ? mySponsorship.date : null;
+
+            return e;
+        });
+
+        res.json(eventsWithUrls);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
