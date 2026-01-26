@@ -3,7 +3,7 @@ import { getEvents, sponsorEvent } from '../services/api';
 import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search, FileText } from 'lucide-react';
 import PostEventReportView from './PostEventReportView';
 
-const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
+const AlumniEventFeed = ({ onSponsorshipSuccess, filterMode = 'upcoming' }) => {
     const [events, setEvents] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -47,12 +47,20 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
             );
         }
 
+        // Date Filtering
+        const now = new Date();
+        if (filterMode === 'upcoming') {
+            result = result.filter(e => new Date(e.date) >= now);
+        } else if (filterMode === 'past') {
+            result = result.filter(e => new Date(e.date) < now);
+        }
+
         if (selectedCategory !== 'All') {
             result = result.filter(e => e.category === selectedCategory);
         }
 
         setFilteredEvents(result);
-    }, [searchQuery, selectedCategory, events]);
+    }, [searchQuery, selectedCategory, events, filterMode]);
 
     const handleSponsorClick = (event) => {
         setSelectedEvent(event);

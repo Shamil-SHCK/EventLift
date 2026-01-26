@@ -2,7 +2,7 @@ import ClubEventFeed from './ClubEventFeed';
 import CompanyEventFeed from './CompanyEventFeed';
 import AlumniEventFeed from './AlumniEventFeed';
 
-const EventFeed = ({ userType, onSponsorshipSuccess }) => {
+const EventFeed = ({ userType, onSponsorshipSuccess, filterMode }) => {
     const normalizedType = userType ? userType.toLowerCase() : '';
 
     if (normalizedType === 'club-admin') {
@@ -14,7 +14,7 @@ const EventFeed = ({ userType, onSponsorshipSuccess }) => {
     }
 
     if (normalizedType === 'alumni' || normalizedType === 'alumni-individual') {
-        return <AlumniEventFeed onSponsorshipSuccess={onSponsorshipSuccess} />;
+        return <AlumniEventFeed onSponsorshipSuccess={onSponsorshipSuccess} filterMode={filterMode} />;
     }
 
     // Default fallback (Read Only) for guests or unknown roles
