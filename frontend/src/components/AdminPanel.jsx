@@ -13,7 +13,6 @@ import {
     ZoomIn,
     ZoomOut,
     RotateCcw,
-
     X
 } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';

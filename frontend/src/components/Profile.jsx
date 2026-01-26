@@ -49,7 +49,7 @@ const Profile = () => {
                     logoUrl: userData.logoUrl || '',
                     description: userData.description || '',
                 });
-            } catch (err) {
+            } catch {
                 setError('Failed to load profile');
             } finally {
                 setLoading(false);

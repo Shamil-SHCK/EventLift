@@ -36,36 +36,7 @@ const GigOpportunities = () => {
             }
         };
         init();
-    }, [navigate, filters]); // Re-fetch gigs when filters change, but we need to be careful not to loop user fetch.
-    // Better to separate user fetch and gig fetch.
-
-    // Split useEffects
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const userData = await getCurrentUser();
-                if (userData.role !== 'club-admin') {
-                    navigate('/login');
-                } else {
-                    setUser(userData);
-                }
-            } catch (e) { navigate('/login'); }
-        };
-        fetchUser();
-    }, [navigate]);
-
-    useEffect(() => {
-        const loadGigs = async () => {
-            // Don't set global loading here if we want to keep user loaded, maybe just local loading?
-            // But existing code used one loading state.
-            try {
-                const data = await getOpenGigs(filters);
-                setGigs(data);
-            } catch (err) { setError('Failed to load gigs'); }
-        };
-        if (user) loadGigs(); // Only fetch if user is loaded? Or parallel? Parallel is fine.
-        else loadGigs(); // Fetch anyway.
-    }, [filters]);
+    }, [navigate, filters]);
 
 
     const handleFilterChange = (e) => {

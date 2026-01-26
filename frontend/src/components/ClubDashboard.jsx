@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent, getDashboardStats, getLatestEvents, getMyEvents } from '../services/api';
+import { getCurrentUser, logoutUser, createEvent, updateEvent, deleteEvent, getDashboardStats, getLatestEvents, getMyEvents } from '../services/api';
 import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
@@ -12,8 +12,8 @@ const ClubDashboard = () => {
     const [events, setEvents] = useState([]);
     const [acceptedGigs, setAcceptedGigs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState(null);
-    const [latestEvents, setLatestEvents] = useState([]);
+    // const [stats, setStats] = useState(null); // Unused
+    // const [latestEvents, setLatestEvents] = useState([]); // Unused
 
     const [showModal, setShowModal] = useState(false);
     const [showSponsorsModal, setShowSponsorsModal] = useState(false);
@@ -60,32 +60,13 @@ const ClubDashboard = () => {
                 setAcceptedGigs([]);
 
                 // Parallel Fetching
-                const [eventsData, gigsData, statsData, latestEventsData] = await Promise.all([
-                    getEvents(),
-                    getAcceptedGigs(),
-                    getDashboardStats(),
-                    getLatestEvents()
+                const [eventsData, gigsData] = await Promise.all([
+                    getMyEvents(),
+                    getAcceptedGigs()
                 ]);
 
-                // Filter events created by this club
-                // The user specifically requested to match event id and profile id from club profile
-                const myEvents = eventsData.filter(event => {
-                    // Check if the event is in the user's profile events list
-                    if (userData.profile && userData.profile.events && Array.isArray(userData.profile.events)) {
-                        return userData.profile.events.some(profileEvent => String(profileEvent.event) === String(event._id));
-                    }
-
-                    // Fallback to checking organizer ID if profile events list is empty or missing (legacy/safety)
-                    if (!event.organizer) return false;
-                    const orgId = typeof event.organizer === 'object' ? event.organizer._id : event.organizer;
-                    const profileId = userData.profile && typeof userData.profile === 'object' ? userData.profile._id : userData.profile;
-                    return String(orgId) === String(profileId);
-                });
-
-                setEvents(myEvents);
+                setEvents(eventsData);
                 setAcceptedGigs(gigsData);
-                setStats(statsData);
-                setLatestEvents(latestEventsData);
 
             } catch (error) {
                 console.error('Failed to fetch data', error);
