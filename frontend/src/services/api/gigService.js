@@ -61,3 +61,7 @@ export const manageApplicant = (gigId, applicantId, action) => {
         body: { gigId, applicantId, action }
     });
 };
+// Feature: Get my (Club's) applications
+export const getMyApplications = () => {
+    return request('/gigs/my-applications', { method: 'GET' });
+};

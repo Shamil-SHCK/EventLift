@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCurrentUser, logoutUser, createEvent, updateEvent, deleteEvent, getDashboardStats, getLatestEvents, getMyEvents } from '../services/api';
-import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
+import { getAcceptedGigs, markGigComplete, getMyApplications } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import { Rocket, DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react';
@@ -12,6 +12,7 @@ const ClubDashboard = () => {
     const [user, setUser] = useState(null);
     const [events, setEvents] = useState([]);
     const [acceptedGigs, setAcceptedGigs] = useState([]);
+    const [appliedGigs, setAppliedGigs] = useState([]);
     const [loading, setLoading] = useState(true);
     // const [stats, setStats] = useState(null); // Unused
     // const [latestEvents, setLatestEvents] = useState([]); // Unused
@@ -63,13 +64,15 @@ const ClubDashboard = () => {
                 setAcceptedGigs([]);
 
                 // Parallel Fetching
-                const [eventsData, gigsData] = await Promise.all([
+                const [eventsData, gigsData, applicationsData] = await Promise.all([
                     getMyEvents(),
-                    getAcceptedGigs()
+                    getAcceptedGigs(),
+                    getMyApplications()
                 ]);
 
                 setEvents(eventsData);
                 setAcceptedGigs(gigsData);
+                setAppliedGigs(applicationsData);
 
             } catch (error) {
                 console.error('Failed to fetch data', error);
@@ -330,6 +333,15 @@ const ClubDashboard = () => {
                     >
                         Accepted Gigs
                     </button>
+                    <button
+                        onClick={() => setViewMode('applied')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'applied'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Applied Gigs
+                    </button>
                 </div>
             </div>
 
@@ -379,9 +391,63 @@ const ClubDashboard = () => {
                         </section>
                     )}
                 </div>
-            ) : (
+            ) : viewMode === 'gigs' ? (
                 <div className="animate-fadeIn">
                     <AcceptedGigsSection />
+                </div>
+            ) : (
+                <div className="animate-fadeIn mt-8">
+                    <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
+                        <Briefcase className="w-6 h-6 text-indigo-600" />
+                        Applied <span className="text-indigo-600">Gigs</span>
+                    </h2>
+                    {appliedGigs.length > 0 ? (
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase">Gig Title</th>
+                                        <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase">Company</th>
+                                        <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase">Budget</th>
+                                        <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase">Status</th>
+                                        <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase">Date Applied</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {appliedGigs.map(gig => {
+                                        // Find status for this club
+                                        const myApp = gig.applicants.find(a => a.club === user._id);
+                                        const status = myApp ? myApp.status : 'pending';
+
+                                        return (
+                                            <tr key={gig._id} className="hover:bg-slate-50/50">
+                                                <td className="px-6 py-4 font-bold text-slate-900">{gig.title}</td>
+                                                <td className="px-6 py-4 text-slate-600">{gig.company?.organizationName || gig.company?.name || 'Unknown'}</td>
+                                                <td className="px-6 py-4 font-medium text-slate-900">₹{gig.budget.toLocaleString()}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${status === 'accepted' ? 'bg-green-100 text-green-700' :
+                                                            status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-500 text-sm">
+                                                    {/* Date functionality here depends on schema, assuming createdAt for now if app date not stored separately or extract from objectId if needed, but for now just showing gig date or current pending status */}
+                                                    {new Date(gig.createdAt).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center">
+                            <p className="text-slate-500">You haven't applied to any gigs yet.</p>
+                            <button onClick={() => navigate('/club/gig-opportunities')} className="text-indigo-600 font-bold hover:underline mt-2">Browse Gigs</button>
+                        </div>
+                    )}
                 </div>
             )}
 
