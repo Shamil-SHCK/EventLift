@@ -26,7 +26,7 @@ const GigApplicants = () => {
         const init = async () => {
             try {
                 const userData = await getCurrentUser();
-                if (userData.role !== 'club-admin') {
+                if (userData.role !== 'company') {
                     navigate('/login');
                     return;
                 }

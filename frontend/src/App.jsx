@@ -65,6 +65,9 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
 
+          {/* Defensive Redirect for legacy/broken links */}
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+
           {/* Protected Routes */}
           <Route
             path="/admin/dashboard"

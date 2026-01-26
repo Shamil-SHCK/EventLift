@@ -25,7 +25,7 @@ const CreateGigForm = () => {
 
         try {
             await postGig(formData);
-            navigate('/dashboard'); // Redirect to dashboard after success
+            navigate('/company/dashboard?view=ongoing'); // Redirect to dashboard after success
         } catch (err) {
             setError(err.message || 'Failed to create gig');
             setLoading(false);

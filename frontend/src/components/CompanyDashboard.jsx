@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser, logoutUser, getEvents, getDashboardStats, getMySponsoredEvents } from '../services/api';
 import { getMyGigs } from '../services/api/gigService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import EventFeed from './EventFeed';
 import PostEventReportView from './PostEventReportView';
@@ -13,7 +13,10 @@ const CompanyDashboard = () => {
     const [stats, setStats] = useState(null);
     const [myGigs, setMyGigs] = useState([]);
     const [sponsoredEvents, setSponsoredEvents] = useState([]);
-    const [viewMode, setViewMode] = useState('sponsored'); // 'ongoing', 'completed', 'sponsored'
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const initialView = queryParams.get('view') || 'sponsored';
+    const [viewMode, setViewMode] = useState(initialView); // 'ongoing', 'completed', 'sponsored'
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportEventId, setReportEventId] = useState(null);
     const navigate = useNavigate();
