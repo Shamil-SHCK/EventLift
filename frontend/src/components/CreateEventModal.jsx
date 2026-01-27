@@ -10,7 +10,8 @@ const CreateEventModal = ({
     handleInputChange,
     files,
     handleFileChange,
-    submitting
+    submitting,
+    error
 }) => {
     if (!isOpen) return null;
 
@@ -34,6 +35,12 @@ const CreateEventModal = ({
                 </div>
 
                 <form onSubmit={onSubmit} className="p-8 space-y-6">
+                    {error && (
+                        <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+                            <p className="font-bold">Error</p>
+                            <p>{error}</p>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 col-span-2">
                             <label className="text-sm font-bold text-slate-700">Event Title</label>

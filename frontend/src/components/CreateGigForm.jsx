@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { postGig } from '../services/api/gigService';
-import { ArrowLeft, DollarSign, Briefcase, FileText, Tag } from 'lucide-react';
+import { ArrowLeft, DollarSign, Briefcase, FileText, Tag, Upload } from 'lucide-react';
 
 const CreateGigForm = () => {
     const navigate = useNavigate();
@@ -11,11 +11,16 @@ const CreateGigForm = () => {
         budget: '',
         category: 'Tech' // Default
     });
+    const [poster, setPoster] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleFileChange = (e) => {
+        setPoster(e.target.files[0]);
     };
 
     const handleSubmit = async (e) => {
@@ -24,8 +29,12 @@ const CreateGigForm = () => {
         setError('');
 
         try {
-            await postGig(formData);
-            navigate('/dashboard'); // Redirect to dashboard after success
+            const data = new FormData();
+            Object.keys(formData).forEach(key => data.append(key, formData[key]));
+            if (poster) data.append('poster', poster);
+
+            await postGig(data);
+            navigate(-1); // Go back to previous page (Company Dashboard)
         } catch (err) {
             setError(err.message || 'Failed to create gig');
             setLoading(false);
@@ -33,7 +42,7 @@ const CreateGigForm = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
+        <div className="min-h-screen bg-gray-50 p-8" >
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8">
                 <button
                     onClick={() => navigate(-1)}
@@ -70,6 +79,20 @@ const CreateGigForm = () => {
                                 className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 border"
                                 placeholder="e.g., Build a React Landing Page"
                             />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Gig Poster (Image)</label>
+                        <div className="flex items-center justify-center w-full">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                    <p className="text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-gray-500">{poster ? poster.name : "SVG, PNG, JPG or GIF (MAX. 800x400px)"}</p>
+                                </div>
+                                <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                            </label>
                         </div>
                     </div>
 
@@ -137,7 +160,7 @@ const CreateGigForm = () => {
                     </button>
                 </form>
             </div>
-        </div>
+        </div >
     );
 };
 

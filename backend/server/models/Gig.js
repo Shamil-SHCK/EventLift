@@ -9,13 +9,24 @@ const gigSchema = new mongoose.Schema({
     // Who posted it?
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyProfile', required: true },
 
-    // Who accepted it? (Initially null)
+    poster: {
+        data: Buffer,
+        contentType: String
+    },
+
+    // Applicants
+    applicants: [{
+        club: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Store UserID of the club admin
+        linkedInProfile: { type: String, required: true },
+        appliedAt: { type: Date, default: Date.now }
+    }],
+
+    // Selected Consultant/Club
     assignedClub: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
-    // Backlog: Update gig status (accepted/completed)
     status: {
         type: String,
-        enum: ['open', 'accepted', 'completed'],
+        enum: ['open', 'assigned', 'completed'],
         default: 'open'
     }
 }, { timestamps: true });

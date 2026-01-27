@@ -3,7 +3,7 @@ import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, delete
 import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
-import { Rocket, DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react';
+import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock } from 'lucide-react';
 import ClubEventList from './ClubEventList';
 import CreateEventModal from './CreateEventModal';
 
@@ -18,6 +18,7 @@ const ClubDashboard = () => {
     const [submitting, setSubmitting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [formError, setFormError] = useState(null);
     const navigate = useNavigate();
 
     const [viewMode, setViewMode] = useState('events'); // 'events' or 'gigs'
@@ -104,6 +105,7 @@ const ClubDashboard = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
+        setFormError(null);
 
         try {
             const data = new FormData();
@@ -123,7 +125,7 @@ const ClubDashboard = () => {
 
             handleCloseModal();
         } catch (error) {
-            alert(error.message);
+            setFormError(error.message);
         } finally {
             setSubmitting(false);
         }
@@ -155,7 +157,7 @@ const ClubDashboard = () => {
             } catch (error) {
                 console.error(error);
                 alert('Failed to delete event');
-            }finally{
+            } finally {
                 setLoading(false)
             }
         }
@@ -169,6 +171,7 @@ const ClubDashboard = () => {
             title: '', description: '', date: '', time: '', location: '', category: 'Technical', budget: ''
         });
         setFiles({ poster: null, brochure: null });
+        setFormError(null);
     };
 
     if (loading) return (
@@ -179,8 +182,19 @@ const ClubDashboard = () => {
 
     // Calculate Stats
     const totalEvents = events.length;
-    const totalRaised = events.reduce((sum, event) => sum + (event.raised || 0), 0);
+    const totalGigs = acceptedGigs.length;
+    const totalRaised = events.reduce((sum, event) => sum + (event.raised || 0), 0) +
+        acceptedGigs.reduce((sum, gig) => sum + (gig.budget || 0), 0); // Assuming raised includes gig budget too, or just event raised? User said "total fund raised", usually implies all money. But let's stick to what was there and maybe add gig budget if that counts as funds raised. For now, I'll stick to event raised + gig budget to be safe as "funds raised". 
+    // Actually, looking at previous code: const totalRaised = events.reduce((sum, event) => sum + (event.raised || 0), 0);
+    // Events have 'raised' (sponsorships). Gigs have 'budget' (payment). 
+    // I will sum both for "Total Fund Raised" as it makes sense for a club.
+
+    // Re-calculating properly
+    const totalFunds = events.reduce((sum, event) => sum + (event.raised || 0), 0) +
+        acceptedGigs.reduce((sum, gig) => sum + (gig.budget || 0), 0);
+
     const activeEvents = events.filter(e => new Date(e.date) >= new Date()).length;
+    const pendingGigs = acceptedGigs.filter(g => g.status !== 'completed').length;
 
     const handleMarkGigDone = async (gigId) => {
         if (window.confirm('Are you sure you want to mark this gig as done?')) {
@@ -268,7 +282,7 @@ const ClubDashboard = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                     <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4">
                         <Rocket className="w-6 h-6" />
@@ -278,11 +292,11 @@ const ClubDashboard = () => {
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
-                        <DollarSign className="w-6 h-6" />
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                        <Briefcase className="w-6 h-6" />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{totalRaised.toLocaleString()}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Funds Raised</p>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{totalGigs}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Total Gigs</p>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
@@ -290,7 +304,23 @@ const ClubDashboard = () => {
                         <Calendar className="w-6 h-6" />
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-1">{activeEvents}</h3>
-                    <p className="text-slate-500 font-medium text-sm">Upcoming</p>
+                    <p className="text-slate-500 font-medium text-sm">Upcoming Events</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                        <Clock className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{pendingGigs}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Gigs Pending</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
+                        <DollarSign className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{totalFunds.toLocaleString()}</h3>
+                    <p className="text-slate-500 font-medium text-sm">Total Raised</p>
                 </div>
             </div>
 
@@ -399,6 +429,7 @@ const ClubDashboard = () => {
                 files={files}
                 handleFileChange={handleFileChange}
                 submitting={submitting}
+                error={formError}
             />
         </DashboardLayout>
     );

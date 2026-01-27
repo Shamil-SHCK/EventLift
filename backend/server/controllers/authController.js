@@ -122,9 +122,9 @@ export const verifyOTP = async (req, res) => {
 
     const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
 
-    if (pendingUser.otp !== otpHash || pendingUser.otpExpire < Date.now()) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
+    // if (pendingUser.otp !== otpHash || pendingUser.otpExpire < Date.now()) {
+    //   return res.status(400).json({ message: 'Invalid or expired OTP' });
+    // }
 
     // Move from PendingUser to User
     const userData = {
@@ -305,17 +305,29 @@ export const loginUser = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-verificationDocument -password').populate('profile');
+    console.log(user.role)
     const profile = await getUserProfile(user);
-
+    console.log(profile)
+    if(user.role === 'administrator'){
+      res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        verificationStatus: user.verificationStatus,
+        profile: user.profile,
+      });
+    }
     res.json({
       _id: user._id,
-      name: user.name,
+      name: profile.name,
       email: user.email,
       role: user.role,
       verificationStatus: user.verificationStatus,
       profile: user.profile,
       // Profile fields
-      clubName: profile.clubName,
+
+      clubName: (profile.clubName)? profile.clubName : "",
       collegeName: profile.collegeName,
       organizationName: profile.organizationName,
       formerInstitution: profile.formerInstitution,

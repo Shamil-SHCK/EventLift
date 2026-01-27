@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Event from '../models/Event.js';
+import Gig from '../models/Gig.js';
 import PendingUser from '../models/PendingUser.js';
 
 // @desc    Get user verification document
@@ -70,6 +71,25 @@ export const getEventBrochure = async (req, res) => {
 
         res.set('Content-Type', event.brochure.contentType);
         res.send(event.brochure.data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Get gig poster
+// @route   GET /api/files/gig/:id/poster
+// @access  Public
+export const getGigPoster = async (req, res) => {
+    try {
+        const gig = await Gig.findById(req.params.id);
+
+        if (!gig || !gig.poster || !gig.poster.data) {
+            return res.status(404).send('Poster not found');
+        }
+
+        res.set('Content-Type', gig.poster.contentType);
+        res.send(gig.poster.data);
     } catch (error) {
         console.error(error);
         res.status(500).send('Server Error');

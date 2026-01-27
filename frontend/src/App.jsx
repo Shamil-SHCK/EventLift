@@ -11,6 +11,7 @@ import AdminPanel from './components/AdminPanel';
 import LandingPage from './components/LandingPage';
 import CreateGigForm from './components/CreateGigForm';
 import GigOpportunities from './components/GigOpportunities';
+import CompanyEventManagement from './components/CompanyEventManagement';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -90,6 +91,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['company']}>
               <CreateGigForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/company/events"
+          element={
+            <ProtectedRoute allowedRoles={['company']}>
+              <CompanyEventManagement />
             </ProtectedRoute>
           }
         />

@@ -12,6 +12,14 @@ export const createEvent = async (req, res) => {
     try {
         const { title, description, date, location, category, budget, time } = req.body;
 
+        const eventDate = new Date(date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (eventDate < today) {
+            return res.status(400).json({ message: 'Event date cannot be in the past' });
+        }
+
         let poster = {};
         let brochure = {};
 
@@ -137,7 +145,7 @@ export const getEventById = async (req, res) => {
                 select: 'name role profile',
                 populate: { path: 'profile', select: 'organizationName formerInstitution logoUrl' }
             });
-            console.log(event);
+        console.log(event);
         if (event) {
             const e = event.toObject();
 

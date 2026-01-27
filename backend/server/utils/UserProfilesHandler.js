@@ -7,6 +7,7 @@ export const getUserProfile = async (user) => {
     if (user.role === 'club-admin') profile = await ClubProfile.findOne({ user: user._id });
     if (user.role === 'company') profile = await CompanyProfile.findOne({ user: user._id });
     if (user.role === 'alumni-individual') profile = await AlumniProfile.findOne({ user: user._id });
+    console.log(profile)
     return profile;
 }
 

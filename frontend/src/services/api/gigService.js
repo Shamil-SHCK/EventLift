@@ -29,9 +29,20 @@ export const getMyGigs = () => {
     return request('/gigs/my-gigs', { method: 'GET' });
 };
 
-// Backlog: Accept gig work 
-export const acceptGig = (gigId) => {
-    return request(`/gigs/${gigId}/accept`, { method: 'PUT' });
+// Feature: Apply for gig work
+export const applyForGig = (gigId, linkedInProfile) => {
+    return request(`/gigs/${gigId}/apply`, {
+        method: 'PUT',
+        body: JSON.stringify({ linkedInProfile })
+    });
+};
+
+// Feature: Assign gig to applicant
+export const assignGig = (gigId, applicantId) => {
+    return request(`/gigs/${gigId}/assign`, {
+        method: 'PUT',
+        body: JSON.stringify({ applicantId })
+    });
 };
 
 // Feature: Get Club's accepted gigs
