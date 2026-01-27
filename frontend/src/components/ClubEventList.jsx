@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Rocket, Calendar, MapPin, DollarSign } from 'lucide-react';
 
 const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDeleteEvent, openCreateModal }) => {
+    const navigate = useNavigate();
     if (events.length === 0) {
         return (
             <div className="bg-white rounded-2xl p-12 text-center border dashed border-slate-200">
@@ -65,6 +67,12 @@ const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDele
                                 Edit
                             </button>
                         </div>
+                        <button
+                            onClick={() => navigate(`/events/${event._id}/impact`)}
+                            className="w-full mt-2 py-2.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold hover:bg-indigo-100 transition-colors border border-indigo-200"
+                        >
+                            Manage Impact & Transparency
+                        </button>
                         <button
                             onClick={() => handleDeleteEvent(event._id)}
                             className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"

@@ -12,6 +12,7 @@ import LandingPage from './components/LandingPage';
 import CreateGigForm from './components/CreateGigForm';
 import GigOpportunities from './components/GigOpportunities';
 import CompanyEventManagement from './components/CompanyEventManagement';
+import ImpactDashboard from './components/ImpactDashboard';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -107,6 +108,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['club-admin']}>
               <GigOpportunities />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/:id/impact"
+          element={
+            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
+              <ImpactDashboard />
             </ProtectedRoute>
           }
         />

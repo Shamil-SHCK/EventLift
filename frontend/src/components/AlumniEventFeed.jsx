@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getEvents, sponsorEvent } from '../services/api';
 import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search } from 'lucide-react';
 
 const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
+    const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -190,6 +192,12 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                                         className={`px-4 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${!event.brochure ? 'col-span-2' : ''}`}
                                     >
                                         {event.status === 'open' ? 'Support Now' : 'Closed'}
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/events/${event._id}/impact`)}
+                                        className="col-span-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
+                                    >
+                                        View Impact Report
                                     </button>
                                 </div>
                             </div>
