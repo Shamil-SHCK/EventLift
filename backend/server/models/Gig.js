@@ -16,13 +16,13 @@ const gigSchema = new mongoose.Schema({
 
     // Applicants
     applicants: [{
-        club: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Store UserID of the club admin
+        club: { type: mongoose.Schema.Types.ObjectId, ref: 'ClubProfile' }, // Store UserID of the club admin
         linkedInProfile: { type: String, required: true },
         appliedAt: { type: Date, default: Date.now }
     }],
 
     // Selected Consultant/Club
-    assignedClub: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    assignedClub: { type: mongoose.Schema.Types.ObjectId, ref: 'ClubProfile', default: null },
 
     status: {
         type: String,

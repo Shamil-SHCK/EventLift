@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getEvents } from '../services/api';
 import {
     Rocket,
     Heart,
@@ -13,6 +15,57 @@ import {
 
 const LandingPage = () => {
     const navigate = useNavigate();
+    const [stats, setStats] = useState({
+        fundsRaised: 0,
+        eventsSupported: 0,
+        totalSponsors: 0,
+        verifiedOutcomes: '100%'
+    });
+    const [featuredEvents, setFeaturedEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const events = await getEvents();
+
+                // Calculate Stats
+                let totalFunds = 0;
+                let sponsorsSet = new Set();
+
+                events.forEach(event => {
+                    totalFunds += event.raised || 0;
+                    if (event.sponsors) {
+                        event.sponsors.forEach(s => sponsorsSet.add(s.sponsor?._id || s.sponsor));
+                    }
+                });
+
+                setStats({
+                    fundsRaised: totalFunds,
+                    eventsSupported: events.length,
+                    totalSponsors: sponsorsSet.size,
+                    verifiedOutcomes: '100%'
+                });
+
+                // Get Featured Events (Latest 3)
+                // Assuming events are returned sorted or we sort them by date descending
+                const sortedEvents = [...events].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setFeaturedEvents(sortedEvents.slice(0, 3));
+            } catch (err) {
+                console.error("Failed to fetch landing page data", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const formatCurrency = (amount) => {
+        if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L+`;
+        if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}k+`;
+        return `₹${amount}`;
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
@@ -54,10 +107,16 @@ const LandingPage = () => {
                             and share verified impact — ensuring trust and collaboration at every step.
                         </p>
                         <div className="flex flex-wrap gap-4">
-                            <button className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all flex items-center gap-2">
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 transition-all flex items-center gap-2"
+                            >
                                 Explore Events <ArrowRight className="w-5 h-5" />
                             </button>
-                            <button className="px-8 py-4 bg-white text-slate-700 border-2 border-slate-200 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-colors">
+                            <button
+                                onClick={() => navigate('/register')}
+                                className="px-8 py-4 bg-white text-slate-700 border-2 border-slate-200 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-colors"
+                            >
                                 Raise Funds
                             </button>
                         </div>
@@ -102,15 +161,21 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
                         <div className="space-y-2">
-                            <div className="text-3xl lg:text-4xl font-bold font-heading text-yellow-400">₹2.5L+</div>
+                            <div className="text-3xl lg:text-4xl font-bold font-heading text-yellow-400">
+                                {formatCurrency(stats.fundsRaised)}
+                            </div>
                             <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Funds Raised</div>
                         </div>
                         <div className="space-y-2">
-                            <div className="text-3xl lg:text-4xl font-bold font-heading text-blue-400">120+</div>
+                            <div className="text-3xl lg:text-4xl font-bold font-heading text-blue-400">
+                                {stats.eventsSupported}+
+                            </div>
                             <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Events Supported</div>
                         </div>
                         <div className="space-y-2">
-                            <div className="text-3xl lg:text-4xl font-bold font-heading text-green-400">45+</div>
+                            <div className="text-3xl lg:text-4xl font-bold font-heading text-green-400">
+                                {stats.totalSponsors}+
+                            </div>
                             <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Sponsors</div>
                         </div>
                         <div className="space-y-2">
@@ -152,72 +217,88 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex justify-between items-end mb-12">
                         <div>
-                            <h2 className="text-3xl lg:text-4xl font-bold font-heading text-slate-900 mb-4">Featured Events</h2>
+                            <h2 className="text-3xl lg:text-4xl font-bold font-heading text-slate-900 mb-4">Latest Events</h2>
                             <p className="text-slate-600 text-lg">Back trending initiatives across campuses.</p>
                         </div>
-                        <button className="hidden md:flex text-blue-600 font-semibold items-center gap-2 hover:gap-3 transition-all">
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="hidden md:flex text-blue-600 font-semibold items-center gap-2 hover:gap-3 transition-all"
+                        >
                             View all events <ArrowRight className="w-5 h-5" />
                         </button>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {[
-                            {
-                                title: "TechNova Hackathon 2025",
-                                club: "CS Society",
-                                raised: "₹45k",
-                                target: "₹50k",
-                                percent: 90,
-                                gradient: "from-blue-500 to-cyan-400"
-                            },
-                            {
-                                title: "Eco-Campus Drive",
-                                club: "Green Warriors",
-                                raised: "₹12.5k",
-                                target: "₹20k",
-                                percent: 62,
-                                gradient: "from-emerald-500 to-green-400"
-                            },
-                            {
-                                title: "RoboWars Nationals",
-                                club: "AI Cell",
-                                raised: "₹85k",
-                                target: "₹150k",
-                                percent: 56,
-                                gradient: "from-indigo-600 to-purple-500"
-                            }
-                        ].map((event, idx) => (
-                            <div key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100">
-                                {/* Abstract Gradient Thumbnail */}
-                                <div className={`h-48 bg-gradient-to-br ${event.gradient} relative overflow-hidden`}>
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-5 -mb-5 mix-blend-overlay"></div>
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold font-heading text-slate-900 mb-1">{event.title}</h3>
-                                    <p className="text-sm font-medium text-slate-500 mb-6">{event.club}</p>
+                    {loading ? (
+                        <div className="flex justify-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {featuredEvents.length > 0 ? (
+                                featuredEvents.map((event) => {
+                                    const percent = Math.min(100, Math.round((event.raised / event.budget) * 100));
+                                    const gradients = [
+                                        "from-blue-500 to-cyan-400",
+                                        "from-emerald-500 to-green-400",
+                                        "from-indigo-600 to-purple-500"
+                                    ];
+                                    const gradient = gradients[Math.floor(Math.random() * gradients.length)];
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm font-semibold">
-                                            <span className="text-slate-700">{event.raised} raised</span>
-                                            <span className="text-slate-400">of {event.target}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full bg-gradient-to-r ${event.gradient} rounded-full`}
-                                                style={{ width: `${event.percent}%` }}
-                                            ></div>
-                                        </div>
-                                        <div className="text-right text-xs text-slate-500 font-medium">{event.percent}% Funded</div>
-                                    </div>
+                                    return (
+                                        <div key={event._id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100">
+                                            {/* Poster or Gradient Thumbnail */}
+                                            <div className="h-48 bg-slate-100 relative overflow-hidden group">
+                                                {event.poster ? (
+                                                    <img
+                                                        src={`http://localhost:5000/${event.poster}`}
+                                                        alt={event.title}
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className={`w-full h-full bg-gradient-to-br ${gradient}`}></div>
+                                                )}
+                                                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-slate-800 uppercase tracking-wide">
+                                                    {event.category}
+                                                </div>
+                                            </div>
 
-                                    <button className="w-full mt-6 py-3 rounded-lg border border-slate-200 font-semibold text-slate-600 hover:text-blue-600 hover:border-blue-600 hover:bg-blue-50 transition-colors">
-                                        View Details
-                                    </button>
+                                            <div className="p-6">
+                                                <h3 className="text-xl font-bold font-heading text-slate-900 mb-1 line-clamp-1">{event.title}</h3>
+                                                <p className="text-sm font-medium text-slate-500 mb-6 line-clamp-1">
+                                                    {event.organizer?.clubName || 'Available Event'}
+                                                </p>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between text-sm font-semibold">
+                                                        <span className="text-slate-700">₹{event.raised.toLocaleString()} raised</span>
+                                                        <span className="text-slate-400">of ₹{event.budget.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full bg-blue-600 rounded-full`}
+                                                            style={{ width: `${percent}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="text-right text-xs text-slate-500 font-medium">{percent}% Funded</div>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => navigate('/login')}
+                                                    className="w-full mt-6 py-3 rounded-lg border border-slate-200 font-semibold text-slate-600 hover:text-blue-600 hover:border-blue-600 hover:bg-blue-50 transition-colors"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="col-span-3 text-center py-12 text-slate-500">
+                                    No events found at the moment.
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </section>
 

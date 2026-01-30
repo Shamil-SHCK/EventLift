@@ -188,14 +188,14 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                     )}
                                     <button
                                         onClick={() => handleSponsorClick(event)}
-                                        disabled={event.status !== 'open'}
+                                        disabled={event.status !== 'open' || (event.raised || 0) >= event.budget || new Date(event.date) < new Date()}
                                         className={`px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${!event.brochure ? 'col-span-2' : ''}`}
                                     >
-                                        {event.status === 'open' ? 'Sponsor Now' : 'Closed'}
+                                        {event.status === 'open' && (event.raised || 0) < event.budget && new Date(event.date) >= new Date() ? 'Sponsor Now' : ((event.raised || 0) >= event.budget ? 'Fully Funded' : 'Closed')}
                                     </button>
                                     <button
                                         onClick={() => navigate(`/events/${event._id}/impact`)}
-                                        className="col-span-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
+                                        className="col-span-2 px-4 py-2 rounded-xl bg-teal-50 text-teal-700 font-semibold text-sm hover:bg-teal-100 transition-colors"
                                     >
                                         View Impact Report
                                     </button>

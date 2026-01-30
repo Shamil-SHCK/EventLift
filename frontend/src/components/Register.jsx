@@ -230,7 +230,6 @@ const Register = () => {
                                 onChange={handleChange}
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-slate-900 appearance-none cursor-pointer"
                             >
-                                <option value="administrator">Administrator</option>
                                 <option value="club-admin">Club Admin</option>
                                 <option value="alumni-individual">Alumni / Individual Sponsor</option>
                                 <option value="company">Company</option>

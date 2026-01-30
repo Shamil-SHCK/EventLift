@@ -27,6 +27,10 @@ const AlumniProfileSchemna = mongoose.Schema(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Event",
                 required: true
+            },
+            amount: {
+                type: Number,
+                required: true,
             }
         }],
         phone: {

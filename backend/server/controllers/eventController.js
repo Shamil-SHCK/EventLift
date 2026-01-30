@@ -329,7 +329,7 @@ export const getEventById = async (req, res) => {
 // @access  Private (Organizer only)
 export const updateEvent = async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id);
+        const event = await Event.findById(req.params.id).select("-poster.data -brochure.data");
 
         if (!event) {
             return res.status(404).json({ message: 'Event not found' });
@@ -337,7 +337,7 @@ export const updateEvent = async (req, res) => {
 
         // Check ownership
         // req.user._id is an objectId, event.organizer is likely an objectId
-        if (event.organizer.toString() !== req.user.profile.toString()){
+        if (event.organizer.toString() !== req.user.profile.toString()) {
             return res.status(401).json({ message: 'Not authorized to update this event' });
         }
 
@@ -377,9 +377,13 @@ export const updateEvent = async (req, res) => {
 // @desc    Sponsor an event
 // @route   POST /api/events/:id/sponsor
 // @access  Private (Company/Alumni)
+// @desc    Sponsor an event
+// @route   POST /api/events/:id/sponsor
+// @access  Private (Company/Alumni)
 export const sponsorEvent = async (req, res) => {
     try {
         const { amount } = req.body;
+        const sponsorshipAmount = Number(amount);
         const event = await Event.findById(req.params.id);
 
         if (!event) {
@@ -395,9 +399,6 @@ export const sponsorEvent = async (req, res) => {
         }
         console.log(user);
         let profile;
-        // if(user.role === 'club-admin') profile = await ClubProfile.findById(user.profile);
-        // if(user.role === 'company') profile = await CompanyProfile.findById(user.profile);
-        // if(user.role === 'alumni-individual') profile = await AlumniProfile.findById(user.profile);
         profile = await getUserProfile(user);
         if (!profile) {
             return res.status(404).json({ message: 'Profile not found' });
@@ -405,31 +406,53 @@ export const sponsorEvent = async (req, res) => {
         console.log(profile);
         console.log(profile.name)
 
-
-        const sponsorship = {
-            sponsor: user.profile,
-            name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
-            name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
-            amount: Number(amount),
-            date: Date.now()
-        };
-
-        event.sponsors.push(sponsorship);
-        event.raised += Number(amount);
+        if (profile) {
+            const existingSponsorshipIndex = event.sponsors.findIndex(
+                s => s.sponsor.toString() === user.profile.toString()
+            );
+            if (existingSponsorshipIndex > -1) {
+                event.sponsors[existingSponsorshipIndex].amount += sponsorshipAmount;
+            }
+            else {
+                const sponsorship = {
+                    sponsor: user.profile,
+                    name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
+                    amount: Number(amount),
+                    date: Date.now()
+                };
+                event.sponsors.push(sponsorship);
+                event.raised += sponsorshipAmount;
+            }
+        }
 
         await event.save();
 
         // Add to Sponsor Profile
         if (profile) {
             if (!profile.sponseredEvents) profile.sponseredEvents = [];
-            profile.sponseredEvents.push({ event: event._id });
+
+            // Check if already sponsored this event
+            const existingSponsorshipIndex = profile.sponseredEvents.findIndex(
+                s => s.event.toString() === event._id.toString()
+            );
+
+            if (existingSponsorshipIndex > -1) {
+                // Determine current amount (handle missing 'amount' field in legacy data if valid number)
+                let currentAmount = Number(profile.sponseredEvents[existingSponsorshipIndex].amount) || 0;
+                profile.sponseredEvents[existingSponsorshipIndex].amount = currentAmount + sponsorshipAmount;
+            } else {
+                profile.sponseredEvents.push({
+                    event: event._id,
+                    amount: sponsorshipAmount
+                });
+            }
+
             await profile.save();
         }
 
         res.json({
             message: 'Sponsorship committed successfully',
             raised: event.raised,
-            sponsorship
         });
     } catch (error) {
         console.error(error);

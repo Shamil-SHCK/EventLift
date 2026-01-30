@@ -71,8 +71,8 @@ export const getMyGigs = async (req, res) => {
 
         const gigs = await Gig.find({ company: companyProfile._id })
             .select('-poster.data') // Exclude binary data
-            .populate('assignedClub', 'name email')
-            .populate('applicants.club', 'name email clubName logoUrl') // Populate applicant details
+            .populate('assignedClub', 'name clubName logoUrl email')
+            .populate('applicants.club', 'name clubName logoUrl email') // Populate applicant details
             .sort({ createdAt: -1 });
 
         // Add poster URL if exists
@@ -103,11 +103,11 @@ export const applyForGig = async (req, res) => {
         if (gig.status !== 'open') return res.status(400).json({ msg: 'Gig is no longer open for applications' });
 
         // Check if already applied
-        const alreadyApplied = gig.applicants.some(app => app.club.toString() === req.user.id);
+        const alreadyApplied = gig.applicants.some(app => app.club.toString() === req.user.profile);
         if (alreadyApplied) return res.status(400).json({ msg: 'You have already applied for this gig' });
 
         gig.applicants.push({
-            club: req.user.id,
+            club: req.user.profile,
             linkedInProfile
         });
         await gig.save();
@@ -148,7 +148,7 @@ export const assignGig = async (req, res) => {
 // 5. Feature: Get Club's accepted gigs
 export const getAcceptedGigs = async (req, res) => {
     try {
-        const gigs = await Gig.find({ assignedClub: req.user.id })
+        const gigs = await Gig.find({ assignedClub: req.user.profile })
             .populate('company', 'name email organizationName logoUrl phone description') // Populate company profile details
             .sort({ createdAt: -1 });
         res.json(gigs);
@@ -162,7 +162,7 @@ export const markGigComplete = async (req, res) => {
         if (!gig) return res.status(404).json({ msg: 'Gig not found' });
 
         // Ensure only the assigned club can mark it as done
-        if (gig.assignedClub.toString() !== req.user.id) {
+        if (gig.assignedClub.toString() !== req.user.profile) {
             return res.status(401).json({ msg: 'Not authorized' });
         }
 

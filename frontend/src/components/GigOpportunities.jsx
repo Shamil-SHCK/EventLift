@@ -50,7 +50,7 @@ const GigOpportunities = () => {
             await applyForGig(gigId, linkedInProfile);
             alert('Application submitted successfully!');
         } catch (err) {
-            alert(err.message || 'Failed to submit application');
+            alert(err.msg || 'Failed to submit application');
         } finally {
             setActionLoading(null);
         }

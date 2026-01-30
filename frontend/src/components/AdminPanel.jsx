@@ -198,7 +198,8 @@ const AdminPanel = ({ isEmbedded = false }) => {
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50/50">
                                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User Details</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role & Affiliation</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Affiliation/Organization</th>
                                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Verification</th>
                                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
@@ -218,18 +219,25 @@ const AdminPanel = ({ isEmbedded = false }) => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
                                                 ${user.role === 'club-admin' ? 'bg-green-100 text-green-700' :
-                                                    user.role === 'company' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-slate-100 text-slate-700'
-                                                }`}>
-                                                {user.role}
-                                            </span>
-                                            <p className="text-sm text-slate-600 max-w-[150px] truncate" title={user.clubName || user.organizationName || user.formerInstitution}>
-                                                {user.clubName || user.organizationName || user.formerInstitution || '-'}
-                                            </p>
-                                        </div>
+                                                user.role === 'company' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-slate-100 text-slate-700'
+                                            }`}>
+                                            {user.role}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {(() => {
+                                            const affiliation = user.clubName || user.organizationName || user.formerInstitution ||
+                                                user.profile?.clubName || user.profile?.organizationName || user.profile?.formerInstitution;
+
+                                            return (
+                                                <p className="text-sm font-medium text-slate-700 max-w-[200px] truncate" title={affiliation}>
+                                                    {affiliation || <span className="text-slate-400 italic text-xs">No affiliation info</span>}
+                                                </p>
+                                            );
+                                        })()}
                                     </td>
                                     <td className="px-6 py-4">
                                         {user.verificationDocument ? (

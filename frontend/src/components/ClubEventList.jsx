@@ -69,7 +69,7 @@ const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDele
                         </div>
                         <button
                             onClick={() => navigate(`/events/${event._id}/impact`)}
-                            className="w-full mt-2 py-2.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold hover:bg-indigo-100 transition-colors border border-indigo-200"
+                            className="w-full mt-2 py-2.5 rounded-lg bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-500/20"
                         >
                             Manage Impact & Transparency
                         </button>

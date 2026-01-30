@@ -216,15 +216,18 @@ const ImpactDashboard = () => {
                             <form onSubmit={handleAddExpense} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                                    <select
+                                    <input
+                                        list="expense-categories"
                                         value={expenseForm.category}
                                         onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                        className="w-full rounded-lg border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                    >
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-sm"
+                                        placeholder="Select or type..."
+                                    />
+                                    <datalist id="expense-categories">
                                         {['Venue', 'Catering', 'Logistics', 'Marketing', 'Prizes', 'Miscellaneous'].map(c => (
-                                            <option key={c} value={c}>{c}</option>
+                                            <option key={c} value={c} />
                                         ))}
-                                    </select>
+                                    </datalist>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₹)</label>
@@ -233,7 +236,7 @@ const ImpactDashboard = () => {
                                         required
                                         value={expenseForm.amount}
                                         onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                                        className="w-full rounded-lg border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-sm"
                                     />
                                 </div>
                                 <div>
@@ -243,7 +246,7 @@ const ImpactDashboard = () => {
                                         placeholder="Specific details..."
                                         value={expenseForm.description}
                                         onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                                        className="w-full rounded-lg border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-sm"
                                     />
                                 </div>
                                 <button
@@ -306,7 +309,7 @@ const ImpactDashboard = () => {
                                         placeholder="Caption (optional)"
                                         value={imageCaption}
                                         onChange={e => setImageCaption(e.target.value)}
-                                        className="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-sm"
                                     />
                                 </div>
                                 <button
