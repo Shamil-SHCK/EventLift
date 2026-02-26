@@ -60,6 +60,11 @@ const AdminPanel = ({ isEmbedded = false }) => {
     }, [navigate, filter]);
 
     const handleVerify = async (userId, status) => {
+        const actionText = status === 'verified' ? 'approve' : 'reject';
+        if (!window.confirm(`Are you sure you want to ${actionText} this user?`)) {
+            return;
+        }
+
         try {
             await verifyUser(userId, status);
             if (filter === 'pending') {

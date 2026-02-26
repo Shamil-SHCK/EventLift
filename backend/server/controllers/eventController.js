@@ -150,21 +150,15 @@ export const createEvent = async (req, res) => {
             return res.status(400).json({ message: 'Event date cannot be in the past' });
         }
 
-        let poster = {};
-        let brochure = {};
+        let posterUrl = '';
+        let brochureUrl = '';
 
         if (req.files) {
             if (req.files.poster) {
-                poster = {
-                    data: req.files.poster[0].buffer,
-                    contentType: req.files.poster[0].mimetype
-                };
+                posterUrl = req.files.poster[0].path; // Cloudinary URL
             }
             if (req.files.brochure) {
-                brochure = {
-                    data: req.files.brochure[0].buffer,
-                    contentType: req.files.brochure[0].mimetype
-                };
+                brochureUrl = req.files.brochure[0].path; // Cloudinary URL
             }
         }
         const profile = await getUserProfile(req.user);
@@ -177,8 +171,8 @@ export const createEvent = async (req, res) => {
             category,
             budget,
             organizer: profile._id,
-            poster,
-            brochure
+            poster: posterUrl,
+            brochure: brochureUrl
         });
 
         // Link Event With the Profile
@@ -202,17 +196,8 @@ export const createEvent = async (req, res) => {
             profile.events.push(eventData);
             await profile.save();
         }
-        if (!profile) {
-            res.status(404).json({ message: 'Profile not found' });
-        }
-        // Return object with URLs
-        const e = event.toObject();
-        if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
-        if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
-        if (e.poster) delete e.poster.data;
-        if (e.brochure) delete e.brochure.data;
 
-        res.status(201).json(e);
+        res.status(201).json(event);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: error.message });
@@ -232,27 +217,8 @@ export const getEvents = async (req, res) => {
             })
             .sort({ date: 1 }) // Sort by date (nearest first)
             .lean();
-        const eventsWithUrls = events.map(event => {
-            const e = event;
-            // console.log(e);
-            // Organizer is now ClubProfile, so clubName is directly accessible
-            // Log to debug if needed
-            // console.log(e.organizer);
 
-            if (event.poster && event.poster.contentType) {
-                e.poster = `api/files/event/${event._id}/poster`;
-            } else {
-                e.poster = null;
-            }
-            if (event.brochure && event.brochure.contentType) {
-                e.brochure = `api/files/event/${event._id}/brochure`;
-            } else {
-                e.brochure = null;
-            }
-            return e;
-        });
-
-        res.json(eventsWithUrls);
+        res.json(events);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -308,12 +274,6 @@ export const getEventById = async (req, res) => {
                 });
             }
 
-            if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
-            else e.poster = null;
-
-            if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
-            else e.brochure = null;
-
             res.json(e);
         } else {
             res.status(404).json({ message: 'Event not found' });
@@ -345,29 +305,19 @@ export const updateEvent = async (req, res) => {
 
         if (req.files) {
             if (req.files.poster) {
-                updateData.poster = {
-                    data: req.files.poster[0].buffer,
-                    contentType: req.files.poster[0].mimetype
-                };
+                updateData.poster = req.files.poster[0].path;
             }
             if (req.files.brochure) {
-                updateData.brochure = {
-                    data: req.files.brochure[0].buffer,
-                    contentType: req.files.brochure[0].mimetype
-                };
+                updateData.brochure = req.files.brochure[0].path;
             }
         }
 
         const updatedEvent = await Event.findByIdAndUpdate(req.params.id, updateData, {
             new: true,
             runValidators: true
-        }).select('-poster.data -brochure.data');
+        });
 
-        const e = updatedEvent.toObject();
-        if (updatedEvent.poster && updatedEvent.poster.contentType) e.poster = `api/files/event/${updatedEvent._id}/poster`;
-        if (updatedEvent.brochure && updatedEvent.brochure.contentType) e.brochure = `api/files/event/${updatedEvent._id}/brochure`;
-
-        res.json(e);
+        res.json(updatedEvent);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -393,36 +343,41 @@ export const sponsorEvent = async (req, res) => {
         if (event.status !== 'open') {
             return res.status(400).json({ message: 'Event is not open for sponsorship' });
         }
+
         const user = await User.findById(req.user._id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        console.log(user);
-        let profile;
-        profile = await getUserProfile(user);
+
+        let profile = await getUserProfile(user);
         if (!profile) {
             return res.status(404).json({ message: 'Profile not found' });
         }
-        console.log(profile);
-        console.log(profile.name)
 
         if (profile) {
+            // Find existing sponsorship
             const existingSponsorshipIndex = event.sponsors.findIndex(
-                s => s.sponsor.toString() === user.profile.toString()
+                s => s.sponsor && s.sponsor.toString() === profile._id.toString()
             );
+
             if (existingSponsorshipIndex > -1) {
+                // If repeatedly sponsoring, just add to existing amount
                 event.sponsors[existingSponsorshipIndex].amount += sponsorshipAmount;
-            }
-            else {
+            } else {
+                // If first time sponsoring
+                const sponsorName = profile.organizationName ? profile.organizationName : (profile.name || user.name || "Anonymous");
+
                 const sponsorship = {
-                    sponsor: user.profile,
-                    name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
-                    amount: Number(amount),
+                    sponsor: profile._id,
+                    name: sponsorName,
+                    amount: sponsorshipAmount,
                     date: Date.now()
                 };
                 event.sponsors.push(sponsorship);
-                event.raised += sponsorshipAmount;
             }
+
+            // Unconditionally add to total event raised amount
+            event.raised += sponsorshipAmount;
         }
 
         await event.save();
@@ -433,11 +388,10 @@ export const sponsorEvent = async (req, res) => {
 
             // Check if already sponsored this event
             const existingSponsorshipIndex = profile.sponseredEvents.findIndex(
-                s => s.event.toString() === event._id.toString()
+                s => s.event && s.event.toString() === event._id.toString()
             );
 
             if (existingSponsorshipIndex > -1) {
-                // Determine current amount (handle missing 'amount' field in legacy data if valid number)
                 let currentAmount = Number(profile.sponseredEvents[existingSponsorshipIndex].amount) || 0;
                 profile.sponseredEvents[existingSponsorshipIndex].amount = currentAmount + sponsorshipAmount;
             } else {
@@ -446,6 +400,13 @@ export const sponsorEvent = async (req, res) => {
                     amount: sponsorshipAmount
                 });
             }
+
+            // Repair legacy corrupted data before validation to prevent 500 ValidationError
+            profile.sponseredEvents.forEach(item => {
+                if (item.amount === undefined || item.amount === null) {
+                    item.amount = 0;
+                }
+            });
 
             await profile.save();
         }

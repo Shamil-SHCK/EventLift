@@ -55,8 +55,7 @@ const userSchema = new mongoose.Schema(
             type: Date,
         },
         verificationDocument: {
-            data: Buffer,
-            contentType: String
+            type: String
         }
     },
     {
