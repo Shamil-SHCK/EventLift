@@ -250,7 +250,7 @@ const LandingPage = () => {
                                             <div className="h-48 bg-slate-100 relative overflow-hidden group">
                                                 {event.poster ? (
                                                     <img
-                                                        src={`http://localhost:5000/${event.poster}`}
+                                                        src={`${event.poster}`}
                                                         alt={event.title}
                                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                     />

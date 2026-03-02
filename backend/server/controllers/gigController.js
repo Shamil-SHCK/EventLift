@@ -13,18 +13,15 @@ export const createGig = async (req, res) => {
             return res.status(404).json({ msg: 'Company profile not found. Please complete your profile first.' });
         }
 
-        let poster = {};
+        let posterUrl = '';
         if (req.file) {
-            poster = {
-                data: req.file.buffer,
-                contentType: req.file.mimetype
-            };
+            posterUrl = req.file.path; // Cloudinary URL
         }
 
         const newGig = new Gig({
             title, description, budget, category,
             company: companyProfile._id,
-            poster
+            poster: posterUrl
         });
         await newGig.save();
         res.status(201).json(newGig);
@@ -41,23 +38,12 @@ export const getAllGigs = async (req, res) => {
         if (minBudget) query.budget = { $gte: minBudget };
 
         // Populate company (CompanyProfile)
-        const gigs = await Gig.find(query).select('-poster.data').populate({
+        const gigs = await Gig.find(query).populate({
             path: 'company',
             select: 'name email organizationName logoUrl phone description'
         });
-        // Add poster URL if exists
-        const gigsWithPoster = gigs.map(gig => {
-            const g = gig.toObject();
-            if (gig.poster && gig.poster.contentType) {
-                g.poster = `api/files/gig/${gig._id}/poster`;
-            } else {
-                g.poster = null;
-            }
-            delete g.poster?.data;
-            return g;
-        });
 
-        res.json(gigsWithPoster);
+        res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -70,26 +56,11 @@ export const getMyGigs = async (req, res) => {
         }
 
         const gigs = await Gig.find({ company: companyProfile._id })
-            .select('-poster.data') // Exclude binary data
             .populate('assignedClub', 'name clubName logoUrl email')
             .populate('applicants.club', 'name clubName logoUrl email') // Populate applicant details
             .sort({ createdAt: -1 });
 
-        // Add poster URL if exists
-        const gigsWithPoster = gigs.map(gig => {
-            const g = gig.toObject();
-            if (gig.poster && gig.poster.contentType) {
-                g.poster = `api/files/gig/${gig._id}/poster`;
-            } else {
-                g.poster = null;
-            }
-            // Ensure data is removed if it wasn't by select (it should be though)
-            delete g.poster?.data;
-            console.log(g);
-            return g;
-        });
-
-        res.json(gigsWithPoster);
+        res.json(gigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 

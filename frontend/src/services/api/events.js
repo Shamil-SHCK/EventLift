@@ -30,11 +30,19 @@ export const updateEvent = (id, eventData) => {
     });
 };
 
-// Sponsor event
-export const sponsorEvent = (id, amount) => {
-    return request(`/events/${id}/sponsor`, {
+// Create Stripe Checkout Session
+export const createCheckoutSession = (id, amount) => {
+    return request(`/events/${id}/create-checkout-session`, {
         method: 'POST',
         body: { amount },
+    });
+};
+
+// Confirm sponsorship
+export const confirmSponsorship = (sessionId) => {
+    return request(`/events/sponsor/confirm`, {
+        method: 'POST',
+        body: { session_id: sessionId },
     });
 };
 

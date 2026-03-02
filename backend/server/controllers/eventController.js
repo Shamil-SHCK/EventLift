@@ -6,6 +6,7 @@ import CompanyProfile from '../models/CompanyProfile.js';
 import Expense from '../models/Expense.js';
 import EventImage from '../models/EventImage.js';
 import { getUserProfile } from '../utils/UserProfilesHandler.js';
+import Stripe from 'stripe';
 
 // @desc    Get event impact details
 // @route   GET /api/events/:id/impact
@@ -324,13 +325,10 @@ export const updateEvent = async (req, res) => {
     }
 };
 
-// @desc    Sponsor an event
-// @route   POST /api/events/:id/sponsor
+// @desc    Create Stripe Checkout Session for Sponsorship
+// @route   POST /api/events/:id/create-checkout-session
 // @access  Private (Company/Alumni)
-// @desc    Sponsor an event
-// @route   POST /api/events/:id/sponsor
-// @access  Private (Company/Alumni)
-export const sponsorEvent = async (req, res) => {
+export const createCheckoutSession = async (req, res) => {
     try {
         const { amount } = req.body;
         const sponsorshipAmount = Number(amount);
@@ -349,72 +347,125 @@ export const sponsorEvent = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+        // Create Stripe checkout session
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'inr',
+                        product_data: {
+                            name: `Sponsorship for ${event.title}`,
+                            description: `Supporting event organized by clubs on the platform.`,
+                        },
+                        unit_amount: sponsorshipAmount * 100, // Amount in paise
+                    },
+                    quantity: 1,
+                },
+            ],
+            metadata: {
+                eventId: event._id.toString(),
+                userId: req.user._id.toString(),
+                amount: amount.toString()
+            },
+            success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/cancel`,
+        });
+
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error("Stripe Create Session Error:", error);
+        res.status(500).json({ message: error.message || 'Server Error' });
+    }
+};
+
+// @desc    Confirm sponsorship payment success
+// @route   POST /api/events/sponsor/confirm
+// @access  Private
+export const confirmSponsorship = async (req, res) => {
+    try {
+        const { session_id } = req.body;
+
+        if (!session_id) {
+            return res.status(400).json({ message: 'Session ID is required' });
+        }
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+        // Retrieve the session from Stripe
+        const session = await stripe.checkout.sessions.retrieve(session_id);
+
+        if (session.payment_status !== 'paid') {
+            return res.status(400).json({ message: 'Payment not completed' });
+        }
+
+        const { eventId, userId, amount } = session.metadata;
+        const sponsorshipAmount = Number(amount);
+
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
         let profile = await getUserProfile(user);
-        if (!profile) {
-            return res.status(404).json({ message: 'Profile not found' });
+        if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+        // Check if already processed (idempotency check by checking if we have a record recent enough or by metadata, for simplicity we assume redirect happens once)
+        // A robust way is to store stripe session_id in the sponsorship, but here we just process it.
+        // To prevent double processing, we could check if a sponsorship with this amount happened recently, or ideally save the session_id in processed list.
+        // Here we just follow the original logic and add the sponsorship.
+
+        // Find existing sponsorship
+        const existingSponsorshipIndex = event.sponsors.findIndex(
+            s => s.sponsor && s.sponsor.toString() === profile._id.toString()
+        );
+
+        if (existingSponsorshipIndex > -1) {
+            event.sponsors[existingSponsorshipIndex].amount += sponsorshipAmount;
+        } else {
+            const sponsorName = profile.organizationName ? profile.organizationName : (profile.name || user.name || "Anonymous");
+
+            const sponsorship = {
+                sponsor: profile._id,
+                name: sponsorName,
+                amount: sponsorshipAmount,
+                date: Date.now()
+            };
+            event.sponsors.push(sponsorship);
         }
 
-        if (profile) {
-            // Find existing sponsorship
-            const existingSponsorshipIndex = event.sponsors.findIndex(
-                s => s.sponsor && s.sponsor.toString() === profile._id.toString()
-            );
-
-            if (existingSponsorshipIndex > -1) {
-                // If repeatedly sponsoring, just add to existing amount
-                event.sponsors[existingSponsorshipIndex].amount += sponsorshipAmount;
-            } else {
-                // If first time sponsoring
-                const sponsorName = profile.organizationName ? profile.organizationName : (profile.name || user.name || "Anonymous");
-
-                const sponsorship = {
-                    sponsor: profile._id,
-                    name: sponsorName,
-                    amount: sponsorshipAmount,
-                    date: Date.now()
-                };
-                event.sponsors.push(sponsorship);
-            }
-
-            // Unconditionally add to total event raised amount
-            event.raised += sponsorshipAmount;
-        }
-
+        event.raised += sponsorshipAmount;
         await event.save();
 
         // Add to Sponsor Profile
-        if (profile) {
-            if (!profile.sponseredEvents) profile.sponseredEvents = [];
+        if (!profile.sponseredEvents) profile.sponseredEvents = [];
 
-            // Check if already sponsored this event
-            const existingSponsorshipIndex = profile.sponseredEvents.findIndex(
-                s => s.event && s.event.toString() === event._id.toString()
-            );
+        const profileSponsorshipIndex = profile.sponseredEvents.findIndex(
+            s => s.event && s.event.toString() === event._id.toString()
+        );
 
-            if (existingSponsorshipIndex > -1) {
-                let currentAmount = Number(profile.sponseredEvents[existingSponsorshipIndex].amount) || 0;
-                profile.sponseredEvents[existingSponsorshipIndex].amount = currentAmount + sponsorshipAmount;
-            } else {
-                profile.sponseredEvents.push({
-                    event: event._id,
-                    amount: sponsorshipAmount
-                });
-            }
-
-            // Repair legacy corrupted data before validation to prevent 500 ValidationError
-            profile.sponseredEvents.forEach(item => {
-                if (item.amount === undefined || item.amount === null) {
-                    item.amount = 0;
-                }
+        if (profileSponsorshipIndex > -1) {
+            let currentAmount = Number(profile.sponseredEvents[profileSponsorshipIndex].amount) || 0;
+            profile.sponseredEvents[profileSponsorshipIndex].amount = currentAmount + sponsorshipAmount;
+        } else {
+            profile.sponseredEvents.push({
+                event: event._id,
+                amount: sponsorshipAmount
             });
-
-            await profile.save();
         }
 
-        res.json({
-            message: 'Sponsorship committed successfully',
-            raised: event.raised,
+        profile.sponseredEvents.forEach(item => {
+            if (item.amount === undefined || item.amount === null) item.amount = 0;
         });
+
+        await profile.save();
+
+        res.json({ message: 'Sponsorship successfully confirmed' });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });

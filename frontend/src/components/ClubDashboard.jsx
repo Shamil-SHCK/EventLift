@@ -396,7 +396,6 @@ const ClubDashboard = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold text-slate-900">{s.name ? s.name : 'Unknown Sponsor'}</h4>
-                                                    <p className="text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">

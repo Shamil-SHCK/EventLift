@@ -33,8 +33,7 @@ const pendingUserSchema = new mongoose.Schema(
         organizationName: { type: String },
         formerInstitution: { type: String },
         verificationDocument: {
-            data: Buffer,
-            contentType: String
+            type: String
         },
         phone: { type: String },
         logoUrl: { type: String },

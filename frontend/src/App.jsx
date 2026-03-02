@@ -13,6 +13,8 @@ import CreateGigForm from './components/CreateGigForm';
 import GigOpportunities from './components/GigOpportunities';
 import CompanyEventManagement from './components/CompanyEventManagement';
 import ImpactDashboard from './components/ImpactDashboard';
+import PaymentSuccess from './components/PaymentSuccess';
+import PaymentCancel from './components/PaymentCancel';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -128,6 +130,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Payment Routes */}
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/cancel" element={<PaymentCancel />} />
 
         <Route path="/" element={<LandingPage />} />
       </Routes>

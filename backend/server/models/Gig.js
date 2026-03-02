@@ -10,8 +10,7 @@ const gigSchema = new mongoose.Schema({
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyProfile', required: true },
 
     poster: {
-        data: Buffer,
-        contentType: String
+        type: String
     },
 
     // Applicants

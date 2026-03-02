@@ -22,14 +22,37 @@ const storage = new CloudinaryStorage({
 const upload = multer({
     storage,
     fileFilter: function (req, file, cb) {
-        const filetypes = /pdf|jpg|jpeg|png/;
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = filetypes.test(file.mimetype);
+        // Enforce validations per field
+        if (file.fieldname === 'poster') {
+            const filetypes = /jpg|jpeg|png|webp|avif/;
+            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+            const mimetype = file.mimetype.startsWith('image/');
 
-        if (extname && mimetype) {
-            return cb(null, true);
+            if (extname && mimetype) {
+                return cb(null, true);
+            } else {
+                cb(new Error('Error: Event Poster must be an Image!'));
+            }
+        } else if (file.fieldname === 'brochure' || file.fieldname === 'verificationDocument') {
+            const extname = path.extname(file.originalname).toLowerCase() === '.pdf';
+            const mimetype = file.mimetype === 'application/pdf';
+
+            if (extname && mimetype) {
+                return cb(null, true);
+            } else {
+                cb(new Error(`Error: ${file.fieldname === 'brochure' ? 'Event Brochure' : 'Verification Document'} must be a PDF!`));
+            }
         } else {
-            cb('Error: Documents or Images Only!');
+            // Default generic fallback
+            const filetypes = /pdf|jpg|jpeg|png/;
+            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+            const mimetype = filetypes.test(file.mimetype);
+
+            if (extname && mimetype) {
+                return cb(null, true);
+            } else {
+                cb(new Error('Error: Invalid file type!'));
+            }
         }
     },
 });

@@ -129,7 +129,7 @@ const GigOpportunities = () => {
                             <div className="h-48 bg-slate-100 relative overflow-hidden">
                                 {gig.poster ? (
                                     <img
-                                        src={`http://localhost:5000/${gig.poster}`}
+                                        src={`${gig.poster}`}
                                         alt={gig.title}
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />

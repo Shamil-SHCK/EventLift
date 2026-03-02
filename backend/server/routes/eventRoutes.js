@@ -4,7 +4,8 @@ import {
     getEvents,
     getEventById,
     updateEvent,
-    sponsorEvent,
+    createCheckoutSession,
+    confirmSponsorship,
     deleteEvent,
     getEventImpact,
     addExpense,
@@ -23,7 +24,8 @@ router.post('/', protect, checkVerificationStatus, authorize('club-admin'), uplo
 router.get('/:id', protect, getEventById);
 router.put('/:id', protect, checkVerificationStatus, authorize('club-admin', 'administrator'), upload.fields([{ name: 'poster', maxCount: 1 }, { name: 'brochure', maxCount: 1 }]), updateEvent);
 router.delete('/:id', protect, checkVerificationStatus, authorize('club-admin', 'administrator'), deleteEvent);
-router.post('/:id/sponsor', protect, checkVerificationStatus, authorize('company', 'alumni-individual'), sponsorEvent);
+router.post('/:id/create-checkout-session', protect, checkVerificationStatus, authorize('company', 'alumni-individual'), createCheckoutSession);
+router.post('/sponsor/confirm', protect, checkVerificationStatus, authorize('company', 'alumni-individual'), confirmSponsorship);
 
 // Impact & Transparency Routes
 router.get('/:id/impact', protect, getEventImpact);

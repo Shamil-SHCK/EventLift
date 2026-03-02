@@ -1,14 +1,11 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/database.js';
 import corsOptions from './config/corsOptions.js';
 import authRoutes from './routes/authRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-
-// Load environment variables
-dotenv.config();
 
 // Connect to database
 connectDB();

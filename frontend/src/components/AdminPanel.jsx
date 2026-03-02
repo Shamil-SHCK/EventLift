@@ -26,7 +26,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
     const [zoomLevel, setZoomLevel] = useState(1);
 
     const handleViewDoc = (docUrl) => {
-        setSelectedDoc(`http://localhost:5000/${docUrl}`);
+        setSelectedDoc(`${docUrl}`);
         setZoomLevel(1);
     };
 

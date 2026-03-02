@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEvents, sponsorEvent } from '../services/api';
+import { getEvents, createCheckoutSession } from '../services/api';
 import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search } from 'lucide-react';
 
 const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
@@ -61,24 +61,14 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await sponsorEvent(selectedEvent._id, Number(sponsorAmount));
-
-            const updatedEvents = events.map(ev => {
-                if (ev._id === selectedEvent._id) {
-                    return { ...ev, raised: (ev.raised || 0) + Number(sponsorAmount) };
-                }
-                return ev;
-            });
-
-            setEvents(updatedEvents);
-
-            if (onSponsorshipSuccess) onSponsorshipSuccess();
-
-            setShowSponsorModal(false);
-            alert(`Successfully sponsored ${selectedEvent.title} for ₹${sponsorAmount}!`);
+            const data = await createCheckoutSession(selectedEvent._id, Number(sponsorAmount));
+            if (data && data.url) {
+                window.location.href = data.url;
+            } else {
+                alert("Failed to create checkout session");
+            }
         } catch (error) {
-            alert(error.message);
-        } finally {
+            alert(error.message || "An error occurred during payment processing.");
             setSubmitting(false);
         }
     };
@@ -125,7 +115,7 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                     <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full">
                         <div className="h-48 bg-slate-100 relative overflow-hidden">
                             {event.poster ? (
-                                <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
                                     <Rocket className="w-12 h-12" />
@@ -178,7 +168,7 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                                 <div className="grid grid-cols-2 gap-3">
                                     {event.brochure && (
                                         <a
-                                            href={`http://localhost:5000/${event.brochure}`}
+                                            href={`${event.brochure}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center"
@@ -271,7 +261,7 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                                     'Processing...'
                                 ) : (
                                     <>
-                                        <Check className="w-5 h-5" /> Confirm Contribution
+                                        <Check className="w-5 h-5" /> Pay Now
                                     </>
                                 )}
                             </button>

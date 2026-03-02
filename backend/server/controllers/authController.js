@@ -46,10 +46,7 @@ export const registerUser = async (req, res) => {
     };
 
     if (req.file) {
-      userData.verificationDocument = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype
-      };
+      userData.verificationDocument = req.file.path;
     }
 
     // Add conditional fields based on role
@@ -228,7 +225,7 @@ export const verifyOTP = async (req, res) => {
       formerInstitution: profile.formerInstitution,
       verificationStatus: user.verificationStatus,
       token: token,
-      verificationDocument: profile.verificationDocument ? `api/files/user/${user._id}/document` : null
+      verificationDocument: profile.verificationDocument || null
     });
 
   } catch (error) {
@@ -288,7 +285,8 @@ export const loginUser = async (req, res) => {
         formerInstitution: profile.formerInstitution,
         phone: profile.phone,
         logoUrl: profile.logoUrl,
-        description: profile.description
+        description: profile.description,
+        sponseredEvents: profile.sponseredEvents || []
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -308,7 +306,7 @@ export const getMe = async (req, res) => {
     console.log(user.role)
     const profile = await getUserProfile(user);
     console.log(profile)
-    if(user.role === 'administrator'){
+    if (user.role === 'administrator') {
       res.json({
         _id: user._id,
         name: user.name,
@@ -327,13 +325,14 @@ export const getMe = async (req, res) => {
       profile: user.profile,
       // Profile fields
 
-      clubName: (profile.clubName)? profile.clubName : "",
+      clubName: (profile.clubName) ? profile.clubName : "",
       collegeName: profile.collegeName,
       organizationName: profile.organizationName,
       formerInstitution: profile.formerInstitution,
       phone: profile.phone,
       logoUrl: profile.logoUrl,
-      description: profile.description
+      description: profile.description,
+      sponseredEvents: profile.sponseredEvents || []
     });
   } catch (error) {
     console.error(error);
@@ -426,7 +425,8 @@ export const updateProfile = async (req, res) => {
       formerInstitution: profile.formerInstitution,
       phone: profile.phone,
       logoUrl: profile.logoUrl,
-      description: profile.description
+      description: profile.description,
+      sponseredEvents: profile.sponseredEvents || []
     });
   } catch (err) {
     console.error(err);

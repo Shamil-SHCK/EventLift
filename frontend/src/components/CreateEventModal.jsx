@@ -147,9 +147,9 @@ const CreateEventModal = ({
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                     <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                    <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF"}</p>
+                                    <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF ONLY"}</p>
                                 </div>
-                                <input type="file" name="brochure" onChange={handleFileChange} accept=".pdf" className="hidden" />
+                                <input type="file" name="brochure" onChange={handleFileChange} accept="application/pdf" className="hidden" />
                             </label>
                         </div>
                     </div>

@@ -74,6 +74,11 @@ const Register = () => {
             return;
         }
 
+        if (verificationFile && verificationFile.type !== 'application/pdf') {
+            setError('Verification document must be a PDF file');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -330,7 +335,7 @@ const Register = () => {
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
                                         <p className="mb-2 text-sm text-slate-500"><span className="font-semibold">Click to upload</span> validation doc</p>
-                                        <p className="text-xs text-slate-400">PDF, PNG, or JPG (MAX. 5MB)</p>
+                                        <p className="text-xs text-slate-400">PDF ONLY (MAX. 5MB)</p>
                                     </div>
                                     <input
                                         type="file"
@@ -338,7 +343,7 @@ const Register = () => {
                                         className="hidden"
                                         onChange={handleChange}
                                         required
-                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        accept="application/pdf"
                                     />
                                 </label>
                             </div>

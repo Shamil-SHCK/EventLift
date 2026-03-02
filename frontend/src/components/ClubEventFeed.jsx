@@ -89,7 +89,7 @@ const ClubEventFeed = () => {
                     <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full">
                         <div className="h-48 bg-slate-100 relative overflow-hidden">
                             {event.poster ? (
-                                <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
                                     <Rocket className="w-12 h-12" />
@@ -142,7 +142,7 @@ const ClubEventFeed = () => {
                                 <div className="grid grid-cols-1 gap-3">
                                     {event.brochure && (
                                         <a
-                                            href={`http://localhost:5000/${event.brochure}`}
+                                            href={`${event.brochure}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center"

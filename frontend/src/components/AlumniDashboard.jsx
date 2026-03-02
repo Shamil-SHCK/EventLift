@@ -177,7 +177,7 @@ const AlumniDashboard = () => {
                                 <div key={event._id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                                     <div className="h-40 bg-slate-100 relative">
                                         {event.poster ? (
-                                            <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
+                                            <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-slate-400">
                                                 <Heart className="w-10 h-10" />
