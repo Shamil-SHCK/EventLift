@@ -41,7 +41,7 @@ const CompanyDashboard = () => {
                     if (!eventId) return null;
                     return await getEventById(eventId);
                 } catch (err) {
-                    console.error(`Failed to fetch event`, err);
+                    // Ignore 404s for deleted events that are still referenced in the profile
                     return null;
                 }
             });
@@ -125,7 +125,13 @@ const CompanyDashboard = () => {
                         <Briefcase className="w-4 h-4 mr-2" />
                         Post Gig
                     </button>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-blue-100 text-blue-700 border-blue-200 flex items-center">
+                    <button
+                        onClick={() => navigate('/clubs')}
+                        className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-colors flex items-center shadow-sm"
+                    >
+                        Browse Clubs
+                    </button>
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-blue-100 text-blue-700 border-blue-200 flex items-center">
                         Company
                     </span>
                 </div>

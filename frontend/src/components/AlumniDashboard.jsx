@@ -41,7 +41,7 @@ const AlumniDashboard = () => {
                     const eventData = await getEventById(eventId);
                     return { ...eventData, myContribution: item.amount };
                 } catch (err) {
-                    console.error(`Failed to fetch event`, err);
+                    // Ignore 404s for deleted events that are still referenced in the profile
                     return null;
                 }
             });
@@ -90,9 +90,17 @@ const AlumniDashboard = () => {
                     </h1>
                     <p className="text-slate-500 text-lg">Support your alma mater and students.</p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-amber-100 text-amber-700 border-amber-200">
-                    Alumni / Individual
-                </span>
+                <div className="flex gap-3 items-center">
+                    <button
+                        onClick={() => navigate('/clubs')}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center shadow-sm"
+                    >
+                        Browse Clubs
+                    </button>
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-amber-100 text-amber-700 border-amber-200">
+                        Alumni
+                    </span>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">

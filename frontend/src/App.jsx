@@ -15,6 +15,8 @@ import CompanyEventManagement from './components/CompanyEventManagement';
 import ImpactDashboard from './components/ImpactDashboard';
 import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
+import ClubDirectory from './components/ClubDirectory';
+import ClubPublicProfile from './components/ClubPublicProfile';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -118,6 +120,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
               <ImpactDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clubs"
+          element={
+            <ProtectedRoute allowedRoles={['company', 'alumni-individual']}>
+              <ClubDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clubs/:id"
+          element={
+            <ProtectedRoute allowedRoles={['company', 'alumni-individual']}>
+              <ClubPublicProfile />
             </ProtectedRoute>
           }
         />
