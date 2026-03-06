@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEvents, createCheckoutSession } from '../services/api';
 import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search } from 'lucide-react';
 
-const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
+const AlumniEventFeed = ({ onSponsorshipSuccess, user }) => {
     const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState([]);
@@ -16,6 +16,9 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [sponsorAmount, setSponsorAmount] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    // PDF Preview Modal State
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -42,6 +45,16 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                 e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (e.organizer?.clubName && e.organizer.clubName.toLowerCase().includes(searchQuery.toLowerCase()))
             );
+        }
+
+        // Filter by Alumni's former institution
+        const formerInstitution = user?.profile?.formerInstitution || user?.formerInstitution;
+        if (formerInstitution) {
+            result = result.filter(e => {
+                const eventCollege = e.organizer?.collegeName;
+                if (!eventCollege) return false;
+                return eventCollege.toLowerCase() === formerInstitution.toLowerCase();
+            });
         }
 
         if (selectedCategory !== 'All') {
@@ -166,20 +179,28 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    {event.brochure && (
+                                    {event.poster && (
                                         <a
-                                            href={`${event.brochure}`}
+                                            href={event.poster.startsWith('http') ? event.poster : (event.poster.startsWith('res.cloudinary') ? `https://${event.poster}` : event.poster)}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center"
+                                            className={`px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center ${!event.brochure ? 'col-span-2' : ''}`}
                                         >
-                                            Brochure
+                                            View Poster
                                         </a>
+                                    )}
+                                    {event.brochure && (
+                                        <button
+                                            onClick={() => setPreviewPdfUrl((event.brochure.startsWith('http') ? event.brochure : (event.brochure.startsWith('res.cloudinary') ? `https://${event.brochure}` : event.brochure)).replace('/upload/fl_attachment/', '/upload/'))}
+                                            className={`px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center ${!event.poster ? 'col-span-2' : ''}`}
+                                        >
+                                            View Brochure
+                                        </button>
                                     )}
                                     <button
                                         onClick={() => handleSponsorClick(event)}
                                         disabled={event.status !== 'open' || (event.raised || 0) >= event.budget || new Date(event.date) < new Date()}
-                                        className={`px-4 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${!event.brochure ? 'col-span-2' : ''}`}
+                                        className="col-span-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {event.status === 'open' && (event.raised || 0) < event.budget && new Date(event.date) >= new Date() ? 'Support Now' : ((event.raised || 0) >= event.budget ? 'Fully Funded' : 'Closed')}
                                     </button>
@@ -266,6 +287,39 @@ const AlumniEventFeed = ({ onSponsorshipSuccess }) => {
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* PDF Preview Modal */}
+            {previewPdfUrl && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-6 overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full h-full max-w-6xl shadow-2xl animate-fadeIn flex flex-col relative">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50 rounded-t-2xl flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-slate-900">Document Viewer</h2>
+                            <div className="flex items-center gap-3">
+                                <a
+                                    href={previewPdfUrl.replace('/upload/', '/upload/fl_attachment/')}
+                                    download
+                                    className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition"
+                                >
+                                    Download File
+                                </a>
+                                <button
+                                    onClick={() => setPreviewPdfUrl(null)}
+                                    className="p-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-100 relative w-full h-full">
+                            <iframe
+                                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewPdfUrl)}&embedded=true`}
+                                title="PDF Document Viewer"
+                                className="absolute inset-0 w-full h-full border-0"
+                            />
+                        </div>
                     </div>
                 </div>
             )}

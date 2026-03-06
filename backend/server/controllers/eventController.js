@@ -163,6 +163,11 @@ export const createEvent = async (req, res) => {
             }
         }
         const profile = await getUserProfile(req.user);
+
+        if (!profile) {
+            return res.status(404).json({ message: 'Club profile not found' });
+        }
+
         const event = await Event.create({
             title,
             description,
@@ -177,26 +182,11 @@ export const createEvent = async (req, res) => {
         });
 
         // Link Event With the Profile
-        if (profile) {
-            const eventData = {
-                event: event._id
-            }
-            profile.events.push(eventData);
-            await profile.save();
+        const eventData = {
+            event: event._id
         }
-        if (!profile) {
-            res.status(404).json({ message: 'Profile not found' });
-        }
-
-
-        // Link Event With the Profile
-        if (profile) {
-            const eventData = {
-                event: event._id
-            }
-            profile.events.push(eventData);
-            await profile.save();
-        }
+        profile.events.push(eventData);
+        await profile.save();
 
         res.status(201).json(event);
     } catch (error) {
@@ -214,7 +204,7 @@ export const getEvents = async (req, res) => {
             .select('-poster.data -brochure.data')
             .populate({
                 path: 'organizer',
-                select: 'name clubName logoUrl'
+                select: 'name clubName collegeName logoUrl'
             })
             .sort({ date: 1 }) // Sort by date (nearest first)
             .lean();

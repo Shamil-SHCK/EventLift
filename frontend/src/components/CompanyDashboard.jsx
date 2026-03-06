@@ -3,6 +3,7 @@ import { getCurrentUser, logoutUser, getEventById } from '../services/api';
 import { getMyGigs, assignGig } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
+import ClubDirectory from './ClubDirectory';
 import { Briefcase, CheckCircle, Search, TrendingUp, Users, ExternalLink, X } from 'lucide-react';
 
 const CompanyDashboard = () => {
@@ -16,7 +17,7 @@ const CompanyDashboard = () => {
     });
     const [myGigs, setMyGigs] = useState([]);
     const [sponsoredEvents, setSponsoredEvents] = useState([]);
-    const [viewMode, setViewMode] = useState('gigs'); // 'gigs' | 'sponsored'
+    const [viewMode, setViewMode] = useState('clubs'); // 'clubs' | 'gigs' | 'sponsored'
     const [showApplicantsModal, setShowApplicantsModal] = useState(false);
     const [selectedGig, setSelectedGig] = useState(null);
     const [assigning, setAssigning] = useState(null);
@@ -125,12 +126,7 @@ const CompanyDashboard = () => {
                         <Briefcase className="w-4 h-4 mr-2" />
                         Post Gig
                     </button>
-                    <button
-                        onClick={() => navigate('/clubs')}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-colors flex items-center shadow-sm"
-                    >
-                        Browse Clubs
-                    </button>
+
                     <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-blue-100 text-blue-700 border-blue-200 flex items-center">
                         Company
                     </span>
@@ -177,7 +173,16 @@ const CompanyDashboard = () => {
 
             {/* View Toggle */}
             <div className="flex mb-8">
-                <div className="bg-blue-600 p-1 rounded-xl inline-flex shadow-inner">
+                <div className="bg-blue-600 p-1 rounded-xl inline-flex shadow-inner max-w-full overflow-x-auto">
+                    <button
+                        onClick={() => setViewMode('clubs')}
+                        className={`px-6 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'clubs'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-blue-100 hover:bg-white/10'
+                            }`}
+                    >
+                        Browse Clubs
+                    </button>
                     <button
                         onClick={() => setViewMode('gigs')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'gigs'
@@ -198,6 +203,13 @@ const CompanyDashboard = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Clubs Directory Section */}
+            {viewMode === 'clubs' && (
+                <div className="animate-fadeIn w-full">
+                    <ClubDirectory hideLayout={true} />
+                </div>
+            )}
 
             {/* My Posted Gigs Section */}
             {viewMode === 'gigs' && (
@@ -225,7 +237,7 @@ const CompanyDashboard = () => {
                                 <div key={gig._id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                                     <div className="h-40 bg-slate-100 relative">
                                         {gig.poster ? (
-                                            <img src={`${gig.poster}`} alt={gig.title} className="w-full h-full object-cover" />
+                                            <img src={gig.poster.startsWith('http') ? gig.poster : (gig.poster.startsWith('res.cloudinary') ? `https://${gig.poster}` : gig.poster)} alt={gig.title} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-slate-400">
                                                 <Briefcase className="w-10 h-10" />

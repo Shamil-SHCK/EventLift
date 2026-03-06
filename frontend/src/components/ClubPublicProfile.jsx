@@ -19,6 +19,9 @@ const ClubPublicProfile = () => {
     const [sponsorAmount, setSponsorAmount] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
+    // PDF Preview Modal State
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+
     useEffect(() => {
         const loadProfileData = async () => {
             try {
@@ -37,6 +40,30 @@ const ClubPublicProfile = () => {
         };
         loadProfileData();
     }, [id]);
+
+    const handleBack = () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                if (user && user.role) {
+                    switch (user.role) {
+                        case 'administrator':
+                            return navigate('/admin/dashboard');
+                        case 'company':
+                            return navigate('/company/dashboard');
+                        case 'club-admin':
+                            return navigate('/club/dashboard');
+                        case 'alumni-individual':
+                            return navigate('/alumni/dashboard');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error reading role for Navigation:', error);
+        }
+        navigate('/clubs');
+    };
 
     const handleSponsorClick = (event) => {
         setSelectedEvent(event);
@@ -91,10 +118,10 @@ const ClubPublicProfile = () => {
             <div className="max-w-6xl mx-auto pb-12">
                 {/* Back Button */}
                 <button
-                    onClick={() => navigate('/clubs')}
+                    onClick={handleBack}
                     className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium mb-6 transition-colors"
                 >
-                    <ArrowLeft className="w-4 h-4" /> Back to Directory
+                    <ArrowLeft className="w-4 h-4" /> Back to Dashboard
                 </button>
 
                 {/* Profile Header */}
@@ -196,20 +223,28 @@ const ClubPublicProfile = () => {
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    {event.brochure && (
+                                                    {event.poster && (
                                                         <a
-                                                            href={event.brochure}
+                                                            href={event.poster.startsWith('http') ? event.poster : (event.poster.startsWith('res.cloudinary') ? `https://${event.poster}` : event.poster)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="px-4 py-3 rounded-xl border-2 border-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors text-center shadow-sm"
+                                                            className={`px-4 py-3 rounded-xl border-2 border-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors text-center shadow-sm ${!event.brochure ? 'col-span-2' : ''}`}
                                                         >
-                                                            Brochure
+                                                            View Poster
                                                         </a>
+                                                    )}
+                                                    {event.brochure && (
+                                                        <button
+                                                            onClick={() => setPreviewPdfUrl((event.brochure.startsWith('http') ? event.brochure : (event.brochure.startsWith('res.cloudinary') ? `https://${event.brochure}` : event.brochure)).replace('/upload/fl_attachment/', '/upload/'))}
+                                                            className={`px-4 py-3 rounded-xl border-2 border-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors text-center shadow-sm ${!event.poster ? 'col-span-2' : ''}`}
+                                                        >
+                                                            View Brochure
+                                                        </button>
                                                     )}
                                                     <button
                                                         onClick={() => handleSponsorClick(event)}
                                                         disabled={event.status !== 'open' || (event.raised || 0) >= event.budget || new Date(event.date) < new Date()}
-                                                        className={`px-4 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 ${!event.brochure ? 'col-span-2' : ''}`}
+                                                        className="col-span-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                                                     >
                                                         {event.status === 'open' && (event.raised || 0) < event.budget && new Date(event.date) >= new Date() ? (
                                                             <>Sponsor Now</>
@@ -321,6 +356,39 @@ const ClubPublicProfile = () => {
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* PDF Preview Modal */}
+            {previewPdfUrl && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-6 overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full h-full max-w-6xl shadow-2xl animate-fadeIn flex flex-col relative">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50 rounded-t-2xl flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-slate-900">Document Viewer</h2>
+                            <div className="flex items-center gap-3">
+                                <a
+                                    href={previewPdfUrl.replace('/upload/', '/upload/fl_attachment/')}
+                                    download
+                                    className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition"
+                                >
+                                    Download File
+                                </a>
+                                <button
+                                    onClick={() => setPreviewPdfUrl(null)}
+                                    className="p-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-100 relative w-full h-full">
+                            <iframe
+                                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewPdfUrl)}&embedded=true`}
+                                title="PDF Document Viewer"
+                                className="absolute inset-0 w-full h-full border-0"
+                            />
+                        </div>
                     </div>
                 </div>
             )}

@@ -12,10 +12,29 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: {
-        folder: 'sponsorship-platform', // Folder in Cloudinary
-        allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
-        resource_type: 'auto' // Important for handling PDFs vs Images
+    params: async (req, file) => {
+        const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+
+        // Create a unique public_id base
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const generatedId = `${baseName}_${uniqueSuffix}`;
+
+        if (isPdf) {
+            return {
+                folder: 'sponsorship-platform',
+                resource_type: 'raw',
+                public_id: `${generatedId}.pdf` // Appending .pdf directly here ensures Cloudinary keeps the extension for raw files
+            };
+        }
+
+        return {
+            folder: 'sponsorship-platform',
+            allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'avif'],
+            resource_type: 'image',
+            public_id: generatedId // Images don't necessarily need the extension in public_id
+        };
     },
 });
 

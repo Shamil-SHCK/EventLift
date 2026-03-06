@@ -9,7 +9,12 @@ import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 // Connect to database
-connectDB();
+connectDB().then(() => {
+  // Database connected successfully
+}).catch(err => {
+  console.error("Failed to connect to database:", err);
+  process.exit(1);
+});
 
 // Initialize express app
 const app = express();
@@ -50,6 +55,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+// Connect to database then start server (alternative to above, but let's just properly wrap listen)
+mongoose.connection.once('open', () => {
+  app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  });
+});
+
+mongoose.connection.on('error', err => {
+  console.error(`MongoDB connection error: ${err}`);
 });
