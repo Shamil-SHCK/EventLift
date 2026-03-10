@@ -46,6 +46,14 @@ export const confirmSponsorship = (sessionId) => {
     });
 };
 
+// Cancel sponsorship
+export const cancelSponsorship = (sessionId) => {
+    return request(`/events/sponsor/cancel`, {
+        method: 'POST',
+        body: { session_id: sessionId },
+    });
+};
+
 // Delete event
 export const deleteEvent = (id) => {
     return request(`/events/${id}`, {

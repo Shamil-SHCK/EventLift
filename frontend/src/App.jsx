@@ -17,6 +17,7 @@ import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
 import ClubDirectory from './components/ClubDirectory';
 import ClubPublicProfile from './components/ClubPublicProfile';
+import TransactionHistory from './components/TransactionHistory';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -145,6 +146,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute allowedRoles={['company', 'alumni-individual', 'club-admin']}>
+              <TransactionHistory />
             </ProtectedRoute>
           }
         />

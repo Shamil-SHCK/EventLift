@@ -5,6 +5,7 @@ import AlumniProfile from '../models/AlumniProfile.js';
 import CompanyProfile from '../models/CompanyProfile.js';
 import Expense from '../models/Expense.js';
 import EventImage from '../models/EventImage.js';
+import Transaction from '../models/Transaction.js';
 import { getUserProfile } from '../utils/UserProfilesHandler.js';
 import Stripe from 'stripe';
 
@@ -61,6 +62,66 @@ export const getEventImpact = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+import { v2 as cloudinary } from 'cloudinary';
+
+// @desc    Proxy PDF to bypass Cloudinary inline restrictions
+// @route   GET /api/events/proxy-pdf
+// @access  Public
+export const proxyPdf = async (req, res) => {
+    try {
+        const { url } = req.query;
+        if (!url) return res.status(400).json({ message: 'URL is required' });
+
+        if (!url.includes('cloudinary.com')) {
+             return res.status(400).json({ message: 'Invalid URL' });
+        }
+
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
+        });
+
+        // Parse public ID from URL:
+        // https://res.cloudinary.com/<cloud_name>/<resource_type>/upload/v<version>/<public_id>.pdf
+        const uploadIndex = url.indexOf('/upload/');
+        if (uploadIndex === -1) return res.status(400).json({ message: 'Invalid Cloudinary URL' });
+
+        let urlParts = url.substring(uploadIndex + 8).split('/');
+        
+        // Remove version string if present (v1234567)
+        if (urlParts[0].startsWith('v') && !isNaN(urlParts[0].substring(1))) {
+            urlParts.shift();
+        }
+        
+        let pathStr = urlParts.join('/').split('?')[0];
+        const resourceType = url.includes('/raw/upload/') ? 'raw' : 'image';
+
+        // Generate a signed delivery URL to bypass free-tier PDF restrictions
+        const signedUrl = cloudinary.url(pathStr, {
+            resource_type: resourceType,
+            sign_url: true,
+            secure: true
+        });
+
+        const response = await fetch(signedUrl);
+        
+        if (!response.ok) {
+            return res.status(response.status).json({ message: 'Failed to fetch PDF from Cloudinary' });
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.send(buffer);
+    } catch (error) {
+        console.error('PDF Proxy Error:', error);
+        res.status(error.http_code || 500).json({ message: 'Server Error', error: error.message });
     }
 };
 
@@ -362,7 +423,16 @@ export const createCheckoutSession = async (req, res) => {
                 amount: amount.toString()
             },
             success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/cancel`,
+            cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/cancel?session_id={CHECKOUT_SESSION_ID}`,
+        });
+
+        // Record pending transaction
+        await Transaction.create({
+            user: req.user._id,
+            event: event._id,
+            amount: sponsorshipAmount,
+            status: 'pending',
+            stripeSessionId: session.id
         });
 
         res.json({ url: session.url });
@@ -454,11 +524,41 @@ export const confirmSponsorship = async (req, res) => {
 
         await profile.save();
 
+        // Mark transaction as successful
+        const transaction = await Transaction.findOne({ stripeSessionId: session_id });
+        if (transaction && transaction.status !== 'success') {
+            transaction.status = 'success';
+            await transaction.save();
+        }
+
         res.json({ message: 'Sponsorship successfully confirmed' });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error("Stripe Confirm Payment Error:", error);
+        res.status(500).json({ message: error.message || 'Server Error during confirmation' });
+    }
+};
+
+// @desc    Cancel sponsorship payment attempt
+// @route   POST /api/events/sponsor/cancel
+// @access  Private
+export const cancelSponsorship = async (req, res) => {
+    try {
+        const { session_id } = req.body;
+        if (!session_id) {
+            return res.status(400).json({ message: 'Session ID is required' });
+        }
+
+        const transaction = await Transaction.findOne({ stripeSessionId: session_id });
+        if (transaction && transaction.status === 'pending') {
+            transaction.status = 'failed';
+            await transaction.save();
+        }
+
+        res.json({ message: 'Payment marked as cancelled/failed' });
+    } catch (error) {
+        console.error("Stripe Cancel Payment Error:", error);
+        res.status(500).json({ message: error.message || 'Server Error during cancellation' });
     }
 };
 

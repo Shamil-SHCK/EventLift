@@ -1,8 +1,20 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { XCircle, ArrowLeft } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { cancelSponsorship } from '../services/api';
 
 const PaymentCancel = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const sessionId = searchParams.get('session_id');
+    const hasCancelled = useRef(false);
+
+    useEffect(() => {
+        if (sessionId && !hasCancelled.current) {
+            hasCancelled.current = true;
+            cancelSponsorship(sessionId).catch(console.error);
+        }
+    }, [sessionId]);
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">

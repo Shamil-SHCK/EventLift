@@ -19,6 +19,7 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [sponsorAmount, setSponsorAmount] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -57,6 +58,7 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const handleSponsorClick = (event) => {
         setSelectedEvent(event);
         setSponsorAmount('');
+        setPaymentError('');
         setShowSponsorModal(true);
     };
 
@@ -68,10 +70,11 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
             if (data && data.url) {
                 window.location.href = data.url;
             } else {
-                alert("Failed to create checkout session");
+                setPaymentError('Failed to create checkout session');
+                setSubmitting(false);
             }
         } catch (error) {
-            alert(error.message || "An error occurred during payment processing.");
+            setPaymentError(error.message || 'An error occurred during payment processing.');
             setSubmitting(false);
         }
     };
@@ -247,6 +250,12 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                 </div>
                             </div>
 
+                            {paymentError && (
+                                <div className="p-4 bg-red-50 text-red-700 text-sm font-semibold rounded-xl border border-red-200">
+                                    {paymentError}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Sponsorship Amount (₹)</label>
                                 <div className="relative">
@@ -305,7 +314,7 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                         </div>
                         <div className="flex-1 bg-slate-100 relative w-full h-full">
                             <iframe
-                                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewPdfUrl)}&embedded=true`}
+                                src={`http://localhost:5000/api/events/proxy-pdf?url=${encodeURIComponent(previewPdfUrl)}`}
                                 title="PDF Document Viewer"
                                 className="absolute inset-0 w-full h-full border-0"
                             />

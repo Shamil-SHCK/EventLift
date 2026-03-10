@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
 
 // Connect to database
 connectDB().then(() => {
@@ -37,6 +38,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/gigs', gigRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

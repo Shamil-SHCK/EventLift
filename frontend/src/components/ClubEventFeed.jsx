@@ -17,7 +17,7 @@ const ClubEventFeed = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const data = await getEventById();
+                const data = await getEvents();
                 setEvents(data);
                 setFilteredEvents(data);
                 console.log(data);
@@ -202,7 +202,7 @@ const ClubEventFeed = () => {
                         </div>
                         <div className="flex-1 bg-slate-100 relative w-full h-full">
                             <iframe
-                                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewPdfUrl)}&embedded=true`}
+                                src={`http://localhost:5000/api/events/proxy-pdf?url=${encodeURIComponent(previewPdfUrl)}`}
                                 title="PDF Document Viewer"
                                 className="absolute inset-0 w-full h-full border-0"
                             />
