@@ -17,8 +17,8 @@ const transactionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'success', 'failed'],
-        default: 'pending'
+        enum: ['initiated', 'pending', 'completed', 'failed'],
+        default: 'initiated'
     },
     stripeSessionId: {
         type: String,

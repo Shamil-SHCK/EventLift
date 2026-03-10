@@ -25,11 +25,14 @@ const TransactionHistory = () => {
 
     const getStatusIcon = (status) => {
         switch (status) {
+            case 'completed':
             case 'success':
                 return <CheckCircle2 className="w-5 h-5 text-green-600" />;
             case 'failed':
                 return <XCircle className="w-5 h-5 text-red-600" />;
             case 'pending':
+                return <Clock className="w-5 h-5 text-blue-600" />;
+            case 'initiated':
             default:
                 return <Clock className="w-5 h-5 text-amber-500" />;
         }
@@ -37,11 +40,14 @@ const TransactionHistory = () => {
 
     const getStatusStyles = (status) => {
         switch (status) {
+            case 'completed':
             case 'success':
                 return 'bg-green-50 text-green-700 border-green-200';
             case 'failed':
                 return 'bg-red-50 text-red-700 border-red-200';
             case 'pending':
+                return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'initiated':
             default:
                 return 'bg-amber-50 text-amber-700 border-amber-200';
         }

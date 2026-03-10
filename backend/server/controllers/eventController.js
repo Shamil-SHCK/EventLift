@@ -426,12 +426,12 @@ export const createCheckoutSession = async (req, res) => {
             cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/cancel?session_id={CHECKOUT_SESSION_ID}`,
         });
 
-        // Record pending transaction
+        // Record initiated transaction
         await Transaction.create({
             user: req.user._id,
             event: event._id,
             amount: sponsorshipAmount,
-            status: 'pending',
+            status: 'initiated',
             stripeSessionId: session.id
         });
 
@@ -524,10 +524,10 @@ export const confirmSponsorship = async (req, res) => {
 
         await profile.save();
 
-        // Mark transaction as successful
+        // Mark transaction as pending transfer
         const transaction = await Transaction.findOne({ stripeSessionId: session_id });
-        if (transaction && transaction.status !== 'success') {
-            transaction.status = 'success';
+        if (transaction && transaction.status !== 'pending' && transaction.status !== 'completed') {
+            transaction.status = 'pending';
             await transaction.save();
         }
 
@@ -550,7 +550,7 @@ export const cancelSponsorship = async (req, res) => {
         }
 
         const transaction = await Transaction.findOne({ stripeSessionId: session_id });
-        if (transaction && transaction.status === 'pending') {
+        if (transaction && transaction.status === 'initiated') {
             transaction.status = 'failed';
             await transaction.save();
         }

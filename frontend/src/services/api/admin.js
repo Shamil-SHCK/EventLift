@@ -28,3 +28,17 @@ export const verifyUser = (userId, status) => {
         body: { status },
     });
 };
+
+// Admin: Get club transactions
+export const getClubTransactions = () => {
+    return request('/admin/club-transactions', {
+        method: 'GET',
+    });
+};
+
+// Admin: Mark transaction completed
+export const completeTransaction = (id) => {
+    return request(`/admin/transactions/${id}/complete`, {
+        method: 'PUT',
+    });
+};

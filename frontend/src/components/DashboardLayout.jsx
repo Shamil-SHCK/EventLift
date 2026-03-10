@@ -9,7 +9,8 @@ import {
     Settings,
     Menu,
     Briefcase,
-    Calendar
+    Calendar,
+    IndianRupee
 } from 'lucide-react';
 
 const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
@@ -42,6 +43,12 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                             <LayoutDashboard className="w-5 h-5" /> Dashboard
                         </button>
 
+                        {user?.role === 'administrator' && (
+                            <button onClick={() => navigate('/admin/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Transactions' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                <IndianRupee className="w-5 h-5" /> Platform Transfers
+                            </button>
+                        )}
+
                         {user?.role === 'company' && (
                             <button onClick={() => navigate('/company/events')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Events' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <Calendar className="w-5 h-5" /> Events
@@ -51,6 +58,12 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                         {user?.role === 'club-admin' && (
                             <button onClick={() => navigate('/club/gig-opportunities')} className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all ${title === 'Gig Opportunities' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <Briefcase className="w-5 h-5" /> Gig Works
+                            </button>
+                        )}
+
+                        {user?.role !== 'administrator' && (
+                            <button onClick={() => navigate('/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all ${title === 'Transaction History' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                <IndianRupee className="w-5 h-5" /> Transactions
                             </button>
                         )}
 

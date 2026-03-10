@@ -18,6 +18,7 @@ import PaymentCancel from './components/PaymentCancel';
 import ClubDirectory from './components/ClubDirectory';
 import ClubPublicProfile from './components/ClubPublicProfile';
 import TransactionHistory from './components/TransactionHistory';
+import AdminTransactions from './components/AdminTransactions';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -65,6 +66,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['administrator']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/transactions"
+          element={
+            <ProtectedRoute allowedRoles={['administrator']}>
+              <AdminTransactions />
             </ProtectedRoute>
           }
         />
