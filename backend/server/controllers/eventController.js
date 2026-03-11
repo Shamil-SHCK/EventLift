@@ -277,6 +277,53 @@ export const getEvents = async (req, res) => {
     }
 };
 
+// @desc    Get batch events by ID array
+// @route   POST /api/events/batch
+// @access  Private
+export const getEventsBatch = async (req, res) => {
+    try {
+        const { eventIds } = req.body;
+        
+        if (!eventIds || !Array.isArray(eventIds)) {
+            return res.status(400).json({ message: 'Please provide an array of event IDs' });
+        }
+
+        const events = await Event.find({ _id: { $in: eventIds } })
+            .select('-poster.data -brochure.data')
+            .populate({
+                path: 'organizer',
+                select: 'name clubName description logoUrl'
+            })
+            .populate({
+                path: 'sponsors.sponsor',
+                select: 'name role profile',
+                populate: { path: 'profile', select: 'organizationName formerInstitution logoUrl' }
+            });
+
+        // Flatten sponsor profiles similar to getEventById
+        const formattedEvents = events.map(event => {
+            const e = event.toObject();
+            if (e.sponsors) {
+                e.sponsors = e.sponsors.map(s => {
+                    if (s.sponsor && s.sponsor.profile) {
+                        const sponsorId = s.sponsor._id; 
+                        s.sponsor = { ...s.sponsor, ...s.sponsor.profile };
+                        s.sponsor._id = sponsorId; 
+                        delete s.sponsor.profile;
+                    }
+                    return s;
+                });
+            }
+            return e;
+        });
+
+        res.json(formattedEvents);
+    } catch (error) {
+        console.error('Error in batch fetch:', error);
+        res.status(500).json({ message: 'Server Error during batch fetch' });
+    }
+};
+
 // @desc    Get single event
 // @route   GET /api/events/:id
 // @access  Private
@@ -576,6 +623,11 @@ export const deleteEvent = async (req, res) => {
         // Check ownership
         if (event.organizer.toString() !== req.user.profile.toString() && req.user.role !== 'administrator') {
             return res.status(401).json({ message: 'Not authorized to delete this event' });
+        }
+
+        // Prevent deletion if event has sponsors
+        if (event.sponsors && event.sponsors.length > 0) {
+            return res.status(400).json({ message: 'Cannot delete an event that has already received sponsorship. Please contact an administrator.' });
         }
 
         //Acces Event organizer profile

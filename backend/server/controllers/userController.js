@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import ClubProfile from '../models/ClubProfile.js';
 import Event from '../models/Event.js';
 import EventImage from '../models/EventImage.js';
+import AlumniProfile from '../models/AlumniProfile.js';
 
 // @desc    Get all clubs for directory
 // @route   GET /api/users/clubs
@@ -11,31 +12,23 @@ export const getClubsDirectory = async (req, res) => {
         const user = req.user;
         let query = { role: 'club-admin' };
 
-        // If alumni, only show clubs from their former institution
         if (user.role === 'alumni-individual') {
-            const alumniProfile = await user.populate('profile');
-            if (alumniProfile.profile && alumniProfile.profile.formerInstitution) {
-                // We need to match clubs whose profile has the same collegeName
-                // Since collegeName is on the ClubProfile, we can fetch all club profiles first
-                // Or we can rely on User model having collegeName (from registration)
-                // Based on authController, User doesn't guarantee collegeName anymore, it's on profile.
-                // So let's fetch matching profiles first.
-                const matchingProfiles = await ClubProfile.find({ collegeName: alumniProfile.profile.formerInstitution });
+            const alumniProfile = await AlumniProfile.findOne({ user: user._id });
+
+            if (alumniProfile && alumniProfile.formerInstitution) {
+                const institutionPattern = new RegExp(`^${alumniProfile.formerInstitution}$`, 'i');
+                const matchingProfiles = await ClubProfile.find({ 
+                    collegeName: { $regex: institutionPattern } 
+                });
                 const matchingUserIds = matchingProfiles.map(p => p.user);
                 query._id = { $in: matchingUserIds };
             } else {
-                // If alumni has no institution set, they see no clubs
                 return res.json([]);
             }
         }
 
-        // Fetch users matching the query and populate their profile
-        const clubs = await User.find(query).select('-password -verificationDocument -otp -otpExpire').populate({
-            path: 'profile',
-            select: 'clubName collegeName logoUrl description'
-        });
+        const clubs = await User.find(query).populate('profile');
 
-        // Format response to send safe public data
         const formattedClubs = clubs.map(club => ({
             _id: club._id,
             name: club.name,
@@ -45,10 +38,11 @@ export const getClubsDirectory = async (req, res) => {
             logoUrl: club.profile?.logoUrl || null,
         }));
 
-        res.json(formattedClubs);
-    } catch (error) {
-        console.error("Error fetching clubs directory:", error);
-        res.status(500).json({ message: 'Server error fetching clubs' });
+        return res.json(formattedClubs);
+
+    } catch (err) {
+        console.error('getClubsDirectory error:', err);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
 
@@ -72,8 +66,8 @@ export const getClubPublicProfile = async (req, res) => {
         // Verify access permissions for alumni
         if (requester.role === 'alumni-individual') {
             await requester.populate('profile');
-            const alumniInst = requester.profile?.formerInstitution;
-            const clubInst = clubProfile?.collegeName;
+            const alumniInst = requester.profile?.formerInstitution?.toLowerCase();
+            const clubInst = clubProfile?.collegeName?.toLowerCase();
 
             if (alumniInst !== clubInst) {
                 return res.status(403).json({ message: 'You do not have permission to view clubs outside your former institution' });

@@ -73,12 +73,22 @@ const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDele
                         >
                             Manage Impact & Transparency
                         </button>
-                        <button
-                            onClick={() => handleDeleteEvent(event._id)}
-                            className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"
-                        >
-                            Delete Event
-                        </button>
+                        {event.sponsors && event.sponsors.length > 0 ? (
+                            <button
+                                disabled
+                                className="w-full mt-2 py-2 rounded-lg bg-slate-100 text-slate-400 font-semibold cursor-not-allowed text-sm"
+                                title="Cannot delete events that have received sponsorships"
+                            >
+                                Deletion Locked (Sponsored)
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => handleDeleteEvent(event._id)}
+                                className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"
+                            >
+                                Delete Event
+                            </button>
+                        )}
                     </div>
                 </div>
             ))}

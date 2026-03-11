@@ -22,6 +22,14 @@ export const getEventById = (id) => {
     });
 };
 
+// Get multiple events by ID batch
+export const getEventsBatch = (eventIds) => {
+    return request('/events/batch', {
+        method: 'POST',
+        body: { eventIds },
+    });
+};
+
 // Update event
 export const updateEvent = (id, eventData) => {
     return request(`/events/${id}`, {

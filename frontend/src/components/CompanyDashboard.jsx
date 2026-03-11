@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logoutUser, getEventById } from '../services/api';
+import { getCurrentUser, logoutUser, getEventById, getEventsBatch } from '../services/api';
 import { getMyGigs, assignGig } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
@@ -34,20 +34,19 @@ const CompanyDashboard = () => {
             setUser(userData);
 
             // Fetch Sponsored Events from Profile Data
-            const sponsoredIds = userData.sponseredEvents || userData.profile?.sponseredEvents || [];
+            const sponsoredData = userData.sponseredEvents || userData.profile?.sponseredEvents || [];
+            
+            // Extract unique valid event IDs
+            const eventIds = [...new Set(sponsoredData.filter(item => item.event).map(item => item.event?._id || item.event))];
 
-            const eventPromises = sponsoredIds.map(async (item) => {
+            let fetchedEvents = [];
+            if (eventIds.length > 0) {
                 try {
-                    const eventId = item.event
-                    if (!eventId) return null;
-                    return await getEventById(eventId);
+                    fetchedEvents = await getEventsBatch(eventIds);
                 } catch (err) {
-                    // Ignore 404s for deleted events that are still referenced in the profile
-                    return null;
+                    console.error("Failed to fetch sponsored events batch:", err);
                 }
-            });
-
-            const fetchedEvents = (await Promise.all(eventPromises)).filter(e => e !== null);
+            }
 
             let invested = 0;
             let active = 0;

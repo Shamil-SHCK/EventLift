@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logoutUser, getEvents, getEventById } from '../services/api';
+import { getCurrentUser, logoutUser, getEvents, getEventById, getEventsBatch } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import EventFeed from './EventFeed';
@@ -27,26 +27,27 @@ const AlumniDashboard = () => {
             setUser(userData);
 
             // Fetch Sponsored Events from Profile Data
-            const sponsoredIds = userData.sponseredEvents || userData.profile?.sponseredEvents || [];
-
-            const eventPromises = sponsoredIds.map(async (item) => {
+            const sponsoredData = userData.sponseredEvents || userData.profile?.sponseredEvents || [];
+            
+            // Extract unique valid event IDs
+            const eventIds = [...new Set(sponsoredData.filter(item => item.event).map(item => item.event?._id || item.event))];
+            
+            let fetchedEvents = [];
+            if (eventIds.length > 0) {
                 try {
-                    const eventId = item.event?._id || item.event; // Handle if populated or not
-                    if (!eventId) return null;
-                    // Optimization: if event is already populated in profile, use it. 
-                    // But usually profile just has IDs or partial data. Safest to fetch fresh event data.
-                    // Actually, for stats we need amount. Profile 'item' has amount.
-                    // We need event details for the card.
-
-                    const eventData = await getEventById(eventId);
-                    return { ...eventData, myContribution: item.amount };
+                    fetchedEvents = await getEventsBatch(eventIds);
+                    
+                    // Map the contribution amount back to the fetched events
+                    fetchedEvents = fetchedEvents.map(event => {
+                        const sponsorshipRecord = sponsoredData.find(item => 
+                            (item.event?._id || item.event) === event._id
+                        );
+                        return { ...event, myContribution: sponsorshipRecord?.amount || 0 };
+                    });
                 } catch (err) {
-                    // Ignore 404s for deleted events that are still referenced in the profile
-                    return null;
+                    console.error("Failed to fetch sponsored events batch:", err);
                 }
-            });
-
-            const fetchedEvents = (await Promise.all(eventPromises)).filter(e => e !== null);
+            }
 
             let invested = 0;
             let active = fetchedEvents.length;

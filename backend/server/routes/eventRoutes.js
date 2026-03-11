@@ -3,6 +3,7 @@ import {
     createEvent,
     getEvents,
     getEventById,
+    getEventsBatch,
     updateEvent,
     createCheckoutSession,
     confirmSponsorship,
@@ -23,6 +24,7 @@ router.get('/', getEvents);
 router.get('/proxy-pdf', proxyPdf);
 
 // Protected routes
+router.post('/batch', protect, getEventsBatch);
 router.post('/', protect, checkVerificationStatus, authorize('club-admin'), upload.fields([{ name: 'poster', maxCount: 1 }, { name: 'brochure', maxCount: 1 }]), createEvent);
 router.get('/:id', protect, getEventById);
 router.put('/:id', protect, checkVerificationStatus, authorize('club-admin', 'administrator'), upload.fields([{ name: 'poster', maxCount: 1 }, { name: 'brochure', maxCount: 1 }]), updateEvent);
