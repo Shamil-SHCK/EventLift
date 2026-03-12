@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchClubProfile, fetchClubGallery, createCheckoutSession } from '../services/api';
 import DashboardLayout from './DashboardLayout';
-import { Building2, MapPin, Calendar, ArrowLeft, Image as ImageIcon, Rocket, DollarSign, X, Check } from 'lucide-react';
+import { Building2, MapPin, Calendar, ArrowLeft, Image as ImageIcon, Rocket, DollarSign, X, Check, Trophy, Users, Award, TrendingUp, Star } from 'lucide-react';
 
 const ClubPublicProfile = () => {
     const { id } = useParams();
@@ -116,6 +116,30 @@ const ClubPublicProfile = () => {
 
     if (!profile) return null;
 
+    // --- Computed Stats ---
+    const now = new Date();
+    const allEvents = profile.events || [];
+    const totalFundsRaised = allEvents.reduce((s, e) => s + (e.raised || 0), 0);
+    const pastEvents = allEvents.filter(e => new Date(e.date) < now);
+    const ongoingEvents = allEvents.filter(e => new Date(e.date) >= now);
+    const allSponsors = allEvents.flatMap(e => (e.sponsors || []).map(s => ({ ...s, eventTitle: e.title })));
+    const activeYear = profile.createdAt ? new Date(profile.createdAt).getFullYear() : null;
+
+    // Credibility Badge logic
+    const getBadge = () => {
+        const score = allEvents.length * 10 + Math.floor(totalFundsRaised / 1000);
+        if (score >= 100) return { label: 'Gold Club', color: 'amber', icon: '🥇' };
+        if (score >= 40) return { label: 'Silver Club', color: 'slate', icon: '🥈' };
+        return { label: 'Bronze Club', color: 'orange', icon: '🥉' };
+    };
+    const badge = getBadge();
+
+    const badgeColors = {
+        amber: 'bg-amber-50 border-amber-200 text-amber-700',
+        slate: 'bg-slate-100 border-slate-200 text-slate-700',
+        orange: 'bg-orange-50 border-orange-200 text-orange-700',
+    };
+
     return (
         <DashboardLayout>
             <div className="max-w-6xl mx-auto pb-12">
@@ -152,8 +176,30 @@ const ClubPublicProfile = () => {
                             </div>
                         </div>
 
+                        {/* Stats Bar */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            {[
+                                { label: 'Total Events', value: allEvents.length, icon: <Calendar className="w-5 h-5" />, color: 'blue' },
+                                { label: 'Funds Raised', value: `₹${totalFundsRaised.toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, color: 'green' },
+                                { label: 'Ongoing', value: ongoingEvents.length, icon: <Rocket className="w-5 h-5" />, color: 'indigo' },
+                                { label: 'Past Events', value: pastEvents.length, icon: <Trophy className="w-5 h-5" />, color: 'purple' },
+                            ].map(stat => (
+                                <div key={stat.label} className={`bg-${stat.color}-50 border border-${stat.color}-100 rounded-xl p-4 text-center`}>
+                                    <div className={`w-9 h-9 mx-auto mb-2 bg-${stat.color}-100 text-${stat.color}-600 rounded-lg flex items-center justify-center`}>{stat.icon}</div>
+                                    <p className="text-xl font-bold text-slate-900">{stat.value}</p>
+                                    <p className={`text-xs font-semibold text-${stat.color}-600 mt-0.5`}>{stat.label}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* About + Badge */}
                         <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-100 shadow-inner">
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">About the Club</h3>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-bold text-slate-900">About the Club</h3>
+                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${badgeColors[badge.color]}`}>
+                                    {badge.icon} {badge.label}{activeYear ? `  ·  Est. ${activeYear}` : ''}
+                                </span>
+                            </div>
                             <p className="text-slate-700 leading-relaxed text-lg">
                                 {profile.description || 'This club has not provided a description yet.'}
                             </p>
@@ -262,7 +308,104 @@ const ClubPublicProfile = () => {
                         )}
                     </div>
 
-                    {/* Impact Gallery Section */}
+                    {/* Past Events Timeline */}
+                    {pastEvents.length > 0 && (
+                        <div className="pt-8 border-t border-slate-200">
+                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
+                                <TrendingUp className="w-8 h-8 text-purple-600" /> Past Events Track Record
+                            </h2>
+                            <div className="relative pl-6">
+                                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-500 via-indigo-500 to-transparent" />
+                                <div className="space-y-5">
+                                    {pastEvents.map(ev => (
+                                        <div key={ev._id} className="relative bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                                            <div className="absolute -left-9 top-5 w-4 h-4 rounded-full bg-purple-500 border-2 border-white shadow" />
+                                            <div className="flex flex-wrap items-center gap-3 mb-1">
+                                                <span className="font-bold text-slate-900">{ev.title}</span>
+                                                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">{ev.category}</span>
+                                            </div>
+                                            <p className="text-sm text-slate-500 mb-2">{new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} · {ev.location}</p>
+                                            <div className="flex items-center gap-4 text-sm">
+                                                <span className="font-bold text-green-600">₹{(ev.raised || 0).toLocaleString()} raised</span>
+                                                <span className="text-slate-400">of ₹{(ev.budget || 0).toLocaleString()} goal</span>
+                                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style={{ width: `${Math.min(100, ((ev.raised || 0) / (ev.budget || 1)) * 100)}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sponsorship Transparency Panel */}
+                    {allSponsors.length > 0 && (
+                        <div className="pt-8 border-t border-slate-200">
+                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
+                                <Star className="w-8 h-8 text-yellow-500" /> Our Sponsors
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {allSponsors.map((s, i) => (
+                                    <div key={i} className="bg-white flex items-center gap-4 p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm shrink-0">
+                                            {s.name ? s.name[0] : '?'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900 truncate">{s.name || 'Anonymous'}</p>
+                                            <p className="text-xs text-slate-500 truncate">{s.eventTitle}</p>
+                                        </div>
+                                        <span className="font-bold text-green-600 text-sm shrink-0">₹{s.amount?.toLocaleString()}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Team & Leadership */}
+                    {profile.team && profile.team.length > 0 && (
+                        <div className="pt-8 border-t border-slate-200">
+                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
+                                <Users className="w-8 h-8 text-blue-600" /> Team & Leadership
+                            </h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {profile.team.map((m, i) => (
+                                    <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-lg transition">
+                                        <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border-4 border-white shadow-md bg-slate-200">
+                                            {m.photoUrl
+                                                ? <img src={m.photoUrl} alt={m.name} className="w-full h-full object-cover" />
+                                                : <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-slate-400">{m.name[0]}</div>
+                                            }
+                                        </div>
+                                        <p className="font-bold text-slate-900 leading-snug">{m.name}</p>
+                                        <p className="text-sm text-indigo-600 font-semibold mt-0.5">{m.role}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Club Achievements */}
+                    {profile.achievements && profile.achievements.length > 0 && (
+                        <div className="pt-8 border-t border-slate-200">
+                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
+                                <Award className="w-8 h-8 text-amber-500" /> Achievements & Milestones
+                            </h2>
+                            <div className="flex flex-wrap gap-4">
+                                {profile.achievements.map((a, i) => (
+                                    <div key={i} className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md transition max-w-xs">
+                                        <Award className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="font-bold text-slate-900 leading-snug">{a.title}</p>
+                                            {a.year && <span className="text-xs font-bold text-amber-600">{a.year}</span>}
+                                            {a.description && <p className="text-slate-500 text-sm mt-1 leading-snug">{a.description}</p>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="pt-8 border-t border-slate-200">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3">

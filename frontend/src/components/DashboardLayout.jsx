@@ -61,13 +61,13 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                             </button>
                         )}
 
-                        {user?.role !== 'administrator' && (
+                        {(user?.role === 'company' || user?.role === 'alumni-individual') && (
                             <button onClick={() => navigate('/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all ${title === 'Transaction History' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <IndianRupee className="w-5 h-5" /> Transactions
                             </button>
                         )}
 
-                        <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                        <button onClick={() => navigate('/profile')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             <User className="w-5 h-5" /> Profile
                         </button>
 
@@ -75,7 +75,7 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                             <Bell className="w-5 h-5" /> Notifications
                         </button>
 
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                        <button onClick={() => navigate('/settings')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             <Settings className="w-5 h-5" /> Settings
                         </button>
                     </div>

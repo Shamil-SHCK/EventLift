@@ -61,6 +61,16 @@ const upload = multer({
             } else {
                 cb(new Error(`Error: ${file.fieldname === 'brochure' ? 'Event Brochure' : 'Verification Document'} must be a PDF!`));
             }
+        } else if (file.fieldname === 'image' || file.fieldname === 'logo') {
+            // Impact gallery images + team member photos → images only
+            const filetypes = /jpg|jpeg|png|webp|avif/;
+            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+            const mimetype = file.mimetype.startsWith('image/');
+            if (extname && mimetype) {
+                return cb(null, true);
+            } else {
+                cb(new Error('Error: Only image files (jpg, png, webp, avif) are accepted!'));
+            }
         } else {
             // Default generic fallback
             const filetypes = /pdf|jpg|jpeg|png/;

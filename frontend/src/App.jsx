@@ -19,6 +19,7 @@ import ClubDirectory from './components/ClubDirectory';
 import ClubPublicProfile from './components/ClubPublicProfile';
 import TransactionHistory from './components/TransactionHistory';
 import AdminTransactions from './components/AdminTransactions';
+import Settings from './components/Settings';
 import './App.css';
 
 // Protected Route Component with Role-Based Access Control
@@ -164,6 +165,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['company', 'alumni-individual', 'club-admin']}>
               <TransactionHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
+              <Settings />
             </ProtectedRoute>
           }
         />

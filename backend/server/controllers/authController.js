@@ -347,7 +347,7 @@ export const updateProfile = async (req, res) => {
   try {
     const allowedUpdates = [
       'clubName', 'collegeName', 'organizationName', 'formerInstitution',
-      'phone', 'logoUrl', 'description'
+      'phone', 'logoUrl', 'description', 'team', 'achievements'
     ];
 
     // Filter req.body to only allow specific fields to be updated
@@ -358,18 +358,10 @@ export const updateProfile = async (req, res) => {
         return obj;
       }, {});
 
-    // Check if user has a profile, if not create one (migration safety)    
+    // Ensure profile record exists and user.profile reference is set
     let user = await User.findById(req.user._id);
-    let profile;
-    if (user.profile) {
-      profile = await getUserProfile(user)
-    }
-    user.profile = profile._id;
-    await user.save();
-
-
+    let profile = await getUserProfile(user);
     if (!user.profile) {
-      profile = await getUserProfile(user)
       user.profile = profile._id;
       await user.save();
     }
@@ -451,6 +443,22 @@ export const changePassword = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Upload a single logo/photo to Cloudinary and return URL
+// @route   POST /api/auth/upload-logo
+// @access  Private
+export const uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    // multer-storage-cloudinary places the Cloudinary secure URL in req.file.path
+    return res.json({ url: req.file.path });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server Error' });

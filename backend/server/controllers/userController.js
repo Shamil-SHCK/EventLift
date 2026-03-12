@@ -17,8 +17,8 @@ export const getClubsDirectory = async (req, res) => {
 
             if (alumniProfile && alumniProfile.formerInstitution) {
                 const institutionPattern = new RegExp(`^${alumniProfile.formerInstitution}$`, 'i');
-                const matchingProfiles = await ClubProfile.find({ 
-                    collegeName: { $regex: institutionPattern } 
+                const matchingProfiles = await ClubProfile.find({
+                    collegeName: { $regex: institutionPattern }
                 });
                 const matchingUserIds = matchingProfiles.map(p => p.user);
                 query._id = { $in: matchingUserIds };
@@ -86,6 +86,9 @@ export const getClubPublicProfile = async (req, res) => {
             description: clubProfile?.description || '',
             logoUrl: clubProfile?.logoUrl || null,
             phone: clubProfile?.phone || null,
+            team: clubProfile?.team || [],
+            achievements: clubProfile?.achievements || [],
+            createdAt: clubProfile?.createdAt,
             events: events
         });
 
@@ -115,17 +118,14 @@ export const getClubGallery = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(20);
 
-        // 3. Map buffer to base64 Data URLs so frontend can use <img src="..." />
-        const formattedImages = images.map(img => {
-            const base64Data = img.imageData.toString('base64');
-            return {
-                id: img._id,
-                eventId: img.eventId,
-                url: `data:${img.mimeType};base64,${base64Data}`,
-                caption: img.caption,
-                createdAt: img.createdAt
-            };
-        });
+        // 3. Return the Cloudinary URLs directly
+        const formattedImages = images.map(img => ({
+            id: img._id,
+            eventId: img.eventId,
+            url: img.cloudinaryUrl,
+            caption: img.caption,
+            createdAt: img.createdAt
+        }));
 
         res.json(formattedImages);
 

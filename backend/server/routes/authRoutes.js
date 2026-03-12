@@ -6,6 +6,7 @@ import {
   updateProfile,
   changePassword,
   verifyOTP,
+  uploadLogo,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -19,5 +20,6 @@ router.post('/verify-otp', verifyOTP);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.put('/password', protect, changePassword);
+router.post('/upload-logo', protect, upload.single('logo'), uploadLogo);
 
 export default router;

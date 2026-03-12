@@ -6,11 +6,7 @@ const eventImageSchema = new mongoose.Schema({
         ref: 'Event',
         required: true
     },
-    imageData: {
-        type: Buffer,
-        required: true
-    },
-    mimeType: {
+    cloudinaryUrl: {
         type: String,
         required: true
     },

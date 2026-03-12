@@ -37,8 +37,8 @@ export const getEventImpact = async (req, res) => {
         const imagesDocs = await EventImage.find({ eventId: event._id });
 
         const images = imagesDocs.map(img => ({
-            id: img._id, // Map _id to id
-            url: `data:${img.mimeType};base64,${img.imageData.toString('base64')}`,
+            id: img._id,
+            url: img.cloudinaryUrl,
             caption: img.caption
         }));
 
@@ -178,17 +178,17 @@ export const addImpactImage = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        // req.file.path is the Cloudinary secure URL (set by multer-storage-cloudinary)
         const image = await EventImage.create({
             eventId: event._id,
-            imageData: req.file.buffer,
-            mimeType: req.file.mimetype,
+            cloudinaryUrl: req.file.path,
             caption: req.body.caption || ''
         });
 
         res.status(201).json({
             id: image._id,
+            url: image.cloudinaryUrl,
             caption: image.caption
-            // Don't return full buffer
         });
 
     } catch (error) {

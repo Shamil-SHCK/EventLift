@@ -70,3 +70,11 @@ export const changeUserPassword = (passwordData) => {
         body: passwordData,
     });
 };
+
+// Upload a logo/photo image to Cloudinary (for team member photos etc.)
+export const uploadLogoImage = (formData) => {
+    return request('/auth/upload-logo', {
+        method: 'POST',
+        body: formData,
+    });
+};

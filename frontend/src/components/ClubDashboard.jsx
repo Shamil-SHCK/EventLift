@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent } from '../services/api';
+import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent, updateUserProfile } from '../services/api';
+import { uploadLogoImage } from '../services/api/auth';
 import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
-import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock } from 'lucide-react';
+import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock, Users, Award, Upload, Trash2, Save } from 'lucide-react';
 import ClubEventList from './ClubEventList';
 import CreateEventModal from './CreateEventModal';
 
@@ -21,7 +22,16 @@ const ClubDashboard = () => {
     const [formError, setFormError] = useState(null);
     const navigate = useNavigate();
 
-    const [viewMode, setViewMode] = useState('events'); // 'events' or 'gigs'
+    const [viewMode, setViewMode] = useState('events'); // 'events', 'gigs', or 'profile'
+
+    // Team & Achievements state
+    const [team, setTeam] = useState([]);
+    const [achievements, setAchievements] = useState([]);
+    const [profileSaving, setProfileSaving] = useState(false);
+    const [profileSaved, setProfileSaved] = useState(false);
+    const [newMember, setNewMember] = useState({ name: '', role: '', photoUrl: '' });
+    const [newMemberPhotoFile, setNewMemberPhotoFile] = useState(null);
+    const [newAchievement, setNewAchievement] = useState({ title: '', year: '', description: '' });
 
     const handleViewSponsors = (event) => {
         setSelectedEvent(event);
@@ -53,6 +63,8 @@ const ClubDashboard = () => {
                     return;
                 }
                 setUser(userData);
+                setTeam(userData.profile?.team || userData.team || []);
+                setAchievements(userData.profile?.achievements || userData.achievements || []);
 
                 // Fetch Events
                 const eventsData = await getEvents();
@@ -208,6 +220,43 @@ const ClubDashboard = () => {
         }
     };
 
+    const handleAddMember = async () => {
+        if (!newMember.name || !newMember.role) return;
+        let photoUrl = newMember.photoUrl;
+        if (newMemberPhotoFile) {
+            const fd = new FormData();
+            fd.append('logo', newMemberPhotoFile);
+            const data = await uploadLogoImage(fd);
+            photoUrl = data.url || '';
+        }
+        setTeam([...team, { name: newMember.name, role: newMember.role, photoUrl }]);
+        setNewMember({ name: '', role: '', photoUrl: '' });
+        setNewMemberPhotoFile(null);
+    };
+
+    const handleRemoveMember = (idx) => setTeam(team.filter((_, i) => i !== idx));
+
+    const handleAddAchievement = () => {
+        if (!newAchievement.title) return;
+        setAchievements([...achievements, { ...newAchievement }]);
+        setNewAchievement({ title: '', year: '', description: '' });
+    };
+
+    const handleRemoveAchievement = (idx) => setAchievements(achievements.filter((_, i) => i !== idx));
+
+    const handleSaveProfile = async () => {
+        setProfileSaving(true);
+        try {
+            await updateUserProfile({ team, achievements });
+            setProfileSaved(true);
+            setTimeout(() => setProfileSaved(false), 3000);
+        } catch (e) {
+            alert('Failed to save profile: ' + e.message);
+        } finally {
+            setProfileSaving(false);
+        }
+    };
+
     const AcceptedGigsSection = () => (
         <div className="mt-8">
             <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
@@ -345,10 +394,10 @@ const ClubDashboard = () => {
                     >
                         Accepted Gigs
                     </button>
+
                 </div>
             </div>
 
-            {/* Content Area */}
             {viewMode === 'events' ? (
                 <div className="mb-8 animate-fadeIn">
                     <h2 className="text-2xl font-bold font-heading text-slate-900 mb-6 flex items-center gap-2">
@@ -363,9 +412,129 @@ const ClubDashboard = () => {
                         openCreateModal={() => { setIsEditing(false); setShowModal(true); }}
                     />
                 </div>
-            ) : (
+            ) : viewMode === 'gigs' ? (
                 <div className="animate-fadeIn">
                     <AcceptedGigsSection />
+                </div>
+            ) : (
+                /* Profile & Team Management */
+                <div className="animate-fadeIn space-y-10">
+                    {/* Team Members */}
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold font-heading text-slate-900 flex items-center gap-2">
+                                <Users className="w-6 h-6 text-blue-600" /> Team & Leadership
+                            </h2>
+                            <button
+                                onClick={handleSaveProfile}
+                                disabled={profileSaving}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 disabled:opacity-60"
+                            >
+                                <Save className="w-4 h-4" />
+                                {profileSaving ? 'Saving…' : profileSaved ? '✓ Saved!' : 'Save Changes'}
+                            </button>
+                        </div>
+
+                        {/* Existing members */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                            {team.map((m, i) => (
+                                <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 relative">
+                                    <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-200 shrink-0 border-2 border-white shadow">
+                                        {m.photoUrl ? <img src={m.photoUrl} alt={m.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 text-xl font-bold">{m.name[0]}</div>}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-900 truncate">{m.name}</p>
+                                        <p className="text-sm text-indigo-600 font-medium truncate">{m.role}</p>
+                                    </div>
+                                    <button onClick={() => handleRemoveMember(i)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Add new member form */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-dashed border-slate-300">
+                            <p className="text-sm font-bold text-slate-600 mb-3">Add New Member</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                <input
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Full Name"
+                                    value={newMember.name}
+                                    onChange={e => setNewMember({ ...newMember, name: e.target.value })}
+                                />
+                                <input
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Role (e.g. President, Faculty Advisor)"
+                                    value={newMember.role}
+                                    onChange={e => setNewMember({ ...newMember, role: e.target.value })}
+                                />
+                            </div>
+                            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium mb-3 w-fit">
+                                <Upload className="w-4 h-4" />
+                                {newMemberPhotoFile ? newMemberPhotoFile.name : 'Upload Photo (Cloudinary)'}
+                                <input type="file" accept="image/*" className="hidden" onChange={e => setNewMemberPhotoFile(e.target.files[0])} />
+                            </label>
+                            <button
+                                onClick={handleAddMember}
+                                className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm"
+                            >
+                                <Plus className="w-4 h-4" /> Add Member
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Achievements */}
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+                        <h2 className="text-2xl font-bold font-heading text-slate-900 flex items-center gap-2 mb-6">
+                            <Award className="w-6 h-6 text-amber-500" /> Club Achievements
+                        </h2>
+
+                        <div className="space-y-3 mb-6">
+                            {achievements.map((a, i) => (
+                                <div key={i} className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 relative">
+                                    <Award className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-900">{a.title} {a.year && <span className="text-amber-600 font-medium text-sm">({a.year})</span>}</p>
+                                        {a.description && <p className="text-slate-600 text-sm mt-0.5">{a.description}</p>}
+                                    </div>
+                                    <button onClick={() => handleRemoveAchievement(i)} className="p-1 text-slate-400 hover:text-red-500 transition shrink-0">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="bg-slate-50 rounded-xl p-5 border border-dashed border-slate-300">
+                            <p className="text-sm font-bold text-slate-600 mb-3">Add New Achievement</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                <input
+                                    className="sm:col-span-2 w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-100 focus:border-amber-400 outline-none"
+                                    placeholder="Achievement Title (e.g. Won State Hackathon 2024)"
+                                    value={newAchievement.title}
+                                    onChange={e => setNewAchievement({ ...newAchievement, title: e.target.value })}
+                                />
+                                <input
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-100 focus:border-amber-400 outline-none"
+                                    placeholder="Year (e.g. 2024)"
+                                    value={newAchievement.year}
+                                    onChange={e => setNewAchievement({ ...newAchievement, year: e.target.value })}
+                                />
+                            </div>
+                            <input
+                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-100 focus:border-amber-400 outline-none mb-3"
+                                placeholder="Short description (optional)"
+                                value={newAchievement.description}
+                                onChange={e => setNewAchievement({ ...newAchievement, description: e.target.value })}
+                            />
+                            <button
+                                onClick={handleAddAchievement}
+                                className="flex items-center gap-2 px-5 py-2 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition text-sm"
+                            >
+                                <Plus className="w-4 h-4" /> Add Achievement
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
