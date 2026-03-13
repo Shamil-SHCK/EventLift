@@ -12,6 +12,7 @@ const ClubPublicProfile = () => {
     const [gallery, setGallery] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [user, setUser] = useState(null);
 
     // Sponsorship Modal State
     const [showSponsorModal, setShowSponsorModal] = useState(false);
@@ -40,6 +41,14 @@ const ClubPublicProfile = () => {
             }
         };
         loadProfileData();
+
+        // Load user for sidebar
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) setUser(JSON.parse(userStr));
+        } catch (err) {
+            console.error('Failed to load user from localStorage', err);
+        }
     }, [id]);
 
     const handleBack = () => {
@@ -122,7 +131,8 @@ const ClubPublicProfile = () => {
     const totalFundsRaised = allEvents.reduce((s, e) => s + (e.raised || 0), 0);
     const pastEvents = allEvents.filter(e => new Date(e.date) < now);
     const ongoingEvents = allEvents.filter(e => new Date(e.date) >= now);
-    const allSponsors = allEvents.flatMap(e => (e.sponsors || []).map(s => ({ ...s, eventTitle: e.title })));
+    const allSponsors = allEvents.flatMap(e => (e.sponsors || []).map(s => ({ ...s, eventTitle: e.title })))
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
     const activeYear = profile.createdAt ? new Date(profile.createdAt).getFullYear() : null;
 
     // Credibility Badge logic
@@ -141,7 +151,7 @@ const ClubPublicProfile = () => {
     };
 
     return (
-        <DashboardLayout>
+        <DashboardLayout user={user} title="Club Profile">
             <div className="max-w-6xl mx-auto pb-12">
                 {/* Back Button */}
                 <button
@@ -192,19 +202,93 @@ const ClubPublicProfile = () => {
                             ))}
                         </div>
 
-                        {/* About + Badge */}
+                        {/* About + Badge + Team */}
                         <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-100 shadow-inner">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-4">
                                 <h3 className="text-lg font-bold text-slate-900">About the Club</h3>
                                 <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${badgeColors[badge.color]}`}>
                                     {badge.icon} {badge.label}{activeYear ? `  ·  Est. ${activeYear}` : ''}
                                 </span>
                             </div>
-                            <p className="text-slate-700 leading-relaxed text-lg">
+                            <p className="text-slate-700 leading-relaxed text-lg mb-8">
                                 {profile.description || 'This club has not provided a description yet.'}
                             </p>
+
+                            {/* Team & Leadership integrated into About */}
+                            {profile.team && profile.team.length > 0 && (
+                                <div className="mt-8 pt-8 border-t border-slate-200">
+                                    <h4 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-8">
+                                        <Users className="w-6 h-6 text-blue-600" /> Our Team
+                                    </h4>
+                                    
+                                    <div className="space-y-10">
+                                        {/* Campus Lead */}
+                                        {profile.team.some(m => m.role === 'Campus Lead') && (
+                                            <div className="flex flex-col items-center">
+                                                <div className="px-5 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Campus Lead</div>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {profile.team.filter(m => m.role === 'Campus Lead').map((m, i) => (
+                                                        <PublicMemberCard key={i} m={m} size="md" />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Faculty In Charge */}
+                                        {profile.team.some(m => m.role === 'Faculty In Charge' || m.role === 'Faculty Advisor') && (
+                                            <div className="flex flex-col items-center">
+                                                <div className="px-5 py-1.5 bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Faculty In Charge</div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    {profile.team.filter(m => m.role === 'Faculty In Charge' || m.role === 'Faculty Advisor').map((m, i) => (
+                                                        <PublicMemberCard key={i} m={m} size="sm" />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Core Members */}
+                                        {profile.team.some(m => m.role !== 'Campus Lead' && m.role !== 'Faculty In Charge' && m.role !== 'Faculty Advisor') && (
+                                            <div className="flex flex-col items-center">
+                                                <div className="px-5 py-1.5 bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Core Members</div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
+                                                    {profile.team.filter(m => m.role !== 'Campus Lead' && m.role !== 'Faculty In Charge' && m.role !== 'Faculty Advisor').map((m, i) => (
+                                                        <PublicMemberCard key={i} m={m} size="xs" />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
+                </div>
+
+                {/* Sponsorship Transparency Panel - Moved below About */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-12">
+                    <h2 className="text-2xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
+                        <Star className="w-7 h-7 text-yellow-500" /> Our Sponsors
+                    </h2>
+                    {allSponsors.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {allSponsors.map((s, i) => (
+                                <div key={i} className="bg-slate-50 flex items-center gap-3 p-4 rounded-xl border border-slate-100 transition">
+                                    <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shrink-0">
+                                        {s.name ? s.name[0] : (s.sponsor?.name ? s.sponsor.name[0] : '?')}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-900 truncate text-sm">{s.name || s.sponsor?.name || 'Anonymous'}</p>
+                                        <p className="text-[10px] text-slate-500 truncate">{s.eventTitle}</p>
+                                    </div>
+                                    <span className="font-bold text-green-600 text-sm shrink-0">₹{s.amount?.toLocaleString()}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                            <p className="text-slate-500 text-sm font-medium">No sponsors to show yet. Be the first to support us!</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Interactive Content */}
@@ -214,22 +298,22 @@ const ClubPublicProfile = () => {
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3">
                                 <Calendar className="w-8 h-8 text-blue-600" />
-                                Verified Events
+                                Events
                             </h2>
                             <span className="px-3 py-1 bg-blue-50 text-blue-700 font-bold rounded-full text-sm border border-blue-100">
-                                {profile.events?.length || 0} Listed
+                                {ongoingEvents.length} Upcoming
                             </span>
                         </div>
 
-                        {!profile.events || profile.events.length === 0 ? (
+                        {ongoingEvents.length === 0 ? (
                             <div className="bg-white p-12 rounded-2xl border border-slate-100 text-center shadow-sm">
                                 <Calendar className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">No Active Events</h3>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">No Upcoming Events</h3>
                                 <p className="text-slate-500">This club isn't seeking sponsorship for any events right now.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {profile.events.map(event => (
+                                {ongoingEvents.map(event => (
                                     <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full">
                                         <div className="h-48 bg-slate-100 relative overflow-hidden">
                                             {event.poster ? (
@@ -339,105 +423,6 @@ const ClubPublicProfile = () => {
                         </div>
                     )}
 
-                    {/* Sponsorship Transparency Panel */}
-                    {allSponsors.length > 0 && (
-                        <div className="pt-8 border-t border-slate-200">
-                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
-                                <Star className="w-8 h-8 text-yellow-500" /> Our Sponsors
-                            </h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {allSponsors.map((s, i) => (
-                                    <div key={i} className="bg-white flex items-center gap-4 p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition">
-                                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm shrink-0">
-                                            {s.name ? s.name[0] : '?'}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-slate-900 truncate">{s.name || 'Anonymous'}</p>
-                                            <p className="text-xs text-slate-500 truncate">{s.eventTitle}</p>
-                                        </div>
-                                        <span className="font-bold text-green-600 text-sm shrink-0">₹{s.amount?.toLocaleString()}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Team & Leadership */}
-                    {profile.team && profile.team.length > 0 && (
-                        <div className="pt-8 border-t border-slate-200">
-                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
-                                <Users className="w-8 h-8 text-blue-600" /> Team & Leadership
-                            </h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {profile.team.map((m, i) => (
-                                    <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-lg transition">
-                                        <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border-4 border-white shadow-md bg-slate-200">
-                                            {m.photoUrl
-                                                ? <img src={m.photoUrl} alt={m.name} className="w-full h-full object-cover" />
-                                                : <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-slate-400">{m.name[0]}</div>
-                                            }
-                                        </div>
-                                        <p className="font-bold text-slate-900 leading-snug">{m.name}</p>
-                                        <p className="text-sm text-indigo-600 font-semibold mt-0.5">{m.role}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Club Achievements */}
-                    {profile.achievements && profile.achievements.length > 0 && (
-                        <div className="pt-8 border-t border-slate-200">
-                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3 mb-8">
-                                <Award className="w-8 h-8 text-amber-500" /> Achievements & Milestones
-                            </h2>
-                            <div className="flex flex-wrap gap-4">
-                                {profile.achievements.map((a, i) => (
-                                    <div key={i} className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md transition max-w-xs">
-                                        <Award className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="font-bold text-slate-900 leading-snug">{a.title}</p>
-                                            {a.year && <span className="text-xs font-bold text-amber-600">{a.year}</span>}
-                                            {a.description && <p className="text-slate-500 text-sm mt-1 leading-snug">{a.description}</p>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="pt-8 border-t border-slate-200">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-3xl font-bold font-heading text-slate-900 flex items-center gap-3">
-                                <ImageIcon className="w-8 h-8 text-indigo-500" />
-                                Impact Gallery
-                            </h2>
-                            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-full text-sm border border-indigo-100">
-                                {gallery.length} Photos
-                            </span>
-                        </div>
-
-                        {gallery.length === 0 ? (
-                            <div className="bg-slate-50 p-12 rounded-2xl border border-dashed border-slate-300 text-center">
-                                <ImageIcon className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">No Impact Photos Yet</h3>
-                                <p className="text-slate-500">The club hasn't uploaded any verified post-event photos.</p>
-                            </div>
-                        ) : (
-                            <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-                                {gallery.map(img => (
-                                    <div key={img.id} className="break-inside-avoid shadow-sm hover:shadow-xl transition-all rounded-xl overflow-hidden group bg-white border border-slate-100 relative">
-                                        <img src={img.url} alt={img.caption || 'Club Event'} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        {img.caption && (
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 pt-12">
-                                                <p className="text-white text-sm font-medium leading-snug">{img.caption}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
 
@@ -545,6 +530,31 @@ const ClubPublicProfile = () => {
                 </div>
             )}
         </DashboardLayout>
+    );
+};
+
+const PublicMemberCard = ({ m, size = 'md' }) => {
+    const photoSizes = {
+        xs: 'w-16 h-16',
+        sm: 'w-20 h-20',
+        md: 'w-24 h-24',
+        lg: 'w-32 h-32'
+    };
+
+    return (
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center hover:shadow-md transition-all">
+            <div className={`${photoSizes[size]} rounded-xl overflow-hidden mx-auto mb-2 border-2 border-white shadow-sm bg-slate-50`}>
+                {m.photoUrl ? (
+                    <img src={m.photoUrl} alt={m.name} className="w-full h-full object-cover" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <Users className="w-1/2 h-1/2" />
+                    </div>
+                )}
+            </div>
+            <p className="font-bold text-slate-900 leading-tight text-sm">{m.name}</p>
+            <p className="text-[10px] text-blue-600 font-bold mt-0.5 uppercase tracking-wider">{m.role}</p>
+        </div>
     );
 };
 

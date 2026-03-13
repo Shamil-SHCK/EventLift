@@ -40,7 +40,11 @@ const VerifyOTP = () => {
         try {
             const response = await verifyUserOTP({ email, otp });
 
-            // Redirect based on role
+            // Redirect based on role (but username gate first)
+            if (!response.username) {
+                navigate('/set-username');
+                return;
+            }
             const role = response.role;
             switch (role) {
                 case 'administrator':

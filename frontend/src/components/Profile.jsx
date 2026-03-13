@@ -30,6 +30,8 @@ const Profile = () => {
         phone: '',
         logoUrl: '',
         description: '',
+        occupation: '',
+        organizationName: '',
     });
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -63,6 +65,8 @@ const Profile = () => {
                     phone: userData.phone || '',
                     logoUrl: userData.logoUrl || '',
                     description: userData.description || '',
+                    occupation: userData.occupation || '',
+                    organizationName: userData.organizationName || '',
                 });
                 if (userData.role === 'club-admin') {
                     setTeam(userData.team || []);
@@ -173,7 +177,7 @@ const Profile = () => {
                 <h1 className="text-3xl lg:text-4xl font-bold font-heading text-slate-900 mb-2">
                     Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Profile</span>
                 </h1>
-                <p className="text-slate-500 text-lg">Manage your account information{user?.role === 'club-admin' ? ', team, and achievements' : ''}.</p>
+                <p className="text-slate-500 text-lg">Manage your account information{user?.role === 'club-admin' ? ' and achievements' : ''}.</p>
             </div>
 
             <div className="max-w-3xl space-y-8">
@@ -221,12 +225,32 @@ const Profile = () => {
                         </div>
                     )}
                     {user.role === 'alumni-individual' && (
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-slate-700">Former Institution</label>
-                            <div className="relative">
-                                <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                <input type="text" name="formerInstitution" value={formData.formerInstitution} onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Former Institution</label>
+                                <div className="relative">
+                                    <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                    <input type="text" name="formerInstitution" value={formData.formerInstitution} onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Occupation / Role</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                    <input type="text" name="occupation" value={formData.occupation} onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                        placeholder="e.g. Software Engineer" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Work Organization</label>
+                                <div className="relative">
+                                    <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                    <input type="text" name="organizationName" value={formData.organizationName} onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                        placeholder="e.g. Google" />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -267,54 +291,10 @@ const Profile = () => {
                 </form>
             </div>
 
-            {/* Team & Leadership — club-admin only */}
-            {user?.role === 'club-admin' && (
-                <>
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Users className="w-5 h-5" /></div>
-                                <h3 className="text-lg font-bold text-slate-900">Team &amp; Leadership</h3>
-                            </div>
-                            <button onClick={handleSaveProfile} disabled={profileSaving}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition text-sm shadow-lg shadow-blue-500/20 disabled:opacity-60">
-                                <Save className="w-4 h-4" />{profileSaving ? 'Saving…' : profileSaved ? '✓ Saved!' : 'Save'}
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                            {team.map((m, i) => (
-                                <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 relative">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 shrink-0 border-2 border-white shadow">
-                                        {m.photoUrl ? <img src={m.photoUrl} alt={m.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 text-lg font-bold">{m.name[0]}</div>}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-slate-900 truncate">{m.name}</p>
-                                        <p className="text-sm text-indigo-600 font-medium">{m.role}</p>
-                                    </div>
-                                    <button onClick={() => handleRemoveMember(i)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-300">
-                            <p className="text-sm font-bold text-slate-600 mb-3">Add New Member</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                                <input className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
-                                    placeholder="Full Name" value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} />
-                                <input className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
-                                    placeholder="Role (e.g. President)" value={newMember.role} onChange={e => setNewMember({ ...newMember, role: e.target.value })} />
-                            </div>
-                            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium mb-3 w-fit">
-                                <Upload className="w-4 h-4" />
-                                {newMemberPhotoFile ? newMemberPhotoFile.name : 'Upload Photo (Cloudinary)'}
-                                <input type="file" accept="image/*" className="hidden" onChange={e => setNewMemberPhotoFile(e.target.files[0])} />
-                            </label>
-                            <button onClick={handleAddMember} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm">
-                                <Plus className="w-4 h-4" /> Add Member
-                            </button>
-                        </div>
-                    </div>
 
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            {/* Club Achievements — club-admin only */}
+            {user?.role === 'club-admin' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Award className="w-5 h-5" /></div>
                             <h3 className="text-lg font-bold text-slate-900">Club Achievements</h3>
@@ -347,7 +327,6 @@ const Profile = () => {
                             </button>
                         </div>
                     </div>
-                </>
             )}
         </div>
     </DashboardLayout>

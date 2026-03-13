@@ -8,6 +8,7 @@ import eventRoutes from './routes/eventRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
+import { getProfileByUsername } from './controllers/userController.js';
 
 // Connect to database
 connectDB().then(() => {
@@ -39,6 +40,8 @@ app.use('/api/gigs', gigRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/transactions', transactionRoutes);
+// Public profile by username
+app.get('/api/profile/:username', getProfileByUsername);
 
 // Health check route
 app.get('/', (req, res) => {

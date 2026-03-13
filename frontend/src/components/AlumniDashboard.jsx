@@ -92,12 +92,6 @@ const AlumniDashboard = () => {
                     <p className="text-slate-500 text-lg">Support your alma mater and students.</p>
                 </div>
                 <div className="flex gap-3 items-center">
-                    <button
-                        onClick={() => navigate('/clubs')}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center shadow-sm"
-                    >
-                        Browse Clubs
-                    </button>
                     <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-amber-100 text-amber-700 border-amber-200">
                         Alumni
                     </span>

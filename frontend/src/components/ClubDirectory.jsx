@@ -123,7 +123,7 @@ const ClubDirectory = ({ hideLayout = false }) => {
     if (hideLayout) return content;
 
     return (
-        <DashboardLayout>
+        <DashboardLayout user={user} title="Club Directory">
             {content}
         </DashboardLayout>
     );

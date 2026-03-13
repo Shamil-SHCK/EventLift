@@ -32,6 +32,11 @@ const Login = () => {
 
             // Redirect after successful login
             setTimeout(() => {
+                // Username gate: send users without a username to /set-username first
+                if (!data.username) {
+                    navigate('/set-username');
+                    return;
+                }
                 const role = data.role;
                 switch (role) {
                     case 'administrator':

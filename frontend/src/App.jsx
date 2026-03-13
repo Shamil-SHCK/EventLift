@@ -20,9 +20,13 @@ import ClubPublicProfile from './components/ClubPublicProfile';
 import TransactionHistory from './components/TransactionHistory';
 import AdminTransactions from './components/AdminTransactions';
 import Settings from './components/Settings';
+import SetUsername from './components/SetUsername';
+import PublicProfile from './components/PublicProfile';
+import UserSearch from './components/UserSearch';
+import ClubTeam from './components/ClubTeam';
 import './App.css';
 
-// Protected Route Component with Role-Based Access Control
+// Protected Route Component with Role-Based Access Control + Username Gate
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
@@ -33,6 +37,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   const user = JSON.parse(userStr);
   const userRole = user.role;
+
+  // Username Gate: if user has no username, force /set-username
+  if (!user.username) {
+    return <Navigate to="/set-username" replace />;
+  }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
     // Redirect to the appropriate dashboard based on the user's role
@@ -60,6 +69,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
+
+        {/* Set Username — shown to any logged-in user without a username.
+            Does NOT go through ProtectedRoute to avoid redirect loops. */}
+        <Route path="/set-username" element={<SetUsername />} />
+
+        {/* Public user profile page */}
+        <Route path="/u/:username" element={<PublicProfile />} />
 
         {/* Protected Routes */}
         <Route
@@ -127,6 +143,14 @@ function App() {
           }
         />
         <Route
+          path="/club/team"
+          element={
+            <ProtectedRoute allowedRoles={['club-admin']}>
+              <ClubTeam />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/events/:id/impact"
           element={
             <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
@@ -174,6 +198,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
+              <UserSearch />
             </ProtectedRoute>
           }
         />

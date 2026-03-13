@@ -17,7 +17,7 @@ const CompanyDashboard = () => {
     });
     const [myGigs, setMyGigs] = useState([]);
     const [sponsoredEvents, setSponsoredEvents] = useState([]);
-    const [viewMode, setViewMode] = useState('clubs'); // 'clubs' | 'gigs' | 'sponsored'
+    const [viewMode, setViewMode] = useState('gigs'); // 'clubs' | 'gigs' | 'sponsored'
     const [showApplicantsModal, setShowApplicantsModal] = useState(false);
     const [selectedGig, setSelectedGig] = useState(null);
     const [assigning, setAssigning] = useState(null);
@@ -173,15 +173,6 @@ const CompanyDashboard = () => {
             {/* View Toggle */}
             <div className="flex mb-8">
                 <div className="bg-blue-600 p-1 rounded-xl inline-flex shadow-inner max-w-full overflow-x-auto">
-                    <button
-                        onClick={() => setViewMode('clubs')}
-                        className={`px-6 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'clubs'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-blue-100 hover:bg-white/10'
-                            }`}
-                    >
-                        Browse Clubs
-                    </button>
                     <button
                         onClick={() => setViewMode('gigs')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${viewMode === 'gigs'

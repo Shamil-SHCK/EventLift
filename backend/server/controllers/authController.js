@@ -217,6 +217,7 @@ export const verifyOTP = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      username: user.username,
       role: user.role,
       // Spread profile properties for frontend compatibility
       clubName: profile.clubName,
@@ -225,7 +226,9 @@ export const verifyOTP = async (req, res) => {
       formerInstitution: profile.formerInstitution,
       verificationStatus: user.verificationStatus,
       token: token,
-      verificationDocument: profile.verificationDocument || null
+      verificationDocument: profile.verificationDocument || null,
+      occupation: profile.occupation,
+      organizationName: profile.organizationName,
     });
 
   } catch (error) {
@@ -275,6 +278,7 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         verificationStatus: user.verificationStatus,
         token: generateToken(user._id),
@@ -286,6 +290,8 @@ export const loginUser = async (req, res) => {
         phone: profile.phone,
         logoUrl: profile.logoUrl,
         description: profile.description,
+        occupation: profile.occupation,
+        organizationName: profile.organizationName,
         sponseredEvents: profile.sponseredEvents || []
       });
     } else {
@@ -311,6 +317,7 @@ export const getMe = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         verificationStatus: user.verificationStatus,
         profile: user.profile,
@@ -320,6 +327,7 @@ export const getMe = async (req, res) => {
       _id: user._id,
       name: profile.name,
       email: user.email,
+      username: user.username,
       role: user.role,
       verificationStatus: user.verificationStatus,
       profile: user.profile,
@@ -332,6 +340,8 @@ export const getMe = async (req, res) => {
       phone: profile.phone,
       logoUrl: profile.logoUrl,
       description: profile.description,
+      occupation: profile.occupation,
+      organizationName: profile.organizationName,
       sponseredEvents: profile.sponseredEvents || []
     });
   } catch (error) {
@@ -347,7 +357,8 @@ export const updateProfile = async (req, res) => {
   try {
     const allowedUpdates = [
       'clubName', 'collegeName', 'organizationName', 'formerInstitution',
-      'phone', 'logoUrl', 'description', 'team', 'achievements'
+      'phone', 'logoUrl', 'description', 'team', 'achievements',
+      'occupation', 'organizationName'
     ];
 
     // Filter req.body to only allow specific fields to be updated
@@ -418,6 +429,8 @@ export const updateProfile = async (req, res) => {
       phone: profile.phone,
       logoUrl: profile.logoUrl,
       description: profile.description,
+      occupation: profile.occupation,
+      organizationName: profile.organizationName,
       sponseredEvents: profile.sponseredEvents || []
     });
   } catch (err) {
