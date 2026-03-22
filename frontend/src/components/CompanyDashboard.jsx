@@ -120,15 +120,11 @@ const CompanyDashboard = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => navigate('/company/create-gig')}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all"
                     >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Post Gig
+                        <Briefcase className="w-4 h-4" />
+                        Post a Gig
                     </button>
-
-                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-blue-100 text-blue-700 border-blue-200 flex items-center">
-                        Company
-                    </span>
                 </div>
             </div>
 

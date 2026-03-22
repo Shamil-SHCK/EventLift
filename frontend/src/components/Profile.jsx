@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCurrentUser, updateUserProfile, changeUserPassword } from '../services/api';
 import { uploadLogoImage } from '../services/api/auth';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +6,7 @@ import DashboardLayout from './DashboardLayout';
 import {
     User,
     Building2,
-    Link as LinkIcon,
+    Camera,
     Phone,
     FileText,
     Save,
@@ -18,7 +18,8 @@ import {
     Award,
     Plus,
     Trash2,
-    Upload
+    Upload,
+    CreditCard
 } from 'lucide-react';
 
 const Profile = () => {
@@ -44,6 +45,12 @@ const Profile = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
+    // Logo upload state
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState('');
+    const [logoUploading, setLogoUploading] = useState(false);
+    const logoInputRef = useRef(null);
+
     // Club-admin team & achievements state
     const [team, setTeam] = useState([]);
     const [achievements, setAchievements] = useState([]);
@@ -52,6 +59,17 @@ const Profile = () => {
     const [newMember, setNewMember] = useState({ name: '', role: '', photoUrl: '' });
     const [newMemberPhotoFile, setNewMemberPhotoFile] = useState(null);
     const [newAchievement, setNewAchievement] = useState({ title: '', year: '', description: '' });
+
+    // Bank details state (club-admin only)
+    const [bankDetails, setBankDetails] = useState({
+        accountHolderName: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
+        upiId: '',
+    });
+    const [bankSaving, setBankSaving] = useState(false);
+    const [bankSaved, setBankSaved] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -71,6 +89,13 @@ const Profile = () => {
                 if (userData.role === 'club-admin') {
                     setTeam(userData.team || []);
                     setAchievements(userData.achievements || []);
+                    setBankDetails(userData.bankDetails || {
+                        accountHolderName: '',
+                        accountNumber: '',
+                        ifscCode: '',
+                        bankName: '',
+                        upiId: '',
+                    });
                 }
             } catch (err) {
                 setError('Failed to load profile');
@@ -87,6 +112,33 @@ const Profile = () => {
 
     const handlePasswordChange = (e) => {
         setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+    };
+
+    // Logo file selection handler
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
+    };
+
+    // Upload logo to Cloudinary and return the URL
+    const uploadLogoToCloudinary = async () => {
+        if (!logoFile) return formData.logoUrl;
+        setLogoUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('logo', logoFile);
+            const res = await uploadLogoImage(fd);
+            const url = res.url || res.cloudinaryUrl || '';
+            setFormData(prev => ({ ...prev, logoUrl: url }));
+            setLogoFile(null);
+            return url;
+        } catch (err) {
+            throw new Error('Logo upload failed: ' + err.message);
+        } finally {
+            setLogoUploading(false);
+        }
     };
 
     // Team handlers
@@ -122,14 +174,40 @@ const Profile = () => {
             setProfileSaving(false);
         }
     };
+
+    const handleSaveBankDetails = async () => {
+        setBankSaving(true);
+        setError('');
+        try {
+            await updateUserProfile({ bankDetails });
+            setBankSaved(true);
+            setTimeout(() => setBankSaved(false), 3000);
+        } catch (e) {
+            setError('Failed to save bank details: ' + e.message);
+        } finally {
+            setBankSaving(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSaving(true);
         setMessage('');
         setError('');
 
+        // Validate: description is mandatory for clubs
+        if (user?.role === 'club-admin' && !formData.description.trim()) {
+            setError('A club description is required. Please describe your club before saving.');
+            return;
+        }
+
+        setSaving(true);
         try {
-            await updateUserProfile(formData);
+            // Upload logo first if a new file was selected
+            let finalLogoUrl = formData.logoUrl;
+            if (logoFile) {
+                finalLogoUrl = await uploadLogoToCloudinary();
+            }
+            await updateUserProfile({ ...formData, logoUrl: finalLogoUrl });
             setMessage('Profile updated successfully!');
         } catch (err) {
             setError(err.message || 'Failed to update profile');
@@ -204,6 +282,50 @@ const Profile = () => {
                     </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+
+                    {/* Profile Icon Upload — clubs and companies only */}
+                    {(user.role === 'club-admin' || user.role === 'company') && (
+                        <div className="flex flex-col items-center gap-3 pb-6 border-b border-slate-100">
+                            <p className="text-sm font-semibold text-slate-700 self-start">Profile Icon</p>
+                            <div className="relative group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+                                {/* Avatar circle */}
+                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-blue-100 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                    {(logoPreview || formData.logoUrl) ? (
+                                        <img
+                                            src={logoPreview || formData.logoUrl}
+                                            alt="Profile icon"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-3xl font-bold text-white select-none">
+                                            {(user.name || '?')[0].toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Hover overlay */}
+                                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    {logoUploading ? (
+                                        <Loader className="w-6 h-6 text-white animate-spin" />
+                                    ) : (
+                                        <Camera className="w-6 h-6 text-white" />
+                                    )}
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-400">Click to change · JPG, PNG, WebP · Max 5MB</p>
+                            {logoFile && (
+                                <p className="text-xs text-blue-600 font-medium">📎 {logoFile.name} — will be uploaded on save</p>
+                            )}
+                            <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/jpg,image/jpeg,image/png,image/webp,image/avif"
+                                className="hidden"
+                                onChange={handleLogoChange}
+                                id="logo-upload-input"
+                            />
+                        </div>
+                    )}
+
                     {user.role === 'club-admin' && (
                         <div className="space-y-2">
                             <label className="block text-sm font-semibold text-slate-700">Club Name</label>
@@ -264,33 +386,135 @@ const Profile = () => {
                                     placeholder="+1 234 567 8900" />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-slate-700">Logo/Avatar URL</label>
-                            <div className="relative">
-                                <LinkIcon className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                <input type="text" name="logoUrl" value={formData.logoUrl} onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                    placeholder="https://example.com/logo.png" />
-                            </div>
-                        </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-slate-700">Description / Bio</label>
+                        <label className="block text-sm font-semibold text-slate-700">
+                            Description / Bio
+                            {user?.role === 'club-admin' && (
+                                <span className="text-red-500 ml-1" title="Required for clubs">*</span>
+                            )}
+                        </label>
                         <div className="relative">
                             <FileText className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <textarea name="description" value={formData.description} onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans min-h-[100px]"
-                                placeholder="Tell us about yourself..." />
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                required={user?.role === 'club-admin'}
+                                className={`w-full pl-10 pr-4 py-2 bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans min-h-[100px] ${
+                                    user?.role === 'club-admin' && !formData.description.trim()
+                                        ? 'border-red-300'
+                                        : 'border-slate-200'
+                                }`}
+                                placeholder={user?.role === 'club-admin' ? 'Describe your club — what it does, its mission, and what you offer...' : 'Tell us about yourself...'}
+                            />
                         </div>
+                        {user?.role === 'club-admin' && !formData.description.trim() && (
+                            <p className="text-xs text-red-500 flex items-center gap-1">
+                                <span>⚠</span> Club description is required so sponsors and alumni can learn about you.
+                            </p>
+                        )}
                     </div>
-                    <button type="submit" disabled={saving}
+                    <button type="submit" disabled={saving || logoUploading}
                         className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-70">
-                        {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Changes
+                        {(saving || logoUploading) ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {logoUploading ? 'Uploading...' : 'Save Changes'}
                     </button>
                 </form>
             </div>
 
+
+            {/* Bank Account Details — club-admin only */}
+            {user?.role === 'club-admin' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CreditCard className="w-5 h-5" /></div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">Bank Account Details</h3>
+                            <p className="text-sm text-slate-500">Used by the admin to transfer sponsorship funds to your club.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        {/* Account Holder */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">Account Holder Name</label>
+                            <input
+                                type="text"
+                                value={bankDetails.accountHolderName}
+                                onChange={e => setBankDetails(p => ({ ...p, accountHolderName: e.target.value }))}
+                                placeholder="As per bank records"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* Bank Name */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">Bank Name</label>
+                            <input
+                                type="text"
+                                value={bankDetails.bankName}
+                                onChange={e => setBankDetails(p => ({ ...p, bankName: e.target.value }))}
+                                placeholder="e.g. State Bank of India"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* Account Number */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">Account Number</label>
+                            <input
+                                type="text"
+                                value={bankDetails.accountNumber}
+                                onChange={e => setBankDetails(p => ({ ...p, accountNumber: e.target.value }))}
+                                placeholder="Enter account number"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* IFSC */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">IFSC Code</label>
+                            <input
+                                type="text"
+                                value={bankDetails.ifscCode}
+                                onChange={e => setBankDetails(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
+                                placeholder="e.g. SBIN0001234"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* UPI */}
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <label className="block text-sm font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(optional)</span></label>
+                            <input
+                                type="text"
+                                value={bankDetails.upiId}
+                                onChange={e => setBankDetails(p => ({ ...p, upiId: e.target.value }))}
+                                placeholder="yourclub@upi"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-4">
+                        <p className="text-xs text-slate-400">
+                            🔒 These details are only visible to the platform administrator for processing fund transfers.
+                        </p>
+                        <div>
+                            <button
+                                type="button"
+                                onClick={handleSaveBankDetails}
+                                disabled={bankSaving}
+                                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-70 flex items-center gap-2 w-fit"
+                            >
+                                {bankSaving ? <Loader className="w-4 h-4 animate-spin" /> : (bankSaved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />)}
+                                {bankSaving ? 'Saving...' : (bankSaved ? 'Saved!' : 'Save Bank Details')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Club Achievements — club-admin only */}
             {user?.role === 'club-admin' && (

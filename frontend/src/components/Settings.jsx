@@ -218,7 +218,7 @@ const Settings = () => {
                         <button
                             type="submit"
                             disabled={!isUsernameSaveEnabled || savingUsername}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg disabled:opacity-60"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-60"
                         >
                             {savingUsername ? (
                                 <><Loader className="w-4 h-4 animate-spin" /> Saving…</>
@@ -290,7 +290,7 @@ const Settings = () => {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-colors shadow-lg disabled:opacity-60"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-60"
                         >
                             <Lock className="w-4 h-4" />
                             {saving ? 'Updating…' : 'Update Password'}

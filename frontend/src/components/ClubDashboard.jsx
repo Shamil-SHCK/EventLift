@@ -20,7 +20,13 @@ const ClubDashboard = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
     const [formError, setFormError] = useState(null);
+    const [toast, setToast] = useState(null); // { type: 'success'|'error', msg: string }
     const navigate = useNavigate();
+
+    const showToast = (type, msg) => {
+        setToast({ type, msg });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     const [viewMode, setViewMode] = useState('events'); // 'events', 'gigs', or 'profile'
 
@@ -128,11 +134,11 @@ const ClubDashboard = () => {
             if (isEditing) {
                 const updatedEvent = await updateEvent(editId, data);
                 setEvents(events.map(e => e._id === editId ? { ...updatedEvent, organizer: user } : e));
-                alert('Event Updated Successfully!');
+                showToast('success', 'Event updated successfully!');
             } else {
                 const newEvent = await createEvent(data);
                 setEvents([...events, { ...newEvent, organizer: user }]);
-                alert('Event Created Successfully!');
+                showToast('success', 'Event created successfully!');
             }
 
             handleCloseModal();
@@ -166,9 +172,10 @@ const ClubDashboard = () => {
                 setLoading(true)
                 await deleteEvent(eventId);
                 setEvents(events.filter(e => e._id !== eventId));
+                showToast('success', 'Event deleted.');
             } catch (error) {
                 console.error(error);
-                alert('Failed to delete event');
+                showToast('error', 'Failed to delete event.');
             } finally {
                 setLoading(false)
             }
@@ -211,11 +218,12 @@ const ClubDashboard = () => {
     const handleMarkGigDone = async (gigId) => {
         if (window.confirm('Are you sure you want to mark this gig as done?')) {
             try {
-                const updatedGig = await markGigComplete(gigId);
+                await markGigComplete(gigId);
                 setAcceptedGigs(acceptedGigs.map(g => g._id === gigId ? { ...g, status: 'completed' } : g));
+                showToast('success', 'Gig marked as completed!');
             } catch (error) {
                 console.error(error);
-                alert('Failed to update gig status');
+                showToast('error', 'Failed to update gig status.');
             }
         }
     };
@@ -313,6 +321,17 @@ const ClubDashboard = () => {
 
     return (
         <DashboardLayout user={user}>
+            {/* Inline toast */}
+            {toast && (
+                <div className={`mb-6 p-4 rounded-xl font-medium flex items-center gap-2 text-sm
+                    ${toast.type === 'success'
+                        ? 'bg-green-50 border border-green-100 text-green-700'
+                        : 'bg-red-50 border border-red-100 text-red-600'
+                    }`}>
+                    {toast.type === 'success' ? '✓' : '✕'} {toast.msg}
+                </div>
+            )}
+
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl lg:text-4xl font-bold font-heading text-slate-900 mb-2">

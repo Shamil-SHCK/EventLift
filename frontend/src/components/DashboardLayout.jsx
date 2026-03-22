@@ -44,7 +44,13 @@ const DashboardLayout = ({ children, user: userProp, title = "Dashboard" }) => {
                 <div className="h-full flex flex-col">
                     {/* Brand */}
                     <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                        <span className="text-xl font-bold font-heading tracking-tight text-white cursor-pointer" onClick={() => navigate('/')}>EventLift</span>
+                        <span
+                            className="text-xl font-bold font-heading tracking-tight cursor-pointer"
+                            onClick={() => navigate('/')}
+                        >
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Event</span>
+                            <span className="text-white">Lift</span>
+                        </span>
                     </div>
 
                     {/* Navigation */}
@@ -68,13 +74,13 @@ const DashboardLayout = ({ children, user: userProp, title = "Dashboard" }) => {
                         )}
 
                         {user?.role === 'club-admin' && (
-                            <button onClick={() => navigate('/club/gig-opportunities')} className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all ${title === 'Gig Opportunities' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                            <button onClick={() => navigate('/club/gig-opportunities')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Gig Opportunities' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <Briefcase className="w-5 h-5" /> Gig Works
                             </button>
                         )}
 
                         {(user?.role === 'company' || user?.role === 'alumni-individual') && (
-                            <button onClick={() => navigate('/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all ${title === 'Transaction History' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                            <button onClick={() => navigate('/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Transaction History' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <IndianRupee className="w-5 h-5" /> Transactions
                             </button>
                         )}

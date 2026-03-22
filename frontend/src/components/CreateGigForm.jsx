@@ -36,6 +36,7 @@ const CreateGigForm = () => {
             await postGig(data);
             navigate(-1); // Go back to previous page (Company Dashboard)
         } catch (err) {
+            console.log(err);
             setError(err.message || 'Failed to create gig');
             setLoading(false);
         }

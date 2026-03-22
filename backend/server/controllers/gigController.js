@@ -25,7 +25,10 @@ export const createGig = async (req, res) => {
         });
         await newGig.save();
         res.status(201).json(newGig);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.log(err);
+        res.status(500).json({ error: err.message }); 
+    }
 };
 
 // 2. Backlog: View available gig works & Filter by category/budget

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getTransactionHistory } from '../services/api';
 import DashboardLayout from './DashboardLayout';
-import { IndianRupee, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { IndianRupee, Clock, CheckCircle2, XCircle, ExternalLink, ShieldCheck } from 'lucide-react';
 
 const TransactionHistory = () => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -76,6 +76,7 @@ const TransactionHistory = () => {
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Event Name</th>
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Amount (₹)</th>
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Status</th>
+                                        <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Transfer Proof</th>
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Date</th>
                                     </tr>
                                 </thead>
@@ -96,6 +97,22 @@ const TransactionHistory = () => {
                                                     {getStatusIcon(tx.status)}
                                                     {tx.status}
                                                 </div>
+                                            </td>
+                                            <td className="p-5">
+                                                {tx.transferProofUrl ? (
+                                                    <a
+                                                        href={tx.transferProofUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-blue-600 text-xs font-bold rounded-lg border border-slate-200 transition-colors whitespace-nowrap"
+                                                    >
+                                                        <ShieldCheck className="w-4 h-4" />
+                                                        View Receipt
+                                                        <ExternalLink className="w-3 h-3 ml-0.5" />
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-sm font-medium text-slate-400 italic">No receipt</span>
+                                                )}
                                             </td>
                                             <td className="p-5">
                                                 <div className="text-slate-600 text-sm">

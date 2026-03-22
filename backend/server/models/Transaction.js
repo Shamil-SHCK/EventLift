@@ -23,6 +23,10 @@ const transactionSchema = new mongoose.Schema({
     stripeSessionId: {
         type: String,
         required: true
+    },
+    transferProofUrl: {
+        type: String,
+        default: null
     }
 }, {
     timestamps: true

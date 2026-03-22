@@ -165,6 +165,9 @@ export const getClubTransactions = async (req, res) => {
                 grouped[clubId] = {
                     clubId,
                     clubName: clubProfile?.clubName || 'Unknown Club',
+                    collegeName: clubProfile?.collegeName || '',
+                    phone: clubProfile?.phone || '',
+                    bankDetails: clubProfile?.bankDetails || {},
                     totalPending: 0,
                     totalCompleted: 0,
                     transactions: []
@@ -207,5 +210,32 @@ export const markTransactionCompleted = async (req, res) => {
     } catch (error) {
         console.error("Admin Complete Transaction Error:", error);
         res.status(500).json({ message: 'Server Error updating transaction' });
+    }
+};
+
+// @desc    Upload transfer proof for a transaction (Cloudinary URL) and mark completed
+// @route   PUT /api/admin/transactions/:id/proof
+// @access  Private/Admin
+export const uploadTransferProof = async (req, res) => {
+    try {
+        // multer-storage-cloudinary puts the secure URL in req.file.path
+        const transferProofUrl = req.file?.path || req.body?.transferProofUrl;
+        if (!transferProofUrl) {
+            return res.status(400).json({ message: 'No proof file uploaded' });
+        }
+
+        const transaction = await Transaction.findById(req.params.id);
+        if (!transaction) {
+            return res.status(404).json({ message: 'Transaction not found' });
+        }
+
+        transaction.transferProofUrl = transferProofUrl;
+        transaction.status = 'completed';
+        await transaction.save();
+
+        res.json({ message: 'Transfer proof uploaded and transaction marked completed', transaction });
+    } catch (error) {
+        console.error('Upload Transfer Proof Error:', error);
+        res.status(500).json({ message: 'Server Error uploading proof' });
     }
 };

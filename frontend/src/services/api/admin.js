@@ -42,3 +42,13 @@ export const completeTransaction = (id) => {
         method: 'PUT',
     });
 };
+
+// Admin: Upload transfer proof image and mark transaction completed
+export const uploadTransferProof = (id, file) => {
+    const formData = new FormData();
+    formData.append('proof', file);
+    return request(`/admin/transactions/${id}/proof`, {
+        method: 'PUT',
+        body: formData,
+    });
+};

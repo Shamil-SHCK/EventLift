@@ -50,7 +50,16 @@ const clubProfileSchemna = mongoose.Schema(
             title: { type: String, required: true },
             year: { type: String },
             description: { type: String }
-        }]
+        }],
+
+        // Bank account details for fund transfers
+        bankDetails: {
+            accountHolderName: { type: String, default: '' },
+            accountNumber:     { type: String, default: '' },
+            ifscCode:          { type: String, default: '' },
+            bankName:          { type: String, default: '' },
+            upiId:             { type: String, default: '' },
+        },
 
     },
     {

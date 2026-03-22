@@ -358,7 +358,7 @@ export const updateProfile = async (req, res) => {
     const allowedUpdates = [
       'clubName', 'collegeName', 'organizationName', 'formerInstitution',
       'phone', 'logoUrl', 'description', 'team', 'achievements',
-      'occupation', 'organizationName'
+      'occupation', 'organizationName', 'bankDetails'
     ];
 
     // Filter req.body to only allow specific fields to be updated
