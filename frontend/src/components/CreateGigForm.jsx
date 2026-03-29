@@ -15,26 +15,36 @@ const CreateGigForm = () => {
     const [poster, setPoster] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [posterError, setPosterError] = useState('');
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleFileChange = (e) => {
-        setPoster(e.target.files[0]);
+        const file = e.target.files[0];
+        setPosterError('');
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setPosterError('Gig poster must be an image file');
+            } else if (file.size > 5 * 1024 * 1024) {
+                setPosterError('Gig poster must be less than 5MB');
+            }
+        }
+        setPoster(file);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
+        if (posterError) return;
         if (poster) {
             if (!poster.type.startsWith('image/')) {
-                setError('Gig poster must be an image file');
-                setLoading(false);
+                setPosterError('Gig poster must be an image file');
                 return;
             }
             if (poster.size > 5 * 1024 * 1024) {
-                setError('Gig poster must be less than 5MB');
-                setLoading(false);
+                setPosterError('Gig poster must be less than 5MB');
                 return;
             }
         }
@@ -99,15 +109,22 @@ const CreateGigForm = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Gig Poster (Image)</label>
-                        <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center w-full">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                    <p className="text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-gray-500">{poster ? poster.name : "SVG, PNG, JPG or GIF (MAX. 800x400px)"}</p>
+                                    <p className="text-sm text-gray-500 font-sans">
+                                        {poster ? <span className="text-indigo-600 font-bold">{poster.name}</span> : <span><span className="font-semibold">Click to upload</span> or drag and drop</span>}
+                                    </p>
+                                    <p className="text-xs text-gray-400">SVG, PNG, JPG (MAX. 5MB)</p>
                                 </div>
                                 <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
                             </label>
+                            {posterError && (
+                                <p className="mt-2 text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn w-full text-center">
+                                    ✕ {posterError}
+                                </p>
+                            )}
                         </div>
                     </div>
 

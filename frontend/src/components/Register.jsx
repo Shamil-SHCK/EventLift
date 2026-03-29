@@ -17,6 +17,7 @@ const Register = () => {
     });
 
     const [error, setError] = useState('');
+    const [verificationError, setVerificationError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -27,7 +28,16 @@ const Register = () => {
 
     const handleChange = (e) => {
         if (e.target.name === 'verificationDocument') {
-            setVerificationFile(e.target.files[0]);
+            const file = e.target.files[0];
+            setVerificationError('');
+            if (file) {
+                if (file.type !== 'application/pdf') {
+                    setVerificationError('Verification document must be a PDF file');
+                } else if (file.size > 5 * 1024 * 1024) {
+                    setVerificationError('Verification document must be less than 5MB');
+                }
+            }
+            setVerificationFile(file);
         } else {
             setFormData({ ...formData, [e.target.name]: e.target.value });
         }
@@ -70,19 +80,11 @@ const Register = () => {
         }
 
         if ((role === 'club-admin' || role === 'company') && !verificationFile) {
-            setError('Verification document is required');
+            setVerificationError('Verification document is required');
             return;
         }
 
-        if (verificationFile && verificationFile.type !== 'application/pdf') {
-            setError('Verification document must be a PDF file');
-            return;
-        }
-
-        if (verificationFile && verificationFile.size > 5 * 1024 * 1024) {
-            setError('Verification document must be less than 5MB');
-            return;
-        }
+        if (verificationError) return;
 
         setLoading(true);
 
@@ -335,11 +337,13 @@ const Register = () => {
                     {(role === 'club-admin' || role === 'company') && (
                         <div className="space-y-2 animate-fadeIn">
                             <label className="block text-sm font-semibold text-slate-700">Verification Document</label>
-                            <div className="flex items-center justify-center w-full">
+                            <div className="flex flex-col items-center justify-center w-full">
                                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
                                         <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
-                                        <p className="mb-2 text-sm text-slate-500"><span className="font-semibold">Click to upload</span> validation doc</p>
+                                        <p className="mb-2 text-sm text-slate-500 font-sans">
+                                            {verificationFile ? <span className="text-blue-600 font-bold">{verificationFile.name}</span> : <span><span className="font-semibold text-slate-700">Click to upload</span> validation doc</span>}
+                                        </p>
                                         <p className="text-xs text-slate-400">PDF ONLY (MAX. 5MB)</p>
                                     </div>
                                     <input
@@ -351,12 +355,12 @@ const Register = () => {
                                         accept="application/pdf"
                                     />
                                 </label>
+                                {verificationError && (
+                                    <p className="mt-2 text-[11px] font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn w-full text-center">
+                                        ✕ {verificationError}
+                                    </p>
+                                )}
                             </div>
-                            {verificationFile && (
-                                <p className="text-sm text-green-600 flex items-center gap-1">
-                                    <FileText className="w-4 h-4" /> {verificationFile.name}
-                                </p>
-                            )}
                         </div>
                     )}
 

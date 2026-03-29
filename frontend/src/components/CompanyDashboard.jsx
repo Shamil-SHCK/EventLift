@@ -4,7 +4,7 @@ import { getMyGigs, assignGig, reviewWork } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import ClubDirectory from './ClubDirectory';
-import { Briefcase, CheckCircle, Search, TrendingUp, Users, ExternalLink, X } from 'lucide-react';
+import { Briefcase, CheckCircle, Search, TrendingUp, Users, ExternalLink, X, Eye } from 'lucide-react';
 
 const CompanyDashboard = () => {
     const [user, setUser] = useState(null);
@@ -308,9 +308,19 @@ const CompanyDashboard = () => {
                                                 </button>
                                             )}
                                             {(gig.status === 'assigned' || gig.status === 'revision_requested') && gig.assignedClub && (
-                                                <div className="text-right">
-                                                    <p className="text-xs text-slate-400">Assigned</p>
-                                                    <p className="text-sm font-bold text-amber-600">Awaiting Work</p>
+                                                <div className="flex flex-col items-end gap-2 text-right">
+                                                    {(gig.status === 'revision_requested' || (gig.feedbackHistory && gig.feedbackHistory.length > 0)) && (
+                                                        <button
+                                                            onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
+                                                            className="px-3 py-1.5 bg-amber-50 text-amber-600 text-sm font-bold rounded-lg hover:bg-amber-100 transition-colors flex items-center justify-center gap-1"
+                                                        >
+                                                            <Eye className="w-3 h-3" /> View Remarks
+                                                        </button>
+                                                    )}
+                                                    <div>
+                                                        <p className="text-xs text-slate-400">Assigned</p>
+                                                        <p className="text-sm font-bold text-amber-600">Awaiting Work</p>
+                                                    </div>
                                                 </div>
                                             )}
                                             {gig.status === 'submitted' && (
@@ -322,16 +332,30 @@ const CompanyDashboard = () => {
                                                 </button>
                                             )}
                                             {gig.status === 'approved' && (
-                                                <button
-                                                    onClick={() => handlePayGig(gig)}
-                                                    disabled={paying === gig._id}
-                                                    className="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-md shadow-green-500/20"
-                                                >
-                                                    {paying === gig._id ? 'Processing...' : 'Pay Escrow'}
-                                                </button>
+                                                <div className="flex flex-col gap-2">
+                                                    <button
+                                                        onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
+                                                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"
+                                                    >
+                                                        <Eye className="w-3 h-3" /> View Review
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePayGig(gig)}
+                                                        disabled={paying === gig._id}
+                                                        className="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-md shadow-green-500/20"
+                                                    >
+                                                        {paying === gig._id ? 'Processing...' : 'Pay Escrow'}
+                                                    </button>
+                                                </div>
                                             )}
                                             {(gig.status === 'paid_to_platform' || gig.status === 'completed') && (
-                                                <div className="text-right">
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <button
+                                                        onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
+                                                        className="px-3 py-1.5 bg-slate-50 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center gap-1"
+                                                    >
+                                                        <Eye className="w-3 h-3" /> View Review
+                                                    </button>
                                                     <p className="text-sm font-bold text-green-600">Paid 💸</p>
                                                 </div>
                                             )}
@@ -495,7 +519,9 @@ const CompanyDashboard = () => {
                     <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-fadeIn overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                             <div>
-                                <h2 className="text-xl font-bold text-slate-900">Review Submitted Work</h2>
+                                <h2 className="text-xl font-bold text-slate-900">
+                                    {selectedGig.status === 'submitted' ? 'Review Submitted Work' : 'Work History & Remarks'}
+                                </h2>
                             </div>
                             <button onClick={() => setShowReviewModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5" />
@@ -530,38 +556,81 @@ const CompanyDashboard = () => {
                             )}
 
                             <form onSubmit={handleReviewSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Decision</label>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="radio" name="decision" value="approve" checked={reviewForm.decision === 'approve'} onChange={(e) => setReviewForm({ ...reviewForm, decision: e.target.value })} className="text-indigo-600 focus:ring-indigo-500" />
-                                            <span className="text-slate-700 font-medium">Approve & Pay</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="radio" name="decision" value="request_changes" checked={reviewForm.decision === 'request_changes'} onChange={(e) => setReviewForm({ ...reviewForm, decision: e.target.value })} className="text-indigo-600 focus:ring-indigo-500" />
-                                            <span className="text-slate-700 font-medium">Request Changes</span>
-                                        </label>
+                                {selectedGig.status === 'submitted' ? (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Decision</label>
+                                            <div className="flex gap-4">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="decision" value="approve" checked={reviewForm.decision === 'approve'} onChange={(e) => setReviewForm({ ...reviewForm, decision: e.target.value })} className="text-indigo-600 focus:ring-indigo-500" />
+                                                    <span className="text-slate-700 font-medium">Approve & Pay</span>
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="decision" value="request_changes" checked={reviewForm.decision === 'request_changes'} onChange={(e) => setReviewForm({ ...reviewForm, decision: e.target.value })} className="text-indigo-600 focus:ring-indigo-500" />
+                                                    <span className="text-slate-700 font-medium">Request Improvements</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">
+                                                {reviewForm.decision === 'approve' ? 'Remarks / Review' : 'Improvements Needed / Revision Note'}
+                                            </label>
+                                            <textarea
+                                                required={reviewForm.decision === 'request_changes'}
+                                                rows="3"
+                                                value={reviewForm.comment}
+                                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                                placeholder={reviewForm.decision === 'approve' ? "Add a review of their work..." : "What needs to be fixed?"}
+                                            ></textarea>
+                                        </div>
+                                        <div className="pt-2 flex justify-end gap-3">
+                                            <button type="button" onClick={() => setShowReviewModal(false)} className="px-5 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors">
+                                                Submit Review
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="text-sm font-bold text-slate-700">Past Remarks:</h4>
+                                                {selectedGig.status === 'revision_requested' && (
+                                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                                                        Waiting for Club to resubmit
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                                {selectedGig.feedbackHistory && selectedGig.feedbackHistory.length > 0 ? (
+                                                    [...selectedGig.feedbackHistory].reverse().map((item, idx) => (
+                                                        <div key={idx} className="p-3 bg-white rounded-lg border border-slate-100 shadow-sm hover:border-indigo-200 transition-colors">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className={`text-[10px] font-bold uppercase ${item.decision === 'approve' ? 'text-green-600' : 'text-amber-600'}`}>
+                                                                    {item.decision === 'approve' ? 'Approved' : 'Revision Requested'}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-400">
+                                                                    {new Date(item.timestamp).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-600 whitespace-pre-wrap">{item.comment}</p>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-sm text-slate-500 italic">No remarks found.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="pt-2 flex justify-end">
+                                            <button type="button" onClick={() => setShowReviewModal(false)} className="px-6 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors">
+                                                Close
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Feedback / Comments</label>
-                                    <textarea
-                                        required={reviewForm.decision === 'request_changes'}
-                                        rows="3"
-                                        value={reviewForm.comment}
-                                        onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                                        placeholder="Add feedback for the club..."
-                                    ></textarea>
-                                </div>
-                                <div className="pt-2 flex justify-end gap-3">
-                                    <button type="button" onClick={() => setShowReviewModal(false)} className="px-5 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
-                                        Cancel
-                                    </button>
-                                    <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors">
-                                        Submit Review
-                                    </button>
-                                </div>
+                                )}
                             </form>
                         </div>
                     </div>

@@ -33,6 +33,7 @@ const ClubTeam = () => {
     });
     const [photoFile, setPhotoFile] = useState(null);
     const [photoPreview, setPhotoPreview] = useState('');
+    const [photoError, setPhotoError] = useState('');
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -51,13 +52,14 @@ const ClubTeam = () => {
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
+        setPhotoError('');
         if (file) {
             if (!file.type.startsWith('image/')) {
-                setError('Please select an image file');
+                setPhotoError('Please select an image file');
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
-                setError('Member photo must be less than 2MB');
+                setPhotoError('Member photo must be less than 2MB');
                 return;
             }
             setPhotoFile(file);
@@ -216,6 +218,7 @@ const ClubTeam = () => {
                                         <input type="file" className="hidden" onChange={handlePhotoChange} accept="image/*" />
                                     </label>
                                 </div>
+                                {photoError && <p className="text-[10px] font-bold text-red-600 mt-2 bg-red-50 px-2 py-1 rounded-md border border-red-100">✕ {photoError}</p>}
                                 <p className="text-xs text-slate-400 mt-2">Square photo recommended</p>
                             </div>
 

@@ -1,38 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
-import { getCurrentUser, updateUserProfile, changeUserPassword } from '../services/api';
-import { uploadLogoImage } from '../services/api/auth';
-import { useNavigate } from 'react-router-dom';
-import DashboardLayout from './DashboardLayout';
-import {
-    User,
-    Building2,
-    Camera,
-    Phone,
-    FileText,
-    Save,
-    Lock,
-    Loader,
-    CheckCircle,
-    XCircle,
-    Users,
-    Award,
-    Plus,
-    Trash2,
-    Upload,
-    CreditCard
+import React, { useState, useEffect, useRef } from 'react';
+import { getCurrentUser, updateUserProfile, uploadLogoImage, changeUserPassword } from '../services/api';
+import { 
+    User, Mail, Phone, Building2, MapPin, Globe, Loader, Save, CheckCircle, 
+    Camera, FileText, Lock, ShieldCheck, CreditCard, Award, Plus, Trash2, 
+    XCircle, Github, Linkedin, Twitter
 } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [formData, setFormData] = useState({
-        clubName: '',
-        organizationName: '',
-        formerInstitution: '',
+        name: '',
+        email: '',
         phone: '',
-        logoUrl: '',
         description: '',
-        occupation: '',
+        location: '',
+        website: '',
+        logoUrl: '',
         organizationName: '',
+        clubName: '',
+        formerInstitution: '',
+        occupation: '',
+        linkedin: '',
+        github: '',
+        twitter: ''
     });
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -43,6 +34,8 @@ const Profile = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [logoError, setLogoError] = useState('');
+    const [teamError, setTeamError] = useState('');
     const navigate = useNavigate();
 
     // Logo upload state
@@ -77,26 +70,26 @@ const Profile = () => {
                 const userData = await getCurrentUser();
                 setUser(userData);
                 setFormData({
-                    clubName: userData.clubName || '',
-                    organizationName: userData.organizationName || '',
-                    formerInstitution: userData.formerInstitution || '',
+                    name: userData.name || '',
+                    email: userData.email || '',
                     phone: userData.phone || '',
-                    logoUrl: userData.logoUrl || '',
                     description: userData.description || '',
-                    occupation: userData.occupation || '',
+                    location: userData.location || '',
+                    website: userData.website || '',
+                    logoUrl: userData.logoUrl || '',
                     organizationName: userData.organizationName || '',
+                    clubName: userData.clubName || '',
+                    formerInstitution: userData.formerInstitution || '',
+                    occupation: userData.occupation || '',
+                    linkedin: userData.linkedin || '',
+                    github: userData.github || '',
+                    twitter: userData.twitter || ''
                 });
-                if (userData.role === 'club-admin') {
-                    setTeam(userData.team || []);
-                    setAchievements(userData.achievements || []);
-                    setBankDetails(userData.bankDetails || {
-                        accountHolderName: '',
-                        accountNumber: '',
-                        ifscCode: '',
-                        bankName: '',
-                        upiId: '',
-                    });
-                }
+                setTeam(userData.profile?.team || userData.team || []);
+                setAchievements(userData.profile?.achievements || userData.achievements || []);
+                setBankDetails(userData.profile?.bankDetails || userData.bankDetails || {
+                    accountHolderName: '', accountNumber: '', ifscCode: '', bankName: '', upiId: ''
+                });
             } catch (err) {
                 setError('Failed to load profile');
             } finally {
@@ -117,14 +110,15 @@ const Profile = () => {
     // Logo file selection handler
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
+        setLogoError('');
         if (!file) return;
         
         if (!file.type.startsWith('image/')) {
-            setError('Profile icon must be an image file');
+            setLogoError('Profile icon must be an image file');
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
-            setError('Profile icon must be less than 5MB');
+            setLogoError('Profile icon must be less than 5MB');
             return;
         }
 
@@ -154,15 +148,16 @@ const Profile = () => {
     // Team handlers
     const handleAddMember = async () => {
         if (!newMember.name || !newMember.role) return;
+        setTeamError('');
         
         let photoUrl = newMember.photoUrl;
         if (newMemberPhotoFile) {
             if (!newMemberPhotoFile.type.startsWith('image/')) {
-                setError('Team photo must be an image file');
+                setTeamError('Team photo must be an image file');
                 return;
             }
             if (newMemberPhotoFile.size > 2 * 1024 * 1024) {
-                setError('Team photo must be less than 2MB');
+                setTeamError('Team photo must be less than 2MB');
                 return;
             }
             const fd = new FormData();
@@ -175,13 +170,15 @@ const Profile = () => {
         setNewMemberPhotoFile(null);
     };
     const handleRemoveMember = (i) => setTeam(team.filter((_, idx) => idx !== i));
+
     const handleAddAchievement = () => {
         if (!newAchievement.title) return;
         setAchievements([...achievements, { ...newAchievement }]);
         setNewAchievement({ title: '', year: '', description: '' });
     };
     const handleRemoveAchievement = (i) => setAchievements(achievements.filter((_, idx) => idx !== i));
-    const handleSaveProfile = async () => {
+
+    const handleSaveProfileContent = async () => {
         setProfileSaving(true);
         try {
             await updateUserProfile({ team, achievements });
@@ -330,9 +327,18 @@ const Profile = () => {
                                     )}
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-400">Click to change · JPG, PNG, WebP · Max 5MB</p>
+                            <p className="text-xs text-slate-400 font-sans">Click to change · JPG, PNG, WebP · Max 5MB</p>
+                            
+                            {logoError && (
+                                <p className="mt-2 text-[11px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 animate-fadeIn text-center">
+                                    ✕ {logoError}
+                                </p>
+                            )}
+
                             {logoFile && (
-                                <p className="text-xs text-blue-600 font-medium">📎 {logoFile.name} — will be uploaded on save</p>
+                                <p className="text-[11px] text-blue-600 font-bold bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 mt-2">
+                                    📎 {logoFile.name} — will be uploaded on save
+                                </p>
                             )}
                             <input
                                 ref={logoInputRef}
@@ -448,13 +454,10 @@ const Profile = () => {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
                     <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                         <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CreditCard className="w-5 h-5" /></div>
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900">Bank Account Details</h3>
-                            <p className="text-sm text-slate-500">Used by the admin to transfer sponsorship funds to your club.</p>
-                        </div>
+                        <h3 className="text-lg font-bold font-heading text-slate-900">Payment Receiving Details</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {/* Account Holder */}
                         <div className="space-y-1.5">
                             <label className="block text-sm font-semibold text-slate-700">Account Holder Name</label>
@@ -462,7 +465,7 @@ const Profile = () => {
                                 type="text"
                                 value={bankDetails.accountHolderName}
                                 onChange={e => setBankDetails(p => ({ ...p, accountHolderName: e.target.value }))}
-                                placeholder="As per bank records"
+                                placeholder="Exact name as in bank"
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
                             />
                         </div>
@@ -486,7 +489,7 @@ const Profile = () => {
                                 type="text"
                                 value={bankDetails.accountNumber}
                                 onChange={e => setBankDetails(p => ({ ...p, accountNumber: e.target.value }))}
-                                placeholder="Enter account number"
+                                placeholder="00000000000"
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
                             />
                         </div>
@@ -535,9 +538,72 @@ const Profile = () => {
                 </div>
             )}
 
-            {/* Club Achievements — club-admin only */}
+            {/* Club Team & Achievements — club-admin only */}
             {user?.role === 'club-admin' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                <div className="space-y-8">
+                    {/* Team Section */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                        <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Users className="w-5 h-5" /></div>
+                                <h3 className="text-lg font-bold font-heading text-slate-900">Club Team & Leadership</h3>
+                            </div>
+                            <button onClick={handleSaveProfileContent} disabled={profileSaving}
+                                className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm flex items-center gap-2">
+                                {profileSaving ? <Loader className="w-4 h-4 animate-spin" /> : (profileSaved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />)}
+                                {profileSaving ? 'Saving...' : (profileSaved ? 'Profile Saved' : 'Save Team Changes')}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                            {team.map((m, i) => (
+                                <div key={i} className="group relative bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
+                                            {m.photoUrl ? <img src={m.photoUrl} alt="logo" className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-slate-300" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900 truncate">{m.name}</p>
+                                            <p className="text-sm text-indigo-600 font-medium truncate">{m.role}</p>
+                                        </div>
+                                        <button onClick={() => handleRemoveMember(i)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Add new member form */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-dashed border-slate-300">
+                            <p className="text-sm font-bold text-slate-600 mb-3">Add New Member</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                <input className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Full Name" value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} />
+                                <input className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Role (e.g. President)" value={newMember.role} onChange={e => setNewMember({ ...newMember, role: e.target.value })} />
+                            </div>
+                            <div className="flex flex-col gap-2 mb-4">
+                                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 font-bold bg-white w-fit px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+                                    <Camera className="w-3.5 h-3.5" />
+                                    {newMemberPhotoFile ? newMemberPhotoFile.name : 'Upload Member Photo'}
+                                    <input type="file" accept="image/*" className="hidden" 
+                                        onChange={e => { setNewMemberPhotoFile(e.target.files[0]); setTeamError(''); }} />
+                                </label>
+                                {teamError && (
+                                    <p className="text-[10px] font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn w-fit">
+                                        ✕ {teamError}
+                                    </p>
+                                )}
+                            </div>
+                            <button onClick={handleAddMember} className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm">
+                                <Plus className="w-4 h-4" /> Add to Team
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Achievements Section */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Award className="w-5 h-5" /></div>
                             <h3 className="text-lg font-bold text-slate-900">Club Achievements</h3>
@@ -570,6 +636,7 @@ const Profile = () => {
                             </button>
                         </div>
                     </div>
+                </div>
             )}
         </div>
     </DashboardLayout>

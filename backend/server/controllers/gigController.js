@@ -11,7 +11,7 @@ export const createGig = async (req, res) => {
         // Find the company profile for this user
         const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
         if (!companyProfile) {
-            return res.status(404).json({ msg: 'Company profile not found. Please complete your profile first.' });
+            return res.status(404).json({ message: 'Company profile not found. Please complete your profile first.' });
         }
 
         let posterUrl = '';
@@ -56,7 +56,7 @@ export const getMyGigs = async (req, res) => {
     try {
         const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
         if (!companyProfile) {
-            return res.status(404).json({ msg: 'Company profile not found' });
+            return res.status(404).json({ message: 'Company profile not found' });
         }
 
         const gigs = await Gig.find({ company: companyProfile._id })
@@ -97,7 +97,7 @@ export const applyForGig = async (req, res) => {
     try {
         const { linkedInProfile, bidAmount } = req.body;
         const gig = await Gig.findById(req.params.id);
-        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+        if (!gig) return res.status(404).json({ message: 'Gig not found' });
         if (gig.status !== 'open') return res.status(400).json({ msg: 'Gig is no longer open for applications' });
 
         if (bidAmount === undefined || bidAmount === null) return res.status(400).json({ msg: 'Bid amount is required' });
@@ -106,8 +106,8 @@ export const applyForGig = async (req, res) => {
         }
 
         // Check if already applied
-        const alreadyApplied = gig.applicants.some(app => app.club.toString() === req.user.profile);
-        if (alreadyApplied) return res.status(400).json({ msg: 'You have already applied for this gig' });
+        const alreadyApplied = gig.applicants.some(app => app.club.toString() === req.user.profile.toString());
+        if (alreadyApplied) return res.status(400).json({ message: 'You have already applied for this gig' });
 
         gig.applicants.push({
             club: req.user.profile,
@@ -116,8 +116,8 @@ export const applyForGig = async (req, res) => {
         });
         await gig.save();
 
-        res.json({ msg: 'Application submitted successfully', gig });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        res.json({ message: 'Application submitted successfully', gig });
+    } catch (error) { res.status(500).json({ message: error.message || 'Server Error' }); }
 };
 
 // 3.5 Assign gig to a club (by Company)
@@ -126,28 +126,28 @@ export const assignGig = async (req, res) => {
         const { applicantId } = req.body; // Check if this is userId or applicant subdocument ID? Let's assume UserID of club.
         const gig = await Gig.findById(req.params.id);
 
-        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+        if (!gig) return res.status(404).json({ message: 'Gig not found' });
 
         // Verify ownership
         // Access company profile
         const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
         if (!companyProfile || gig.company.toString() !== companyProfile._id.toString()) {
-            return res.status(401).json({ msg: 'Not authorized to manage this gig' });
+            return res.status(401).json({ message: 'Not authorized to manage this gig' });
         }
 
-        if (gig.status !== 'open') return res.status(400).json({ msg: 'Gig is not open' });
+        if (gig.status !== 'open') return res.status(400).json({ message: 'Gig is not open' });
 
         // Check if applicant exists
-        const applicant = gig.applicants.find(app => app.club.toString() === applicantId);
-        if (!applicant) return res.status(404).json({ msg: 'Applicant not found' });
+        const applicant = gig.applicants.find(app => app.club.toString() === applicantId.toString());
+        if (!applicant) return res.status(404).json({ message: 'Applicant not found' });
 
         gig.assignedClub = applicantId;
         gig.winningBid = applicant.bidAmount;
         gig.status = 'assigned';
         await gig.save();
 
-        res.json({ msg: 'Gig assigned successfully', gig });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        res.json({ message: 'Gig assigned successfully', gig });
+    } catch (error) { res.status(500).json({ message: error.message || 'Server Error' }); }
 };
 
 // 5. Feature: Get Club's accepted gigs
@@ -164,18 +164,18 @@ export const getAcceptedGigs = async (req, res) => {
 export const markGigComplete = async (req, res) => {
     try {
         const gig = await Gig.findById(req.params.id);
-        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+        if (!gig) return res.status(404).json({ message: 'Gig not found' });
 
         // Ensure only the assigned club can mark it as done
-        if (gig.assignedClub.toString() !== req.user.profile) {
-            return res.status(401).json({ msg: 'Not authorized' });
+        if (gig.assignedClub.toString() !== req.user.profile.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
         }
 
         gig.status = 'completed';
         await gig.save();
 
         res.json(gig);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (error) { res.status(500).json({ message: error.message || 'Server Error' }); }
 };
 
 // 7. Feature: Submit Work (by Club)
@@ -183,14 +183,14 @@ export const submitWork = async (req, res) => {
     try {
         const { submissionNote } = req.body;
         const gig = await Gig.findById(req.params.id);
-        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+        if (!gig) return res.status(404).json({ message: 'Gig not found' });
 
-        if (gig.assignedClub.toString() !== req.user.profile) {
-            return res.status(401).json({ msg: 'Not authorized' });
+        if (gig.assignedClub.toString() !== req.user.profile.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
         }
 
         if (gig.status !== 'assigned' && gig.status !== 'revision_requested') {
-            return res.status(400).json({ msg: 'Gig is not in a state to be submitted' });
+            return res.status(400).json({ message: 'Gig is not in a state to be submitted' });
         }
 
         let submissionUrl = '';
@@ -203,8 +203,8 @@ export const submitWork = async (req, res) => {
         gig.status = 'submitted';
         await gig.save();
 
-        res.json({ msg: 'Work submitted successfully', gig });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        res.json({ message: 'Work submitted successfully', gig });
+    } catch (error) { res.status(500).json({ message: error.message || 'Server Error' }); }
 };
 
 // 8. Feature: Review Work (by Company)
@@ -234,11 +234,11 @@ export const reviewWork = async (req, res) => {
         } else if (decision === 'request_changes') {
             gig.status = 'revision_requested';
         } else {
-            return res.status(400).json({ msg: 'Invalid decision' });
+            return res.status(400).json({ message: 'Invalid decision' });
         }
 
         await gig.save();
 
-        res.json({ msg: 'Review submitted', gig });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        res.json({ message: 'Review submitted successfully', gig });
+    } catch (error) { res.status(500).json({ message: error.message || 'Server Error' }); }
 };

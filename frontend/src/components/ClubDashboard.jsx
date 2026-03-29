@@ -4,7 +4,7 @@ import { uploadLogoImage } from '../services/api/auth';
 import { getAcceptedGigs, submitWork } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
-import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock, Users, Award, Upload, Trash2, Save } from 'lucide-react';
+import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock, Users, Award, Upload, Trash2, Save, CheckCircle, MessageSquare } from 'lucide-react';
 import ClubEventList from './ClubEventList';
 import CreateEventModal from './CreateEventModal';
 
@@ -25,6 +25,9 @@ const ClubDashboard = () => {
     const [submissionFile, setSubmissionFile] = useState(null);
     const [selectedGig, setSelectedGig] = useState(null);
     const [toast, setToast] = useState(null);
+    const [modalError, setModalError] = useState(null);
+    const [memberError, setMemberError] = useState(null);
+    const [showRemarksModal, setShowRemarksModal] = useState(false);
 
     const [viewMode, setViewMode] = useState('events'); // 'events', 'gigs', or 'profile'
     const navigate = useNavigate();
@@ -120,29 +123,26 @@ const ClubDashboard = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFormError(null);
         
         // File Validations
         if (files.poster) {
             if (!files.poster.type.startsWith('image/')) {
                 setFormError('Event poster must be an image file');
-                setSubmitting(false);
                 return;
             }
             if (files.poster.size > 5 * 1024 * 1024) {
                 setFormError('Poster size must be less than 5MB');
-                setSubmitting(false);
                 return;
             }
         }
         if (files.brochure) {
             if (files.brochure.type !== 'application/pdf') {
                 setFormError('Sponsorship brochure must be a PDF file');
-                setSubmitting(false);
                 return;
             }
             if (files.brochure.size > 5 * 1024 * 1024) {
                 setFormError('Brochure size must be less than 5MB');
-                setSubmitting(false);
                 return;
             }
         }
@@ -242,37 +242,44 @@ const ClubDashboard = () => {
 
     const handleSubmitWork = async (e) => {
         e.preventDefault();
+        setModalError(null);
         
         // Validation
-        if (submissionFile) {
-            const isImage = submissionFile.type.startsWith('image/');
-            const isPDF = submissionFile.type === 'application/pdf';
-            if (!isImage && !isPDF) {
-                showToast('error', 'Proof must be an image or PDF');
-                return;
-            }
-            if (submissionFile.size > 5 * 1024 * 1024) {
-                showToast('error', 'Proof file must be less than 5MB');
-                return;
-            }
+        if (!submissionFile) {
+            setModalError('Proof of work file is required');
+            return;
+        }
+
+        const isImage = submissionFile.type.startsWith('image/');
+        const isPDF = submissionFile.type === 'application/pdf';
+        if (!isImage && !isPDF) {
+            setModalError('Proof must be an image or PDF');
+            return;
+        }
+        if (submissionFile.size > 5 * 1024 * 1024) {
+            setModalError('Proof file must be less than 5MB');
+            return;
         }
 
         setSubmitting(true);
         try {
             const formData = new FormData();
             formData.append('submissionNote', submissionNote);
-            if (submissionFile) formData.append('proof', submissionFile);
+            formData.append('proof', submissionFile);
 
-            const updatedGig = await submitWork(selectedGig._id, formData);
-            setAcceptedGigs(acceptedGigs.map(g => g._id === selectedGig._id ? { ...g, status: 'submitted' } : g));
+            await submitWork(selectedGig._id, formData);
             showToast('success', 'Work submitted successfully!');
             setShowSubmitModal(false);
             setSubmissionNote('');
             setSubmissionFile(null);
             setSelectedGig(null);
+            
+            // Re-fetch gigs
+            const updatedGigs = await getAcceptedGigs();
+            setAcceptedGigs(updatedGigs);
         } catch (error) {
             console.error(error);
-            showToast('error', error.msg || 'Failed to submit work.');
+            setModalError(error.message || 'Failed to submit work.');
         } finally {
             setSubmitting(false);
         }
@@ -280,14 +287,15 @@ const ClubDashboard = () => {
 
     const handleAddMember = async () => {
         if (!newMember.name || !newMember.role) return;
+        setMemberError(null);
         let photoUrl = newMember.photoUrl;
         if (newMemberPhotoFile) {
             if (!newMemberPhotoFile.type.startsWith('image/')) {
-                showToast('error', 'Team photo must be an image file');
+                setMemberError('Team photo must be an image file');
                 return;
             }
             if (newMemberPhotoFile.size > 2 * 1024 * 1024) {
-                showToast('error', 'Team photo must be less than 2MB');
+                setMemberError('Team photo must be less than 2MB');
                 return;
             }
             const fd = new FormData();
@@ -356,24 +364,33 @@ const ClubDashboard = () => {
 
                             <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
                                 <div className="font-bold text-slate-900 text-lg">₹{gig.budget.toLocaleString()}</div>
-                                <div className="font-bold text-slate-900 text-lg">₹{gig.budget.toLocaleString()}</div>
                                 
-                                {gig.status === 'assigned' || gig.status === 'revision_requested' ? (
+                                <div className="flex items-center gap-2">
+                                    {/* View Remarks Button - Enabled if status is not 'assigned' (meaning at least one submission exists) */}
                                     <button
-                                        onClick={() => { setSelectedGig(gig); setShowSubmitModal(true); }}
-                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                                        onClick={() => { setSelectedGig(gig); setShowRemarksModal(true); }}
+                                        disabled={gig.status === 'assigned'}
+                                        className="px-3 py-2 border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title={gig.status === 'assigned' ? 'No remarks yet' : 'View company remarks'}
                                     >
-                                        Submit Work
+                                        Remarks
                                     </button>
-                                ) : gig.status === 'submitted' ? (
-                                    <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Pending Review</span>
-                                ) : gig.status === 'approved' ? (
-                                    <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">Awaiting Payment</span>
-                                ) : gig.status === 'paid_to_platform' ? (
-                                    <span className="text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Processing Payout</span>
-                                ) : gig.status === 'completed' ? (
-                                    <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">Completed & Paid</span>
-                                ) : null}
+
+                                    {gig.status === 'assigned' || gig.status === 'revision_requested' ? (
+                                        <button
+                                            onClick={() => { setSelectedGig(gig); setShowSubmitModal(true); setModalError(null); }}
+                                            className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                                        >
+                                            Submit Work
+                                        </button>
+                                    ) : gig.status === 'submitted' ? (
+                                        <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Submitted for Approval</span>
+                                    ) : (gig.status === 'approved' || gig.status === 'paid_to_platform' || gig.status === 'completed') ? (
+                                        <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100 flex items-center gap-1">
+                                            <CheckCircle className="w-3.5 h-3.5" /> Completed
+                                        </span>
+                                    ) : null}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -560,8 +577,15 @@ const ClubDashboard = () => {
                             <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium mb-3 w-fit">
                                 <Upload className="w-4 h-4" />
                                 {newMemberPhotoFile ? newMemberPhotoFile.name : 'Upload Photo (Cloudinary)'}
-                                <input type="file" accept="image/*" className="hidden" onChange={e => setNewMemberPhotoFile(e.target.files[0])} />
+                                <input type="file" accept="image/*" className="hidden" onChange={e => { setNewMemberPhotoFile(e.target.files[0]); setMemberError(null); }} />
                             </label>
+                            
+                            {memberError && (
+                                <p className="mb-3 text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn">
+                                    ✕ {memberError}
+                                </p>
+                            )}
+
                             <button
                                 onClick={handleAddMember}
                                 className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm"
@@ -698,31 +722,40 @@ const ClubDashboard = () => {
                                 </div>
                             )}
                             <div className="mb-4">
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Completion Note (Optional)</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2 font-heading">Completion Note (Optional)</label>
                                 <textarea
                                     rows="3"
                                     value={submissionNote}
                                     onChange={(e) => setSubmissionNote(e.target.value)}
-                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                                     placeholder="Add any details about the completed work..."
                                 ></textarea>
                             </div>
                             <div className="mb-6">
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Upload Proof (Required)</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2 font-heading">Upload Proof (Required)</label>
                                 <input
                                     type="file"
-                                    required
                                     accept="image/*,application/pdf"
-                                    onChange={(e) => setSubmissionFile(e.target.files[0])}
-                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                    onChange={(e) => {
+                                        setSubmissionFile(e.target.files[0]);
+                                        setModalError(null);
+                                    }}
+                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer transition-all border border-slate-200 p-2 rounded-xl bg-slate-50"
                                 />
-                                {submissionFile && <p className="mt-2 text-xs text-slate-500">{submissionFile.name}</p>}
+                                {submissionFile && <p className="mt-2 text-xs text-slate-500 font-medium ml-1">{submissionFile.name}</p>}
+                                
+                                {/* Red Error Message below upload */}
+                                {modalError && (
+                                    <p className="mt-2 text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn">
+                                        ✕ {modalError}
+                                    </p>
+                                )}
                             </div>
-                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
-                                <button type="button" onClick={() => setShowSubmitModal(false)} className="px-5 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+                            <div className="flex justify-end gap-3 pt-6 border-t border-slate-50">
+                                <button type="button" onClick={() => setShowSubmitModal(false)} className="px-6 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
                                     Cancel
                                 </button>
-                                <button type="submit" disabled={submitting} className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50">
+                                <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-600/20">
                                     {submitting ? 'Submitting...' : 'Submit Work'}
                                 </button>
                             </div>
@@ -732,6 +765,69 @@ const ClubDashboard = () => {
             )}
 
             {/* Create Event Modal */}
+            {/* Remarks / Feedback History Modal */}
+            {showRemarksModal && selectedGig && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="bg-white rounded-2xl w-full max-w-lg relative shadow-2xl animate-fadeIn my-8 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">Company Remarks</h2>
+                                <p className="text-sm text-slate-500">{selectedGig.title}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowRemarksModal(false)}
+                                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 max-h-[60vh] overflow-y-auto bg-slate-50/30">
+                            {selectedGig.feedbackHistory && selectedGig.feedbackHistory.length > 0 ? (
+                                <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                                    {selectedGig.feedbackHistory.map((item, index) => (
+                                        <div key={index} className="relative pl-8">
+                                            <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center
+                                                ${item.decision === 'approve' ? 'bg-green-500' : 'bg-amber-500'}`}>
+                                                {item.decision === 'approve' ? <CheckCircle className="w-3 h-3 text-white" /> : <Clock className="w-3 h-3 text-white" />}
+                                            </div>
+                                            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
+                                                        ${item.decision === 'approve' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                                                        {item.decision === 'approve' ? 'Approved' : 'Revision Requested'}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-bold">
+                                                        {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                    {item.comment || 'No specific comment provided.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )).reverse()}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 text-slate-500">
+                                    <MessageSquare className="w-12 h-12 mx-auto text-slate-200 mb-3" />
+                                    <p className="font-medium text-slate-600">No remarks have been given yet.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Once the company reviews your work, you'll see their feedback here.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 bg-white border-t border-slate-100 flex justify-end">
+                            <button
+                                onClick={() => setShowRemarksModal(false)}
+                                className="px-6 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors text-sm"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <CreateEventModal
                 isOpen={showModal}
                 onClose={handleCloseModal}
