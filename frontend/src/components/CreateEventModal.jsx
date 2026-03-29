@@ -141,19 +141,20 @@ const CreateEventModal = ({
                             <label className="text-sm font-bold text-slate-700">Event Poster</label>
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                    <p className="text-xs text-slate-500">{files.poster ? files.poster.name : "Upload Image"}</p>
+                                    <p className="text-xs text-slate-500">{files.poster ? files.poster.name : "Upload Image (JPG, PNG, WEBP)"}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">Maximum size: 5MB</p>
                                 </div>
                                 <input type="file" name="poster" onChange={handleFileChange} accept="image/*" className="hidden" />
                             </label>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700">Sponsorship Brochure (PDF)</label>
+                            <label className="text-sm font-bold text-slate-700">Sponsorship Brochure (PDF ONLY)</label>
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                     <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                    <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF ONLY"}</p>
+                                    <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF Document"}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">Maximum size: 5MB</p>
                                 </div>
                                 <input type="file" name="brochure" onChange={handleFileChange} accept="application/pdf" className="hidden" />
                             </label>

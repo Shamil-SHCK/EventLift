@@ -119,7 +119,20 @@ const ClubDashboard = () => {
     };
 
     const handleFileChange = (e) => {
-        setFiles({ ...files, [e.target.name]: e.target.files[0] });
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setFormError(null);
+        if (e.target.name === 'poster' && !file.type.startsWith('image/')) {
+            setFormError('Event poster must be an image file (PNG, JPG, etc.)');
+            return;
+        }
+        if (e.target.name === 'brochure' && file.type !== 'application/pdf') {
+            setFormError('Sponsorship brochure must be a PDF file');
+            return;
+        }
+
+        setFiles({ ...files, [e.target.name]: file });
     };
 
     const handleSubmit = async (e) => {
@@ -744,12 +757,24 @@ const ClubDashboard = () => {
                                     type="file"
                                     accept="image/*,application/pdf"
                                     onChange={(e) => {
-                                        setSubmissionFile(e.target.files[0]);
+                                        const file = e.target.files[0];
                                         setModalError(null);
+                                        if (file) {
+                                            const isImg = file.type.startsWith('image/');
+                                            const isPd = file.type === 'application/pdf';
+                                            if (!isImg && !isPd) {
+                                                setModalError('Proof must be an Image or PDF');
+                                                e.target.value = ''; // Reset
+                                                setSubmissionFile(null);
+                                                return;
+                                            }
+                                        }
+                                        setSubmissionFile(file);
                                     }}
                                     className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer transition-all border border-slate-200 p-2 rounded-xl bg-slate-50"
                                 />
                                 {submissionFile && <p className="mt-2 text-xs text-slate-500 font-medium ml-1">{submissionFile.name}</p>}
+                                <p className="mt-2 text-[10px] text-slate-400 ml-1">Accepted formats: JPG, PNG, WEBP, PDF (Max 5MB)</p>
                                 
                                 {/* Red Error Message below upload */}
                                 {modalError && (

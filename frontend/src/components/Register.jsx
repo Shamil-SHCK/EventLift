@@ -344,7 +344,7 @@ const Register = () => {
                                         <p className="mb-2 text-sm text-slate-500 font-sans">
                                             {verificationFile ? <span className="text-blue-600 font-bold">{verificationFile.name}</span> : <span><span className="font-semibold text-slate-700">Click to upload</span> validation doc</span>}
                                         </p>
-                                        <p className="text-xs text-slate-400">PDF ONLY (MAX. 5MB)</p>
+                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">PDF ONLY (MAX. 5MB)</p>
                                     </div>
                                     <input
                                         type="file"

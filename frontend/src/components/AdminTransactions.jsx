@@ -137,9 +137,9 @@ const ProofUploadCell = ({ tx, onUploaded }) => {
                 )}
             </button>
             {preview && !uploading && (
-                <span className="text-xs text-slate-400">Uploading screenshot…</span>
+                <span className="text-xs text-slate-400">Uploading file proof…</span>
             )}
-            {error && <span className="text-xs text-red-500">{error}</span>}
+            {error && <span className="text-[10px] font-bold text-red-600 bg-red-50 p-1 rounded-md border border-red-100 mt-1 animate-fadeIn">✕ {error}</span>}
         </div>
     );
 };
@@ -158,7 +158,7 @@ const GigProofUploadCell = ({ gig, onUploaded }) => {
         const isImage = file.type.startsWith('image/');
         const isPDF = file.type === 'application/pdf';
         if (!isImage && !isPDF) {
-            setError('Receipt must be an image or PDF');
+            setError('Receipt must be an Image or PDF');
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
@@ -209,6 +209,7 @@ const GigProofUploadCell = ({ gig, onUploaded }) => {
             <button
                 onClick={() => fileInput.current?.click()}
                 disabled={uploading}
+                title="Upload Image or PDF Receipt"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
             >
                 {uploading ? (
@@ -217,10 +218,11 @@ const GigProofUploadCell = ({ gig, onUploaded }) => {
                     <><Upload className="w-3.5 h-3.5" /> Upload Receipt</>
                 )}
             </button>
+            <span className="text-[10px] text-slate-400">Image or PDF only</span>
             {preview && !uploading && (
                 <span className="text-xs text-slate-400">Uploading receipt…</span>
             )}
-            {error && <span className="text-xs text-red-500">{error}</span>}
+            {error && <span className="text-[10px] font-bold text-red-600 bg-red-50 p-1 rounded-md border border-red-100 mt-1 animate-fadeIn">✕ {error}</span>}
         </div>
     );
 };

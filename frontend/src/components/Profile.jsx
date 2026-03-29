@@ -328,7 +328,7 @@ const Profile = () => {
                                     )}
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-400 font-sans">Click to change · JPG, PNG, WebP · Max 5MB</p>
+                            <p className="text-xs text-slate-400 font-sans">Click to change · <span className="font-bold text-slate-500 uppercase">Images ONLY</span> (JPG, PNG, WebP) · Max 5MB</p>
                             
                             {logoError && (
                                 <p className="mt-2 text-[11px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 animate-fadeIn text-center">
@@ -589,8 +589,19 @@ const Profile = () => {
                                     <Camera className="w-3.5 h-3.5" />
                                     {newMemberPhotoFile ? newMemberPhotoFile.name : 'Upload Member Photo'}
                                     <input type="file" accept="image/*" className="hidden" 
-                                        onChange={e => { setNewMemberPhotoFile(e.target.files[0]); setTeamError(''); }} />
+                                        onChange={e => { 
+                                            const file = e.target.files[0];
+                                            if (file && !file.type.startsWith('image/')) {
+                                                setTeamError('Member photo must be an image file');
+                                                e.target.value = '';
+                                                setNewMemberPhotoFile(null);
+                                                return;
+                                            }
+                                            setNewMemberPhotoFile(file); 
+                                            setTeamError(''); 
+                                        }} />
                                 </label>
+                                <p className="text-[10px] text-slate-400 mt-0.5 ml-1">Images ONLY (JPG, PNG, WebP)</p>
                                 {teamError && (
                                     <p className="text-[10px] font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn w-fit">
                                         ✕ {teamError}

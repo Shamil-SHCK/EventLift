@@ -318,45 +318,72 @@ const CompanyDashboard = () => {
                                                         </button>
                                                     )}
                                                     <div>
-                                                        <p className="text-xs text-slate-400">Assigned</p>
-                                                        <p className="text-sm font-bold text-amber-600">Awaiting Work</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Assigned to</p>
+                                                        <p className="text-sm font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub.clubName || gig.assignedClub.name}>
+                                                            {gig.assignedClub.clubName || gig.assignedClub.name}
+                                                        </p>
+                                                        <p className="text-[11px] font-bold text-amber-600 mt-0.5">Awaiting Work</p>
                                                     </div>
                                                 </div>
                                             )}
                                             {gig.status === 'submitted' && (
-                                                <button
-                                                    onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
-                                                    className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-lg hover:bg-indigo-100 transition-colors"
-                                                >
-                                                    Review Work
-                                                </button>
-                                            )}
-                                            {gig.status === 'approved' && (
-                                                <div className="flex flex-col gap-2">
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Work by</p>
+                                                        <p className="text-xs font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub?.clubName || gig.assignedClub?.name}>
+                                                            {gig.assignedClub?.clubName || gig.assignedClub?.name}
+                                                        </p>
+                                                    </div>
                                                     <button
                                                         onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
-                                                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"
+                                                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-lg hover:bg-indigo-100 transition-colors"
                                                     >
-                                                        <Eye className="w-3 h-3" /> View Review
+                                                        Review Work
                                                     </button>
-                                                    <button
-                                                        onClick={() => handlePayGig(gig)}
-                                                        disabled={paying === gig._id}
-                                                        className="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-md shadow-green-500/20"
-                                                    >
-                                                        {paying === gig._id ? 'Processing...' : 'Pay Escrow'}
-                                                    </button>
+                                                </div>
+                                            )}
+                                            {gig.status === 'approved' && (
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Approved for</p>
+                                                        <p className="text-xs font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub?.clubName || gig.assignedClub?.name}>
+                                                            {gig.assignedClub?.clubName || gig.assignedClub?.name}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2">
+                                                        <button
+                                                            onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
+                                                            className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"
+                                                        >
+                                                            <Eye className="w-3 h-3" /> View Review
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handlePayGig(gig)}
+                                                            disabled={paying === gig._id}
+                                                            className="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-md shadow-green-500/20"
+                                                        >
+                                                            {paying === gig._id ? 'Processing...' : 'Pay Escrow'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
                                             {(gig.status === 'paid_to_platform' || gig.status === 'completed') && (
                                                 <div className="flex flex-col items-end gap-2">
-                                                    <button
-                                                        onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
-                                                        className="px-3 py-1.5 bg-slate-50 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center gap-1"
-                                                    >
-                                                        <Eye className="w-3 h-3" /> View Review
-                                                    </button>
-                                                    <p className="text-sm font-bold text-green-600">Paid 💸</p>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Completed by</p>
+                                                        <p className="text-xs font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub?.clubName || gig.assignedClub?.name}>
+                                                            {gig.assignedClub?.clubName || gig.assignedClub?.name}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <button
+                                                            onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
+                                                            className="px-3 py-1.5 bg-slate-50 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center gap-1"
+                                                        >
+                                                            <Eye className="w-3 h-3" /> View Review
+                                                        </button>
+                                                        <p className="text-[11px] font-bold text-green-600 uppercase tracking-wider">Paid 💸</p>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
