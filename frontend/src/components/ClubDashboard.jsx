@@ -4,7 +4,7 @@ import { uploadLogoImage } from '../services/api/auth';
 import { getAcceptedGigs, submitWork } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
-import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock, Users, Award, Upload, Trash2, Save, CheckCircle, MessageSquare } from 'lucide-react';
+import { Rocket, IndianRupee, Calendar, Plus, Briefcase, X, Clock, Users, Award, Upload, Trash2, Save, CheckCircle, MessageSquare } from 'lucide-react';
 import ClubEventList from './ClubEventList';
 import CreateEventModal from './CreateEventModal';
 
@@ -58,6 +58,7 @@ const ClubDashboard = () => {
         time: '',
         location: '',
         category: 'Technical',
+        categoryOther: '',
         budget: ''
     });
 
@@ -152,7 +153,13 @@ const ClubDashboard = () => {
 
         try {
             const data = new FormData();
-            Object.keys(formData).forEach(key => data.append(key, formData[key]));
+            Object.keys(formData).forEach(key => {
+                if (key === 'category' && formData.category === 'Other') {
+                    data.append('category', formData.categoryOther || 'Other');
+                } else if (key !== 'categoryOther') {
+                    data.append(key, formData[key]);
+                }
+            });
             if (files.poster) data.append('poster', files.poster);
             if (files.brochure) data.append('brochure', files.brochure);
 
@@ -470,7 +477,7 @@ const ClubDashboard = () => {
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                     <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
-                        <DollarSign className="w-6 h-6" />
+                        <IndianRupee className="w-6 h-6" />
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-1">₹{totalFunds.toLocaleString()}</h3>
                     <p className="text-slate-500 font-medium text-sm">Total Raised</p>
@@ -687,7 +694,7 @@ const ClubDashboard = () => {
                             ) : (
                                 <div className="text-center py-12 text-slate-500">
                                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                                        <DollarSign className="w-8 h-8" />
+                                        <IndianRupee className="w-8 h-8" />
                                     </div>
                                     <p>No sponsors yet.</p>
                                 </div>

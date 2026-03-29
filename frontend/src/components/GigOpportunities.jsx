@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getOpenGigs, applyForGig } from '../services/api/gigService';
 import { getCurrentUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Briefcase, CheckCircle, AlertCircle, Users, DollarSign } from 'lucide-react';
+import { Search, Filter, Briefcase, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import DashboardLayout from './DashboardLayout';
 
 const GigOpportunities = () => {

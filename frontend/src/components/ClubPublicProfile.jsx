@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchClubProfile, fetchClubGallery, createCheckoutSession } from '../services/api';
 import DashboardLayout from './DashboardLayout';
-import { Building2, MapPin, Calendar, ArrowLeft, Image as ImageIcon, Rocket, DollarSign, X, Check, Trophy, Users, Award, TrendingUp, Star } from 'lucide-react';
+import { Building2, MapPin, Calendar, ArrowLeft, Image as ImageIcon, Rocket, IndianRupee, X, Check, Trophy, Users, Award, TrendingUp, Star } from 'lucide-react';
 
 const ClubPublicProfile = () => {
     const { id } = useParams();
@@ -190,7 +190,7 @@ const ClubPublicProfile = () => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                             {[
                                 { label: 'Total Events', value: allEvents.length, icon: <Calendar className="w-5 h-5" />, color: 'blue' },
-                                { label: 'Funds Raised', value: `₹${totalFundsRaised.toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, color: 'green' },
+                                { label: 'Funds Raised', value: `₹${totalFundsRaised.toLocaleString()}`, icon: <IndianRupee className="w-5 h-5" />, color: 'green' },
                                 { label: 'Ongoing', value: ongoingEvents.length, icon: <Rocket className="w-5 h-5" />, color: 'indigo' },
                                 { label: 'Past Events', value: pastEvents.length, icon: <Trophy className="w-5 h-5" />, color: 'purple' },
                             ].map(stat => (
@@ -466,7 +466,7 @@ const ClubPublicProfile = () => {
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Sponsorship Amount (₹)</label>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                                    <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                                     <input
                                         type="number"
                                         required

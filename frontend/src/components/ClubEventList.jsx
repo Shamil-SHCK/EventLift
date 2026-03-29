@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Rocket, Calendar, MapPin } from 'lucide-react';
 
 const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDeleteEvent, openCreateModal }) => {
     const navigate = useNavigate();

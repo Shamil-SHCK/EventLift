@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { postGig } from '../services/api/gigService';
-import { ArrowLeft, DollarSign, Briefcase, FileText, Tag, Upload } from 'lucide-react';
+import { ArrowLeft, IndianRupee, Briefcase, FileText, Tag, Upload } from 'lucide-react';
 
 const CreateGigForm = () => {
     const navigate = useNavigate();
@@ -10,7 +10,8 @@ const CreateGigForm = () => {
         description: '',
         budget: '',
         maxBudget: '',
-        category: 'Tech' // Default
+        category: 'Tech', // Default
+        categoryOther: ''
     });
     const [poster, setPoster] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -54,7 +55,13 @@ const CreateGigForm = () => {
 
         try {
             const data = new FormData();
-            Object.keys(formData).forEach(key => data.append(key, formData[key]));
+            Object.keys(formData).forEach(key => {
+                if (key === 'category' && formData.category === 'Other') {
+                    data.append('category', formData.categoryOther || 'Other');
+                } else if (key !== 'categoryOther') {
+                    data.append(key, formData[key]);
+                }
+            });
             if (poster) data.append('poster', poster);
 
             await postGig(data);
@@ -146,7 +153,7 @@ const CreateGigForm = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Budget (₹)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <DollarSign className="h-5 w-5 text-gray-400" />
+                                    <IndianRupee className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
                                     type="number"
@@ -165,7 +172,7 @@ const CreateGigForm = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">Max Budget Limit (₹)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <DollarSign className="h-5 w-5 text-gray-400" />
+                                    <IndianRupee className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
                                     type="number"
@@ -183,9 +190,6 @@ const CreateGigForm = () => {
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                             <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Tag className="h-5 w-5 text-gray-400" />
-                                </div>
                                 <select
                                     name="category"
                                     value={formData.category}
@@ -200,6 +204,21 @@ const CreateGigForm = () => {
                                 </select>
                             </div>
                         </div>
+
+                        {formData.category === 'Other' && (
+                            <div className="md:col-span-2 animate-fadeIn">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Specify Category</label>
+                                <input
+                                    type="text"
+                                    name="categoryOther"
+                                    required
+                                    value={formData.categoryOther}
+                                    onChange={handleChange}
+                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border"
+                                    placeholder="e.g. Workshop, Guest Lecture, etc."
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <button

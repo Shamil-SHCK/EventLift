@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Upload, Calendar, Clock, MapPin, Tag, DollarSign } from 'lucide-react';
+import { X, Upload, Calendar, Clock, MapPin, Tag, IndianRupee } from 'lucide-react';
 
 const CreateEventModal = ({
     isOpen,
@@ -102,6 +102,18 @@ const CreateEventModal = ({
                             </div>
                         </div>
 
+                        {formData.category === 'Other' && (
+                            <div className="space-y-2 col-span-2 animate-fadeIn">
+                                <label className="text-sm font-bold text-slate-700">Specify Category</label>
+                                <input
+                                    type="text" name="categoryOther" required
+                                    value={formData.categoryOther} onChange={handleInputChange}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
+                                    placeholder="e.g. Hackathon, TEDx, etc."
+                                />
+                            </div>
+                        )}
+
                         <div className="space-y-2 col-span-2">
                             <label className="text-sm font-bold text-slate-700">Description</label>
                             <textarea
@@ -115,7 +127,7 @@ const CreateEventModal = ({
                         <div className="space-y-2 col-span-2">
                             <label className="text-sm font-bold text-slate-700">Budget Goal (₹)</label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                                <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                                 <input
                                     type="number" name="budget" required min="0"
                                     value={formData.budget} onChange={handleInputChange}

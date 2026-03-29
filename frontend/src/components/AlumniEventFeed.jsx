@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEvents, createCheckoutSession } from '../services/api';
-import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search } from 'lucide-react';
+import { Rocket, Calendar, MapPin, IndianRupee, X, Check, Search } from 'lucide-react';
 
 const AlumniEventFeed = ({ onSponsorshipSuccess, user }) => {
     const navigate = useNavigate();
@@ -269,7 +269,7 @@ const AlumniEventFeed = ({ onSponsorshipSuccess, user }) => {
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Contribution Amount (₹)</label>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                                    <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                                     <input
                                         type="number"
                                         required
