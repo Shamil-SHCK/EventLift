@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { postGig } from '../services/api/gigService';
-import { ArrowLeft, DollarSign, Briefcase, FileText, Tag, Upload } from 'lucide-react';
+import { ArrowLeft, IndianRupee, Briefcase, FileText, Tag, Upload } from 'lucide-react';
 
 const CreateGigForm = () => {
     const navigate = useNavigate();
@@ -9,33 +9,65 @@ const CreateGigForm = () => {
         title: '',
         description: '',
         budget: '',
-        category: 'Tech' // Default
+        maxBudget: '',
+        category: 'Tech', // Default
+        categoryOther: ''
     });
     const [poster, setPoster] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [posterError, setPosterError] = useState('');
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleFileChange = (e) => {
-        setPoster(e.target.files[0]);
+        const file = e.target.files[0];
+        setPosterError('');
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setPosterError('Gig poster must be an image file');
+            } else if (file.size > 5 * 1024 * 1024) {
+                setPosterError('Gig poster must be less than 5MB');
+            }
+        }
+        setPoster(file);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
+        if (posterError) return;
+        if (poster) {
+            if (!poster.type.startsWith('image/')) {
+                setPosterError('Gig poster must be an image file');
+                return;
+            }
+            if (poster.size > 5 * 1024 * 1024) {
+                setPosterError('Gig poster must be less than 5MB');
+                return;
+            }
+        }
+
         setLoading(true);
         setError('');
 
         try {
             const data = new FormData();
-            Object.keys(formData).forEach(key => data.append(key, formData[key]));
+            Object.keys(formData).forEach(key => {
+                if (key === 'category' && formData.category === 'Other') {
+                    data.append('category', formData.categoryOther || 'Other');
+                } else if (key !== 'categoryOther') {
+                    data.append(key, formData[key]);
+                }
+            });
             if (poster) data.append('poster', poster);
 
             await postGig(data);
             navigate(-1); // Go back to previous page (Company Dashboard)
         } catch (err) {
+            console.log(err);
             setError(err.message || 'Failed to create gig');
             setLoading(false);
         }
@@ -84,15 +116,22 @@ const CreateGigForm = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Gig Poster (Image)</label>
-                        <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center w-full">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                    <p className="text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-gray-500">{poster ? poster.name : "SVG, PNG, JPG or GIF (MAX. 800x400px)"}</p>
+                                    <p className="text-sm text-gray-500 font-sans">
+                                        {poster ? <span className="text-indigo-600 font-bold">{poster.name}</span> : <span><span className="font-semibold">Click to upload</span> or drag and drop</span>}
+                                    </p>
+                                    <p className="text-xs text-gray-400">SVG, PNG, JPG (MAX. 5MB)</p>
                                 </div>
                                 <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
                             </label>
+                            {posterError && (
+                                <p className="mt-2 text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn w-full text-center">
+                                    ✕ {posterError}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -111,10 +150,10 @@ const CreateGigForm = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Budget ($)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Budget (₹)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <DollarSign className="h-5 w-5 text-gray-400" />
+                                    <IndianRupee className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
                                     type="number"
@@ -130,11 +169,27 @@ const CreateGigForm = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Max Budget Limit (₹)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Tag className="h-5 w-5 text-gray-400" />
+                                    <IndianRupee className="h-5 w-5 text-gray-400" />
                                 </div>
+                                <input
+                                    type="number"
+                                    name="maxBudget"
+                                    required
+                                    min="0"
+                                    value={formData.maxBudget}
+                                    onChange={handleChange}
+                                    className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 border"
+                                    placeholder="10000"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                            <div className="relative">
                                 <select
                                     name="category"
                                     value={formData.category}
@@ -149,6 +204,21 @@ const CreateGigForm = () => {
                                 </select>
                             </div>
                         </div>
+
+                        {formData.category === 'Other' && (
+                            <div className="md:col-span-2 animate-fadeIn">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Specify Category</label>
+                                <input
+                                    type="text"
+                                    name="categoryOther"
+                                    required
+                                    value={formData.categoryOther}
+                                    onChange={handleChange}
+                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border"
+                                    placeholder="e.g. Workshop, Guest Lecture, etc."
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <button

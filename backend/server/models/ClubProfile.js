@@ -40,7 +40,26 @@ const clubProfileSchemna = mongoose.Schema(
         },
         description: {
             type: String,
-        }
+        },
+        team: [{
+            name: { type: String, required: true },
+            role: { type: String, required: true }, // e.g. 'President', 'Secretary', 'Faculty Advisor'
+            photoUrl: { type: String, default: null } // Cloudinary URL
+        }],
+        achievements: [{
+            title: { type: String, required: true },
+            year: { type: String },
+            description: { type: String }
+        }],
+
+        // Bank account details for fund transfers
+        bankDetails: {
+            accountHolderName: { type: String, default: '' },
+            accountNumber:     { type: String, default: '' },
+            ifscCode:          { type: String, default: '' },
+            bankName:          { type: String, default: '' },
+            upiId:             { type: String, default: '' },
+        },
 
     },
     {

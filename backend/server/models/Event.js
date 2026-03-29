@@ -64,12 +64,10 @@ const eventSchema = mongoose.Schema({
         default: 'open'
     },
     poster: {
-        data: Buffer,
-        contentType: String
+        type: String
     },
     brochure: {
-        data: Buffer,
-        contentType: String
+        type: String
     }
 }, {
     timestamps: true

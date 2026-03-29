@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logoutUser, getEvents, getEventById } from '../services/api';
+import { getCurrentUser, logoutUser, getEvents, getEventById, getEventsBatch } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import EventFeed from './EventFeed';
@@ -27,26 +27,27 @@ const AlumniDashboard = () => {
             setUser(userData);
 
             // Fetch Sponsored Events from Profile Data
-            const sponsoredIds = userData.sponseredEvents || userData.profile?.sponseredEvents || [];
-
-            const eventPromises = sponsoredIds.map(async (item) => {
+            const sponsoredData = userData.sponseredEvents || userData.profile?.sponseredEvents || [];
+            
+            // Extract unique valid event IDs
+            const eventIds = [...new Set(sponsoredData.filter(item => item.event).map(item => item.event?._id || item.event))];
+            
+            let fetchedEvents = [];
+            if (eventIds.length > 0) {
                 try {
-                    const eventId = item.event?._id || item.event; // Handle if populated or not
-                    if (!eventId) return null;
-                    // Optimization: if event is already populated in profile, use it. 
-                    // But usually profile just has IDs or partial data. Safest to fetch fresh event data.
-                    // Actually, for stats we need amount. Profile 'item' has amount.
-                    // We need event details for the card.
-
-                    const eventData = await getEventById(eventId);
-                    return { ...eventData, myContribution: item.amount };
+                    fetchedEvents = await getEventsBatch(eventIds);
+                    
+                    // Map the contribution amount back to the fetched events
+                    fetchedEvents = fetchedEvents.map(event => {
+                        const sponsorshipRecord = sponsoredData.find(item => 
+                            (item.event?._id || item.event) === event._id
+                        );
+                        return { ...event, myContribution: sponsorshipRecord?.amount || 0 };
+                    });
                 } catch (err) {
-                    console.error(`Failed to fetch event`, err);
-                    return null;
+                    console.error("Failed to fetch sponsored events batch:", err);
                 }
-            });
-
-            const fetchedEvents = (await Promise.all(eventPromises)).filter(e => e !== null);
+            }
 
             let invested = 0;
             let active = fetchedEvents.length;
@@ -90,9 +91,11 @@ const AlumniDashboard = () => {
                     </h1>
                     <p className="text-slate-500 text-lg">Support your alma mater and students.</p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-amber-100 text-amber-700 border-amber-200">
-                    Alumni / Individual
-                </span>
+                <div className="flex gap-3 items-center">
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-amber-100 text-amber-700 border-amber-200">
+                        Alumni
+                    </span>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -177,7 +180,7 @@ const AlumniDashboard = () => {
                                 <div key={event._id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                                     <div className="h-40 bg-slate-100 relative">
                                         {event.poster ? (
-                                            <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
+                                            <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-slate-400">
                                                 <Heart className="w-10 h-10" />

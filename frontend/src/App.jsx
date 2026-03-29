@@ -13,9 +13,20 @@ import CreateGigForm from './components/CreateGigForm';
 import GigOpportunities from './components/GigOpportunities';
 import CompanyEventManagement from './components/CompanyEventManagement';
 import ImpactDashboard from './components/ImpactDashboard';
+import PaymentSuccess from './components/PaymentSuccess';
+import PaymentCancel from './components/PaymentCancel';
+import ClubDirectory from './components/ClubDirectory';
+import ClubPublicProfile from './components/ClubPublicProfile';
+import TransactionHistory from './components/TransactionHistory';
+import AdminTransactions from './components/AdminTransactions';
+import Settings from './components/Settings';
+import SetUsername from './components/SetUsername';
+import PublicProfile from './components/PublicProfile';
+import UserSearch from './components/UserSearch';
+import ClubTeam from './components/ClubTeam';
 import './App.css';
 
-// Protected Route Component with Role-Based Access Control
+// Protected Route Component with Role-Based Access Control + Username Gate
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
@@ -26,6 +37,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   const user = JSON.parse(userStr);
   const userRole = user.role;
+
+  // Username Gate: if user has no username, force /set-username
+  if (!user.username) {
+    return <Navigate to="/set-username" replace />;
+  }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
     // Redirect to the appropriate dashboard based on the user's role
@@ -54,12 +70,27 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
 
+        {/* Set Username — shown to any logged-in user without a username.
+            Does NOT go through ProtectedRoute to avoid redirect loops. */}
+        <Route path="/set-username" element={<SetUsername />} />
+
+        {/* Public user profile page */}
+        <Route path="/u/:username" element={<PublicProfile />} />
+
         {/* Protected Routes */}
         <Route
           path="/admin/dashboard"
           element={
             <ProtectedRoute allowedRoles={['administrator']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/transactions"
+          element={
+            <ProtectedRoute allowedRoles={['administrator']}>
+              <AdminTransactions />
             </ProtectedRoute>
           }
         />
@@ -112,10 +143,34 @@ function App() {
           }
         />
         <Route
+          path="/club/team"
+          element={
+            <ProtectedRoute allowedRoles={['club-admin']}>
+              <ClubTeam />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/events/:id/impact"
           element={
             <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
               <ImpactDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clubs"
+          element={
+            <ProtectedRoute allowedRoles={['company', 'alumni-individual']}>
+              <ClubDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clubs/:id"
+          element={
+            <ProtectedRoute allowedRoles={['company', 'alumni-individual']}>
+              <ClubPublicProfile />
             </ProtectedRoute>
           }
         />
@@ -128,6 +183,37 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute allowedRoles={['company', 'alumni-individual', 'club-admin']}>
+              <TransactionHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute allowedRoles={['administrator', 'company', 'club-admin', 'alumni-individual']}>
+              <UserSearch />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Payment Routes */}
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/cancel" element={<PaymentCancel />} />
 
         <Route path="/" element={<LandingPage />} />
       </Routes>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Upload, Calendar, Clock, MapPin, Tag, DollarSign } from 'lucide-react';
+import { X, Upload, Calendar, Clock, MapPin, Tag, IndianRupee } from 'lucide-react';
 
 const CreateEventModal = ({
     isOpen,
@@ -35,12 +35,6 @@ const CreateEventModal = ({
                 </div>
 
                 <form onSubmit={onSubmit} className="p-8 space-y-6">
-                    {error && (
-                        <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
-                            <p className="font-bold">Error</p>
-                            <p>{error}</p>
-                        </div>
-                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 col-span-2">
                             <label className="text-sm font-bold text-slate-700">Event Title</label>
@@ -108,6 +102,18 @@ const CreateEventModal = ({
                             </div>
                         </div>
 
+                        {formData.category === 'Other' && (
+                            <div className="space-y-2 col-span-2 animate-fadeIn">
+                                <label className="text-sm font-bold text-slate-700">Specify Category</label>
+                                <input
+                                    type="text" name="categoryOther" required
+                                    value={formData.categoryOther} onChange={handleInputChange}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
+                                    placeholder="e.g. Hackathon, TEDx, etc."
+                                />
+                            </div>
+                        )}
+
                         <div className="space-y-2 col-span-2">
                             <label className="text-sm font-bold text-slate-700">Description</label>
                             <textarea
@@ -121,7 +127,7 @@ const CreateEventModal = ({
                         <div className="space-y-2 col-span-2">
                             <label className="text-sm font-bold text-slate-700">Budget Goal (₹)</label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                                <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                                 <input
                                     type="number" name="budget" required min="0"
                                     value={formData.budget} onChange={handleInputChange}
@@ -147,11 +153,17 @@ const CreateEventModal = ({
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                     <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                    <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF"}</p>
+                                    <p className="text-xs text-slate-500">{files.brochure ? files.brochure.name : "Upload PDF ONLY"}</p>
                                 </div>
-                                <input type="file" name="brochure" onChange={handleFileChange} accept=".pdf" className="hidden" />
+                                <input type="file" name="brochure" onChange={handleFileChange} accept="application/pdf" className="hidden" />
                             </label>
                         </div>
+
+                        {error && (
+                            <div className="col-span-2 p-3 bg-red-50 border border-red-100 text-red-700 rounded-xl text-xs font-bold animate-fadeIn">
+                                ✕ {error}
+                            </div>
+                        )}
                     </div>
 
                     <button

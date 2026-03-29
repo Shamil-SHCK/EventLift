@@ -46,10 +46,7 @@ export const registerUser = async (req, res) => {
     };
 
     if (req.file) {
-      userData.verificationDocument = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype
-      };
+      userData.verificationDocument = req.file.path;
     }
 
     // Add conditional fields based on role
@@ -220,6 +217,7 @@ export const verifyOTP = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      username: user.username,
       role: user.role,
       // Spread profile properties for frontend compatibility
       clubName: profile.clubName,
@@ -228,7 +226,9 @@ export const verifyOTP = async (req, res) => {
       formerInstitution: profile.formerInstitution,
       verificationStatus: user.verificationStatus,
       token: token,
-      verificationDocument: profile.verificationDocument ? `api/files/user/${user._id}/document` : null
+      verificationDocument: profile.verificationDocument || null,
+      occupation: profile.occupation,
+      organizationName: profile.organizationName,
     });
 
   } catch (error) {
@@ -278,6 +278,7 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         verificationStatus: user.verificationStatus,
         token: generateToken(user._id),
@@ -288,7 +289,10 @@ export const loginUser = async (req, res) => {
         formerInstitution: profile.formerInstitution,
         phone: profile.phone,
         logoUrl: profile.logoUrl,
-        description: profile.description
+        description: profile.description,
+        occupation: profile.occupation,
+        organizationName: profile.organizationName,
+        sponseredEvents: profile.sponseredEvents || []
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -308,11 +312,12 @@ export const getMe = async (req, res) => {
     console.log(user.role)
     const profile = await getUserProfile(user);
     console.log(profile)
-    if(user.role === 'administrator'){
+    if (user.role === 'administrator') {
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         verificationStatus: user.verificationStatus,
         profile: user.profile,
@@ -322,18 +327,22 @@ export const getMe = async (req, res) => {
       _id: user._id,
       name: profile.name,
       email: user.email,
+      username: user.username,
       role: user.role,
       verificationStatus: user.verificationStatus,
       profile: user.profile,
       // Profile fields
 
-      clubName: (profile.clubName)? profile.clubName : "",
+      clubName: (profile.clubName) ? profile.clubName : "",
       collegeName: profile.collegeName,
       organizationName: profile.organizationName,
       formerInstitution: profile.formerInstitution,
       phone: profile.phone,
       logoUrl: profile.logoUrl,
-      description: profile.description
+      description: profile.description,
+      occupation: profile.occupation,
+      organizationName: profile.organizationName,
+      sponseredEvents: profile.sponseredEvents || []
     });
   } catch (error) {
     console.error(error);
@@ -348,7 +357,8 @@ export const updateProfile = async (req, res) => {
   try {
     const allowedUpdates = [
       'clubName', 'collegeName', 'organizationName', 'formerInstitution',
-      'phone', 'logoUrl', 'description'
+      'phone', 'logoUrl', 'description', 'team', 'achievements',
+      'occupation', 'organizationName', 'bankDetails'
     ];
 
     // Filter req.body to only allow specific fields to be updated
@@ -359,18 +369,10 @@ export const updateProfile = async (req, res) => {
         return obj;
       }, {});
 
-    // Check if user has a profile, if not create one (migration safety)    
+    // Ensure profile record exists and user.profile reference is set
     let user = await User.findById(req.user._id);
-    let profile;
-    if (user.profile) {
-      profile = await getUserProfile(user)
-    }
-    user.profile = profile._id;
-    await user.save();
-
-
+    let profile = await getUserProfile(user);
     if (!user.profile) {
-      profile = await getUserProfile(user)
       user.profile = profile._id;
       await user.save();
     }
@@ -426,7 +428,10 @@ export const updateProfile = async (req, res) => {
       formerInstitution: profile.formerInstitution,
       phone: profile.phone,
       logoUrl: profile.logoUrl,
-      description: profile.description
+      description: profile.description,
+      occupation: profile.occupation,
+      organizationName: profile.organizationName,
+      sponseredEvents: profile.sponseredEvents || []
     });
   } catch (err) {
     console.error(err);
@@ -451,6 +456,22 @@ export const changePassword = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Upload a single logo/photo to Cloudinary and return URL
+// @route   POST /api/auth/upload-logo
+// @access  Private
+export const uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    // multer-storage-cloudinary places the Cloudinary secure URL in req.file.path
+    return res.json({ url: req.file.path });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server Error' });

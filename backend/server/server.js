@@ -1,17 +1,22 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/database.js';
 import corsOptions from './config/corsOptions.js';
 import authRoutes from './routes/authRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-
-// Load environment variables
-dotenv.config();
+import userRoutes from './routes/userRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import { getProfileByUsername } from './controllers/userController.js';
 
 // Connect to database
-connectDB();
+connectDB().then(() => {
+  // Database connected successfully
+}).catch(err => {
+  console.error("Failed to connect to database:", err);
+  process.exit(1);
+});
 
 // Initialize express app
 const app = express();
@@ -29,10 +34,14 @@ import mongoose from 'mongoose';
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/gigs', gigRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/transactions', transactionRoutes);
+// Public profile by username
+app.get('/api/profile/:username', getProfileByUsername);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -51,6 +60,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+// Connect to database then start server (alternative to above, but let's just properly wrap listen)
+mongoose.connection.once('open', () => {
+  app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  });
+});
+
+mongoose.connection.on('error', err => {
+  console.error(`MongoDB connection error: ${err}`);
 });

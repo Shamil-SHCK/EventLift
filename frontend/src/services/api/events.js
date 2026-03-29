@@ -22,6 +22,14 @@ export const getEventById = (id) => {
     });
 };
 
+// Get multiple events by ID batch
+export const getEventsBatch = (eventIds) => {
+    return request('/events/batch', {
+        method: 'POST',
+        body: { eventIds },
+    });
+};
+
 // Update event
 export const updateEvent = (id, eventData) => {
     return request(`/events/${id}`, {
@@ -30,11 +38,27 @@ export const updateEvent = (id, eventData) => {
     });
 };
 
-// Sponsor event
-export const sponsorEvent = (id, amount) => {
-    return request(`/events/${id}/sponsor`, {
+// Create Stripe Checkout Session
+export const createCheckoutSession = (id, amount) => {
+    return request(`/events/${id}/create-checkout-session`, {
         method: 'POST',
         body: { amount },
+    });
+};
+
+// Confirm sponsorship
+export const confirmSponsorship = (sessionId) => {
+    return request(`/events/sponsor/confirm`, {
+        method: 'POST',
+        body: { session_id: sessionId },
+    });
+};
+
+// Cancel sponsorship
+export const cancelSponsorship = (sessionId) => {
+    return request(`/events/sponsor/cancel`, {
+        method: 'POST',
+        body: { session_id: sessionId },
     });
 };
 

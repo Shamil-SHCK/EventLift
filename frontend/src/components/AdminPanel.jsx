@@ -13,7 +13,8 @@ import {
     ZoomIn,
     ZoomOut,
     RotateCcw,
-    X
+    X,
+    ExternalLink
 } from 'lucide-react';
 
 const AdminPanel = ({ isEmbedded = false }) => {
@@ -26,7 +27,11 @@ const AdminPanel = ({ isEmbedded = false }) => {
     const [zoomLevel, setZoomLevel] = useState(1);
 
     const handleViewDoc = (docUrl) => {
-        setSelectedDoc(`http://localhost:5000/${docUrl}`);
+        let safeUrl = docUrl;
+        if (safeUrl && safeUrl.startsWith('res.cloudinary.com')) {
+            safeUrl = `https://${safeUrl}`;
+        }
+        setSelectedDoc(safeUrl);
         setZoomLevel(1);
     };
 
@@ -60,6 +65,11 @@ const AdminPanel = ({ isEmbedded = false }) => {
     }, [navigate, filter]);
 
     const handleVerify = async (userId, status) => {
+        const actionText = status === 'verified' ? 'approve' : 'reject';
+        if (!window.confirm(`Are you sure you want to ${actionText} this user?`)) {
+            return;
+        }
+
         try {
             await verifyUser(userId, status);
             if (filter === 'pending') {
@@ -80,7 +90,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
             await resetUserPassword(userId);
             alert('Password reset successfully');
         } catch (err) {
-            alert('Failed to reset password: ' + err.message);
+            setError('Failed to reset password: ' + err.message);
         }
     };
 
@@ -128,7 +138,22 @@ const AdminPanel = ({ isEmbedded = false }) => {
                         {/* Modal Content */}
                         <div className="flex-1 bg-slate-100 overflow-hidden flex items-center justify-center relative inner-shadow">
                             {selectedDoc.toLowerCase().endsWith('.pdf') ? (
-                                <iframe src={selectedDoc} title="Document" className="w-full h-full border-none" />
+                                <div className="p-12 text-center h-full flex flex-col items-center justify-center">
+                                    <FileText className="w-24 h-24 text-blue-300 mb-6 mx-auto" />
+                                    <h4 className="text-xl font-bold text-slate-800 mb-2">PDF Document Details</h4>
+                                    <p className="text-slate-500 mb-8 max-w-sm">
+                                        For security reasons, this PDF document cannot be previewed directly in this window.
+                                        Please open it in a new tab to view or download.
+                                    </p>
+                                    <a
+                                        href={selectedDoc}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
+                                    >
+                                        <ExternalLink className="w-4 h-4" /> Open Verification Document
+                                    </a>
+                                </div>
                             ) : (
                                 <div className="overflow-auto w-full h-full flex items-center justify-center p-8">
                                     <img

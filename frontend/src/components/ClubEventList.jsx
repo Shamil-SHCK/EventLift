@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Rocket, Calendar, MapPin } from 'lucide-react';
 
 const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDeleteEvent, openCreateModal }) => {
     const navigate = useNavigate();
@@ -25,7 +25,7 @@ const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDele
                 <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group">
                     <div className="h-48 bg-slate-100 relative overflow-hidden">
                         {event.poster ? (
-                            <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
+                            <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
                                 <Rocket className="w-12 h-12" />
@@ -73,12 +73,22 @@ const ClubEventList = ({ events, handleViewSponsors, handleEditEvent, handleDele
                         >
                             Manage Impact & Transparency
                         </button>
-                        <button
-                            onClick={() => handleDeleteEvent(event._id)}
-                            className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"
-                        >
-                            Delete Event
-                        </button>
+                        {event.sponsors && event.sponsors.length > 0 ? (
+                            <button
+                                disabled
+                                className="w-full mt-2 py-2 rounded-lg bg-slate-100 text-slate-400 font-semibold cursor-not-allowed text-sm"
+                                title="Cannot delete events that have received sponsorships"
+                            >
+                                Deletion Locked (Sponsored)
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => handleDeleteEvent(event._id)}
+                                className="w-full mt-2 py-2 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors text-sm"
+                            >
+                                Delete Event
+                            </button>
+                        )}
                     </div>
                 </div>
             ))}

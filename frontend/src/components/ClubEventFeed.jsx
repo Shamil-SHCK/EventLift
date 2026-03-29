@@ -7,6 +7,9 @@ import { Rocket, Calendar, MapPin, Search } from 'lucide-react';
 const ClubEventFeed = () => {
     const [events, setEvents] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState([]);
+
+    // PDF Preview Modal State
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
@@ -14,7 +17,7 @@ const ClubEventFeed = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const data = await getEventById();
+                const data = await getEvents();
                 setEvents(data);
                 setFilteredEvents(data);
                 console.log(data);
@@ -89,7 +92,7 @@ const ClubEventFeed = () => {
                     <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full">
                         <div className="h-48 bg-slate-100 relative overflow-hidden">
                             {event.poster ? (
-                                <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
                                     <Rocket className="w-12 h-12" />
@@ -139,16 +142,24 @@ const ClubEventFeed = () => {
                                     ></div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-3">
-                                    {event.brochure && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {event.poster && (
                                         <a
-                                            href={`http://localhost:5000/${event.brochure}`}
+                                            href={`${event.poster}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center"
+                                            className={`px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center ${!event.brochure ? 'col-span-2' : ''}`}
+                                        >
+                                            View Poster
+                                        </a>
+                                    )}
+                                    {event.brochure && (
+                                        <button
+                                            onClick={() => setPreviewPdfUrl((event.brochure.startsWith('http') ? event.brochure : (event.brochure.startsWith('res.cloudinary') ? `https://${event.brochure}` : event.brochure)).replace('/upload/fl_attachment/', '/upload/'))}
+                                            className={`px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center ${!event.poster ? 'col-span-2' : ''}`}
                                         >
                                             View Brochure
-                                        </a>
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -164,6 +175,39 @@ const ClubEventFeed = () => {
                     </div>
                     <h3 className="text-lg font-bold text-slate-900">No events found</h3>
                     <p className="text-slate-500">Try adjusting your filters or search query.</p>
+                </div>
+            )}
+
+            {/* PDF Preview Modal */}
+            {previewPdfUrl && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-6 overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full h-full max-w-6xl shadow-2xl animate-fadeIn flex flex-col relative">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50 rounded-t-2xl flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-slate-900">Document Viewer</h2>
+                            <div className="flex items-center gap-3">
+                                <a
+                                    href={previewPdfUrl.replace('/upload/', '/upload/fl_attachment/')}
+                                    download
+                                    className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition"
+                                >
+                                    Download File
+                                </a>
+                                <button
+                                    onClick={() => setPreviewPdfUrl(null)}
+                                    className="p-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-100 relative w-full h-full">
+                            <iframe
+                                src={`http://localhost:5000/api/events/proxy-pdf?url=${encodeURIComponent(previewPdfUrl)}`}
+                                title="PDF Document Viewer"
+                                className="absolute inset-0 w-full h-full border-0"
+                            />
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

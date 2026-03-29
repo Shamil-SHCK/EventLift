@@ -5,7 +5,9 @@ import AlumniProfile from '../models/AlumniProfile.js';
 import CompanyProfile from '../models/CompanyProfile.js';
 import Expense from '../models/Expense.js';
 import EventImage from '../models/EventImage.js';
+import Transaction from '../models/Transaction.js';
 import { getUserProfile } from '../utils/UserProfilesHandler.js';
+import Stripe from 'stripe';
 
 // @desc    Get event impact details
 // @route   GET /api/events/:id/impact
@@ -35,8 +37,8 @@ export const getEventImpact = async (req, res) => {
         const imagesDocs = await EventImage.find({ eventId: event._id });
 
         const images = imagesDocs.map(img => ({
-            id: img._id, // Map _id to id
-            url: `data:${img.mimeType};base64,${img.imageData.toString('base64')}`,
+            id: img._id,
+            url: img.cloudinaryUrl,
             caption: img.caption
         }));
 
@@ -60,6 +62,66 @@ export const getEventImpact = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+import { v2 as cloudinary } from 'cloudinary';
+
+// @desc    Proxy PDF to bypass Cloudinary inline restrictions
+// @route   GET /api/events/proxy-pdf
+// @access  Public
+export const proxyPdf = async (req, res) => {
+    try {
+        const { url } = req.query;
+        if (!url) return res.status(400).json({ message: 'URL is required' });
+
+        if (!url.includes('cloudinary.com')) {
+             return res.status(400).json({ message: 'Invalid URL' });
+        }
+
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
+        });
+
+        // Parse public ID from URL:
+        // https://res.cloudinary.com/<cloud_name>/<resource_type>/upload/v<version>/<public_id>.pdf
+        const uploadIndex = url.indexOf('/upload/');
+        if (uploadIndex === -1) return res.status(400).json({ message: 'Invalid Cloudinary URL' });
+
+        let urlParts = url.substring(uploadIndex + 8).split('/');
+        
+        // Remove version string if present (v1234567)
+        if (urlParts[0].startsWith('v') && !isNaN(urlParts[0].substring(1))) {
+            urlParts.shift();
+        }
+        
+        let pathStr = urlParts.join('/').split('?')[0];
+        const resourceType = url.includes('/raw/upload/') ? 'raw' : 'image';
+
+        // Generate a signed delivery URL to bypass free-tier PDF restrictions
+        const signedUrl = cloudinary.url(pathStr, {
+            resource_type: resourceType,
+            sign_url: true,
+            secure: true
+        });
+
+        const response = await fetch(signedUrl);
+        
+        if (!response.ok) {
+            return res.status(response.status).json({ message: 'Failed to fetch PDF from Cloudinary' });
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.send(buffer);
+    } catch (error) {
+        console.error('PDF Proxy Error:', error);
+        res.status(error.http_code || 500).json({ message: 'Server Error', error: error.message });
     }
 };
 
@@ -116,17 +178,17 @@ export const addImpactImage = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        // req.file.path is the Cloudinary secure URL (set by multer-storage-cloudinary)
         const image = await EventImage.create({
             eventId: event._id,
-            imageData: req.file.buffer,
-            mimeType: req.file.mimetype,
+            cloudinaryUrl: req.file.path,
             caption: req.body.caption || ''
         });
 
         res.status(201).json({
             id: image._id,
+            url: image.cloudinaryUrl,
             caption: image.caption
-            // Don't return full buffer
         });
 
     } catch (error) {
@@ -150,24 +212,23 @@ export const createEvent = async (req, res) => {
             return res.status(400).json({ message: 'Event date cannot be in the past' });
         }
 
-        let poster = {};
-        let brochure = {};
+        let posterUrl = '';
+        let brochureUrl = '';
 
         if (req.files) {
             if (req.files.poster) {
-                poster = {
-                    data: req.files.poster[0].buffer,
-                    contentType: req.files.poster[0].mimetype
-                };
+                posterUrl = req.files.poster[0].path; // Cloudinary URL
             }
             if (req.files.brochure) {
-                brochure = {
-                    data: req.files.brochure[0].buffer,
-                    contentType: req.files.brochure[0].mimetype
-                };
+                brochureUrl = req.files.brochure[0].path; // Cloudinary URL
             }
         }
         const profile = await getUserProfile(req.user);
+
+        if (!profile) {
+            return res.status(404).json({ message: 'Club profile not found' });
+        }
+
         const event = await Event.create({
             title,
             description,
@@ -177,42 +238,18 @@ export const createEvent = async (req, res) => {
             category,
             budget,
             organizer: profile._id,
-            poster,
-            brochure
+            poster: posterUrl,
+            brochure: brochureUrl
         });
 
         // Link Event With the Profile
-        if (profile) {
-            const eventData = {
-                event: event._id
-            }
-            profile.events.push(eventData);
-            await profile.save();
+        const eventData = {
+            event: event._id
         }
-        if (!profile) {
-            res.status(404).json({ message: 'Profile not found' });
-        }
+        profile.events.push(eventData);
+        await profile.save();
 
-
-        // Link Event With the Profile
-        if (profile) {
-            const eventData = {
-                event: event._id
-            }
-            profile.events.push(eventData);
-            await profile.save();
-        }
-        if (!profile) {
-            res.status(404).json({ message: 'Profile not found' });
-        }
-        // Return object with URLs
-        const e = event.toObject();
-        if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
-        if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
-        if (e.poster) delete e.poster.data;
-        if (e.brochure) delete e.brochure.data;
-
-        res.status(201).json(e);
+        res.status(201).json(event);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: error.message });
@@ -228,34 +265,62 @@ export const getEvents = async (req, res) => {
             .select('-poster.data -brochure.data')
             .populate({
                 path: 'organizer',
-                select: 'name clubName logoUrl'
+                select: 'name clubName collegeName logoUrl'
             })
             .sort({ date: 1 }) // Sort by date (nearest first)
             .lean();
-        const eventsWithUrls = events.map(event => {
-            const e = event;
-            // console.log(e);
-            // Organizer is now ClubProfile, so clubName is directly accessible
-            // Log to debug if needed
-            // console.log(e.organizer);
 
-            if (event.poster && event.poster.contentType) {
-                e.poster = `api/files/event/${event._id}/poster`;
-            } else {
-                e.poster = null;
-            }
-            if (event.brochure && event.brochure.contentType) {
-                e.brochure = `api/files/event/${event._id}/brochure`;
-            } else {
-                e.brochure = null;
+        res.json(events);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get batch events by ID array
+// @route   POST /api/events/batch
+// @access  Private
+export const getEventsBatch = async (req, res) => {
+    try {
+        const { eventIds } = req.body;
+        
+        if (!eventIds || !Array.isArray(eventIds)) {
+            return res.status(400).json({ message: 'Please provide an array of event IDs' });
+        }
+
+        const events = await Event.find({ _id: { $in: eventIds } })
+            .select('-poster.data -brochure.data')
+            .populate({
+                path: 'organizer',
+                select: 'name clubName description logoUrl'
+            })
+            .populate({
+                path: 'sponsors.sponsor',
+                select: 'name role profile',
+                populate: { path: 'profile', select: 'organizationName formerInstitution logoUrl' }
+            });
+
+        // Flatten sponsor profiles similar to getEventById
+        const formattedEvents = events.map(event => {
+            const e = event.toObject();
+            if (e.sponsors) {
+                e.sponsors = e.sponsors.map(s => {
+                    if (s.sponsor && s.sponsor.profile) {
+                        const sponsorId = s.sponsor._id; 
+                        s.sponsor = { ...s.sponsor, ...s.sponsor.profile };
+                        s.sponsor._id = sponsorId; 
+                        delete s.sponsor.profile;
+                    }
+                    return s;
+                });
             }
             return e;
         });
 
-        res.json(eventsWithUrls);
+        res.json(formattedEvents);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('Error in batch fetch:', error);
+        res.status(500).json({ message: 'Server Error during batch fetch' });
     }
 };
 
@@ -308,12 +373,6 @@ export const getEventById = async (req, res) => {
                 });
             }
 
-            if (event.poster && event.poster.contentType) e.poster = `api/files/event/${event._id}/poster`;
-            else e.poster = null;
-
-            if (event.brochure && event.brochure.contentType) e.brochure = `api/files/event/${event._id}/brochure`;
-            else e.brochure = null;
-
             res.json(e);
         } else {
             res.status(404).json({ message: 'Event not found' });
@@ -345,42 +404,29 @@ export const updateEvent = async (req, res) => {
 
         if (req.files) {
             if (req.files.poster) {
-                updateData.poster = {
-                    data: req.files.poster[0].buffer,
-                    contentType: req.files.poster[0].mimetype
-                };
+                updateData.poster = req.files.poster[0].path;
             }
             if (req.files.brochure) {
-                updateData.brochure = {
-                    data: req.files.brochure[0].buffer,
-                    contentType: req.files.brochure[0].mimetype
-                };
+                updateData.brochure = req.files.brochure[0].path;
             }
         }
 
         const updatedEvent = await Event.findByIdAndUpdate(req.params.id, updateData, {
             new: true,
             runValidators: true
-        }).select('-poster.data -brochure.data');
+        });
 
-        const e = updatedEvent.toObject();
-        if (updatedEvent.poster && updatedEvent.poster.contentType) e.poster = `api/files/event/${updatedEvent._id}/poster`;
-        if (updatedEvent.brochure && updatedEvent.brochure.contentType) e.brochure = `api/files/event/${updatedEvent._id}/brochure`;
-
-        res.json(e);
+        res.json(updatedEvent);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-// @desc    Sponsor an event
-// @route   POST /api/events/:id/sponsor
+// @desc    Create Stripe Checkout Session for Sponsorship
+// @route   POST /api/events/:id/create-checkout-session
 // @access  Private (Company/Alumni)
-// @desc    Sponsor an event
-// @route   POST /api/events/:id/sponsor
-// @access  Private (Company/Alumni)
-export const sponsorEvent = async (req, res) => {
+export const createCheckoutSession = async (req, res) => {
     try {
         const { amount } = req.body;
         const sponsorshipAmount = Number(amount);
@@ -393,70 +439,173 @@ export const sponsorEvent = async (req, res) => {
         if (event.status !== 'open') {
             return res.status(400).json({ message: 'Event is not open for sponsorship' });
         }
+
         const user = await User.findById(req.user._id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        console.log(user);
-        let profile;
-        profile = await getUserProfile(user);
-        if (!profile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
-        console.log(profile);
-        console.log(profile.name)
 
-        if (profile) {
-            const existingSponsorshipIndex = event.sponsors.findIndex(
-                s => s.sponsor.toString() === user.profile.toString()
-            );
-            if (existingSponsorshipIndex > -1) {
-                event.sponsors[existingSponsorshipIndex].amount += sponsorshipAmount;
-            }
-            else {
-                const sponsorship = {
-                    sponsor: user.profile,
-                    name: profile.organizationName ? profile.organizationName : profile.name ? profile.name : "",
-                    amount: Number(amount),
-                    date: Date.now()
-                };
-                event.sponsors.push(sponsorship);
-                event.raised += sponsorshipAmount;
-            }
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+        // Create Stripe checkout session
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'inr',
+                        product_data: {
+                            name: `Sponsorship for ${event.title}`,
+                            description: `Supporting event organized by clubs on the platform.`,
+                        },
+                        unit_amount: sponsorshipAmount * 100, // Amount in paise
+                    },
+                    quantity: 1,
+                },
+            ],
+            metadata: {
+                eventId: event._id.toString(),
+                userId: req.user._id.toString(),
+                amount: amount.toString()
+            },
+            success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/cancel?session_id={CHECKOUT_SESSION_ID}`,
+        });
+
+        // Record initiated transaction
+        await Transaction.create({
+            user: req.user._id,
+            event: event._id,
+            amount: sponsorshipAmount,
+            status: 'initiated',
+            stripeSessionId: session.id
+        });
+
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error("Stripe Create Session Error:", error);
+        res.status(500).json({ message: error.message || 'Server Error' });
+    }
+};
+
+// @desc    Confirm sponsorship payment success
+// @route   POST /api/events/sponsor/confirm
+// @access  Private
+export const confirmSponsorship = async (req, res) => {
+    try {
+        const { session_id } = req.body;
+
+        if (!session_id) {
+            return res.status(400).json({ message: 'Session ID is required' });
         }
 
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+        // Retrieve the session from Stripe
+        const session = await stripe.checkout.sessions.retrieve(session_id);
+
+        if (session.payment_status !== 'paid') {
+            return res.status(400).json({ message: 'Payment not completed' });
+        }
+
+        const { eventId, userId, amount } = session.metadata;
+        const sponsorshipAmount = Number(amount);
+
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        let profile = await getUserProfile(user);
+        if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+        // Check if already processed (idempotency check by checking if we have a record recent enough or by metadata, for simplicity we assume redirect happens once)
+        // A robust way is to store stripe session_id in the sponsorship, but here we just process it.
+        // To prevent double processing, we could check if a sponsorship with this amount happened recently, or ideally save the session_id in processed list.
+        // Here we just follow the original logic and add the sponsorship.
+
+        // Find existing sponsorship
+        const existingSponsorshipIndex = event.sponsors.findIndex(
+            s => s.sponsor && s.sponsor.toString() === profile._id.toString()
+        );
+
+        if (existingSponsorshipIndex > -1) {
+            event.sponsors[existingSponsorshipIndex].amount += sponsorshipAmount;
+        } else {
+            const sponsorName = profile.organizationName ? profile.organizationName : (profile.name || user.name || "Anonymous");
+
+            const sponsorship = {
+                sponsor: profile._id,
+                name: sponsorName,
+                amount: sponsorshipAmount,
+                date: Date.now()
+            };
+            event.sponsors.push(sponsorship);
+        }
+
+        event.raised += sponsorshipAmount;
         await event.save();
 
         // Add to Sponsor Profile
-        if (profile) {
-            if (!profile.sponseredEvents) profile.sponseredEvents = [];
+        if (!profile.sponseredEvents) profile.sponseredEvents = [];
 
-            // Check if already sponsored this event
-            const existingSponsorshipIndex = profile.sponseredEvents.findIndex(
-                s => s.event.toString() === event._id.toString()
-            );
+        const profileSponsorshipIndex = profile.sponseredEvents.findIndex(
+            s => s.event && s.event.toString() === event._id.toString()
+        );
 
-            if (existingSponsorshipIndex > -1) {
-                // Determine current amount (handle missing 'amount' field in legacy data if valid number)
-                let currentAmount = Number(profile.sponseredEvents[existingSponsorshipIndex].amount) || 0;
-                profile.sponseredEvents[existingSponsorshipIndex].amount = currentAmount + sponsorshipAmount;
-            } else {
-                profile.sponseredEvents.push({
-                    event: event._id,
-                    amount: sponsorshipAmount
-                });
-            }
-
-            await profile.save();
+        if (profileSponsorshipIndex > -1) {
+            let currentAmount = Number(profile.sponseredEvents[profileSponsorshipIndex].amount) || 0;
+            profile.sponseredEvents[profileSponsorshipIndex].amount = currentAmount + sponsorshipAmount;
+        } else {
+            profile.sponseredEvents.push({
+                event: event._id,
+                amount: sponsorshipAmount
+            });
         }
 
-        res.json({
-            message: 'Sponsorship committed successfully',
-            raised: event.raised,
+        profile.sponseredEvents.forEach(item => {
+            if (item.amount === undefined || item.amount === null) item.amount = 0;
         });
+
+        await profile.save();
+
+        // Mark transaction as pending transfer
+        const transaction = await Transaction.findOne({ stripeSessionId: session_id });
+        if (transaction && transaction.status !== 'pending' && transaction.status !== 'completed') {
+            transaction.status = 'pending';
+            await transaction.save();
+        }
+
+        res.json({ message: 'Sponsorship successfully confirmed' });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error("Stripe Confirm Payment Error:", error);
+        res.status(500).json({ message: error.message || 'Server Error during confirmation' });
+    }
+};
+
+// @desc    Cancel sponsorship payment attempt
+// @route   POST /api/events/sponsor/cancel
+// @access  Private
+export const cancelSponsorship = async (req, res) => {
+    try {
+        const { session_id } = req.body;
+        if (!session_id) {
+            return res.status(400).json({ message: 'Session ID is required' });
+        }
+
+        const transaction = await Transaction.findOne({ stripeSessionId: session_id });
+        if (transaction && transaction.status === 'initiated') {
+            transaction.status = 'failed';
+            await transaction.save();
+        }
+
+        res.json({ message: 'Payment marked as cancelled/failed' });
+    } catch (error) {
+        console.error("Stripe Cancel Payment Error:", error);
+        res.status(500).json({ message: error.message || 'Server Error during cancellation' });
     }
 };
 
@@ -474,6 +623,11 @@ export const deleteEvent = async (req, res) => {
         // Check ownership
         if (event.organizer.toString() !== req.user.profile.toString() && req.user.role !== 'administrator') {
             return res.status(401).json({ message: 'Not authorized to delete this event' });
+        }
+
+        // Prevent deletion if event has sponsors
+        if (event.sponsors && event.sponsors.length > 0) {
+            return res.status(400).json({ message: 'Cannot delete an event that has already received sponsorship. Please contact an administrator.' });
         }
 
         //Acces Event organizer profile

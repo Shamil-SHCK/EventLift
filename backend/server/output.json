@@ -1,0 +1,46 @@
+{
+  "alumni": [
+    {
+      "id": "695b520a1e0bb31c6d1c7c91",
+      "name": "Muhammed Fawas",
+      "profileId": "695b520b1e0bb31c6d1c7c93"
+    },
+    {
+      "id": "695b8dcdd3080bbac3461098",
+      "name": "nuhman",
+      "profileId": "695b8dcdd3080bbac346109a"
+    },
+    {
+      "id": "69778144754f86618f60e705",
+      "name": "Alumni",
+      "profileId": "69778145754f86618f60e707",
+      "formerInstitution": "Government Engineering College Idukki"
+    }
+  ],
+  "clubs": [
+    {
+      "id": "6957fe289f8679a8fab7b114",
+      "userRef": "6957fe269f8679a8fab7b112",
+      "collegeName": "Government Engineering College Idukki",
+      "clubName": "Mulearn Geci"
+    },
+    {
+      "id": "695bf822d23bc6353605e9e1",
+      "userRef": "695bf816d23bc6353605e9df",
+      "collegeName": "Government Engineering College Idukki",
+      "clubName": "Robo club"
+    },
+    {
+      "id": "69777e58128060694ddc651b",
+      "userRef": "69777e4b128060694ddc6519",
+      "collegeName": "Government Engineering College Idukki",
+      "clubName": "tinkerlab"
+    },
+    {
+      "id": "697780bb754f86618f60e6e8",
+      "userRef": "6977809f754f86618f60e6e6",
+      "collegeName": "Government Engineering College Idukki",
+      "clubName": "IEEE"
+    }
+  ]
+}

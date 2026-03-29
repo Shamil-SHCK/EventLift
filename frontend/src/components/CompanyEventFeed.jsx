@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEvents, sponsorEvent } from '../services/api';
-import { Rocket, Calendar, MapPin, DollarSign, X, Check, Search } from 'lucide-react';
+import { getEvents, createCheckoutSession } from '../services/api';
+import { Rocket, Calendar, MapPin, IndianRupee, X, Check, Search } from 'lucide-react';
 
 const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const navigate = useNavigate();
@@ -11,11 +11,15 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
 
+    // PDF Preview Modal State
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+
     // Sponsorship Modal State
     const [showSponsorModal, setShowSponsorModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [sponsorAmount, setSponsorAmount] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -54,6 +58,7 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
     const handleSponsorClick = (event) => {
         setSelectedEvent(event);
         setSponsorAmount('');
+        setPaymentError('');
         setShowSponsorModal(true);
     };
 
@@ -61,24 +66,15 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await sponsorEvent(selectedEvent._id, Number(sponsorAmount));
-
-            const updatedEvents = events.map(ev => {
-                if (ev._id === selectedEvent._id) {
-                    return { ...ev, raised: (ev.raised || 0) + Number(sponsorAmount) };
-                }
-                return ev;
-            });
-
-            setEvents(updatedEvents);
-
-            if (onSponsorshipSuccess) onSponsorshipSuccess();
-
-            setShowSponsorModal(false);
-            alert(`Successfully sponsored ${selectedEvent.title} for ₹${sponsorAmount}!`);
+            const data = await createCheckoutSession(selectedEvent._id, Number(sponsorAmount));
+            if (data && data.url) {
+                window.location.href = data.url;
+            } else {
+                setPaymentError('Failed to create checkout session');
+                setSubmitting(false);
+            }
         } catch (error) {
-            alert(error.message);
-        } finally {
+            setPaymentError(error.message || 'An error occurred during payment processing.');
             setSubmitting(false);
         }
     };
@@ -125,7 +121,7 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                     <div key={event._id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full">
                         <div className="h-48 bg-slate-100 relative overflow-hidden">
                             {event.poster ? (
-                                <img src={`http://localhost:5000/${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <img src={`${event.poster}`} alt={event.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
                                     <Rocket className="w-12 h-12" />
@@ -176,20 +172,28 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    {event.brochure && (
+                                    {event.poster && (
                                         <a
-                                            href={`http://localhost:5000/${event.brochure}`}
+                                            href={`${event.poster}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center"
+                                            className={`px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center ${!event.brochure ? 'col-span-2' : ''}`}
                                         >
-                                            Brochure
+                                            View Poster
                                         </a>
+                                    )}
+                                    {event.brochure && (
+                                        <button
+                                            onClick={() => setPreviewPdfUrl((event.brochure.startsWith('http') ? event.brochure : (event.brochure.startsWith('res.cloudinary') ? `https://${event.brochure}` : event.brochure)).replace('/upload/fl_attachment/', '/upload/'))}
+                                            className={`px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors text-center ${!event.poster ? 'col-span-2' : ''}`}
+                                        >
+                                            View Brochure
+                                        </button>
                                     )}
                                     <button
                                         onClick={() => handleSponsorClick(event)}
                                         disabled={event.status !== 'open' || (event.raised || 0) >= event.budget || new Date(event.date) < new Date()}
-                                        className={`px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${!event.brochure ? 'col-span-2' : ''}`}
+                                        className="col-span-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {event.status === 'open' && (event.raised || 0) < event.budget && new Date(event.date) >= new Date() ? 'Sponsor Now' : ((event.raised || 0) >= event.budget ? 'Fully Funded' : 'Closed')}
                                     </button>
@@ -246,10 +250,16 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                 </div>
                             </div>
 
+                            {paymentError && (
+                                <div className="p-4 bg-red-50 text-red-700 text-sm font-semibold rounded-xl border border-red-200">
+                                    {paymentError}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Sponsorship Amount (₹)</label>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                                    <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                                     <input
                                         type="number"
                                         required
@@ -271,11 +281,44 @@ const CompanyEventFeed = ({ onSponsorshipSuccess }) => {
                                     'Processing...'
                                 ) : (
                                     <>
-                                        <Check className="w-5 h-5" /> Confirm Sponsorship
+                                        <Check className="w-5 h-5" /> Pay Now
                                     </>
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* PDF Preview Modal */}
+            {previewPdfUrl && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-6 overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full h-full max-w-6xl shadow-2xl animate-fadeIn flex flex-col relative">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50 rounded-t-2xl flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-slate-900">Document Viewer</h2>
+                            <div className="flex items-center gap-3">
+                                <a
+                                    href={previewPdfUrl.replace('/upload/', '/upload/fl_attachment/')}
+                                    download
+                                    className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition"
+                                >
+                                    Download File
+                                </a>
+                                <button
+                                    onClick={() => setPreviewPdfUrl(null)}
+                                    className="p-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-100 relative w-full h-full">
+                            <iframe
+                                src={`http://localhost:5000/api/events/proxy-pdf?url=${encodeURIComponent(previewPdfUrl)}`}
+                                title="PDF Document Viewer"
+                                className="absolute inset-0 w-full h-full border-0"
+                            />
+                        </div>
                     </div>
                 </div>
             )}

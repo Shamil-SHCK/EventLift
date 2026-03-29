@@ -9,12 +9,25 @@ import {
     Settings,
     Menu,
     Briefcase,
-    Calendar
+    Calendar,
+    IndianRupee,
+    Search,
+    Users,
+    Building2
 } from 'lucide-react';
 
-const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
+const DashboardLayout = ({ children, user: userProp, title = "Dashboard" }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
+
+    // Fallback if user prop is not provided
+    const user = userProp || (() => {
+        try {
+            return JSON.parse(localStorage.getItem('user') || 'null');
+        } catch {
+            return null;
+        }
+    })();
 
     const handleLogout = () => {
         logoutUser();
@@ -31,7 +44,13 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                 <div className="h-full flex flex-col">
                     {/* Brand */}
                     <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                        <span className="text-xl font-bold font-heading tracking-tight text-white cursor-pointer" onClick={() => navigate('/')}>EventLift</span>
+                        <span
+                            className="text-xl font-bold font-heading tracking-tight cursor-pointer"
+                            onClick={() => navigate('/')}
+                        >
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Event</span>
+                            <span className="text-white">Lift</span>
+                        </span>
                     </div>
 
                     {/* Navigation */}
@@ -42,6 +61,12 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                             <LayoutDashboard className="w-5 h-5" /> Dashboard
                         </button>
 
+                        {user?.role === 'administrator' && (
+                            <button onClick={() => navigate('/admin/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Transactions' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                <IndianRupee className="w-5 h-5" /> Platform Transfers
+                            </button>
+                        )}
+
                         {user?.role === 'company' && (
                             <button onClick={() => navigate('/company/events')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Events' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <Calendar className="w-5 h-5" /> Events
@@ -49,20 +74,40 @@ const DashboardLayout = ({ children, user, title = "Dashboard" }) => {
                         )}
 
                         {user?.role === 'club-admin' && (
-                            <button onClick={() => navigate('/club/gig-opportunities')} className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all ${title === 'Gig Opportunities' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                            <button onClick={() => navigate('/club/gig-opportunities')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Gig Opportunities' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                 <Briefcase className="w-5 h-5" /> Gig Works
                             </button>
                         )}
 
-                        <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                        {(user?.role === 'company' || user?.role === 'alumni-individual') && (
+                            <button onClick={() => navigate('/transactions')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Transaction History' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                <IndianRupee className="w-5 h-5" /> Transactions
+                            </button>
+                        )}
+
+                        <button onClick={() => navigate('/search')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Search Users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                            <Search className="w-5 h-5" /> Search Users
+                        </button>
+
+                        <button onClick={() => navigate('/profile')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             <User className="w-5 h-5" /> Profile
                         </button>
 
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
-                            <Bell className="w-5 h-5" /> Notifications
-                        </button>
+                        {user?.role === 'club-admin' ? (
+                            <button onClick={() => navigate('/club/team')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Our Team' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                <Users className="w-5 h-5" /> Our Team
+                            </button>
+                        ) : (user?.role === 'alumni-individual' || user?.role === 'company') ? (
+                            <button onClick={() => navigate('/clubs')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Club Directory' || title === 'Club Profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                <Building2 className="w-5 h-5" /> Browse Clubs
+                            </button>
+                        ) : (
+                            <button className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                                <Bell className="w-5 h-5" /> Notifications
+                            </button>
+                        )}
 
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                        <button onClick={() => navigate('/settings')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${title === 'Settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             <Settings className="w-5 h-5" /> Settings
                         </button>
                     </div>

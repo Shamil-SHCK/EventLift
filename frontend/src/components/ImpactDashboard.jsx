@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { request } from '../services/api/core';
 import DashboardLayout from './DashboardLayout';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Camera, Plus, DollarSign, Award, Lock, FileText, CheckCircle } from 'lucide-react';
+import { Camera, Plus, IndianRupee, Award, Lock, FileText, CheckCircle } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -61,6 +61,16 @@ const ImpactDashboard = () => {
     const handleImageUpload = async (e) => {
         e.preventDefault();
         if (!imageFile) return;
+        
+        setError('');
+        if (!imageFile.type.startsWith('image/')) {
+            setError('Please upload an image file');
+            return;
+        }
+        if (imageFile.size > 5 * 1024 * 1024) {
+            setError('Image must be less than 5MB');
+            return;
+        }
 
         setImageUploading(true);
         const formData = new FormData();
@@ -84,7 +94,7 @@ const ImpactDashboard = () => {
             setImageCaption('');
             fetchImpactData();
         } catch (err) {
-            alert('Failed to upload image');
+            setError('Failed to upload image. Please try again.');
         } finally {
             setImageUploading(false);
         }
@@ -158,7 +168,7 @@ const ImpactDashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                         <h2 className="text-xl font-bold font-heading text-slate-900 mb-6 flex items-center">
-                            <DollarSign className="w-5 h-5 mr-2 text-indigo-600" />
+                            <IndianRupee className="w-5 h-5 mr-2 text-indigo-600" />
                             Fund Utilization Breakdown
                         </h2>
 
@@ -320,6 +330,13 @@ const ImpactDashboard = () => {
                                     {imageUploading ? 'Uploading...' : 'Upload Photo'}
                                 </button>
                             </form>
+                            
+                            {/* Error Message for Upload */}
+                            {error && (
+                                <p className="mt-4 text-sm font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 animate-fadeIn flex items-center gap-2">
+                                    <span>⚠</span> {error}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

@@ -41,6 +41,12 @@ const AlumniProfileSchemna = mongoose.Schema(
         },
         description: {
             type: String,
+        },
+        occupation: {
+            type: String,
+        },
+        organizationName: {
+            type: String,
         }
     },
     {

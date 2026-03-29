@@ -1,29 +1,29 @@
-import { useState, useEffect } from 'react';
-import { getCurrentUser, updateUserProfile, changeUserPassword } from '../services/api';
-import { useNavigate } from 'react-router-dom';
-import {
-    ArrowLeft,
-    User,
-    Building2,
-    Link as LinkIcon,
-    Phone,
-    FileText,
-    Save,
-    Lock,
-    Loader,
-    CheckCircle,
-    XCircle
+import React, { useState, useEffect, useRef } from 'react';
+import { getCurrentUser, updateUserProfile, uploadLogoImage, changeUserPassword } from '../services/api';
+import { 
+    User, Mail, Phone, Building2, MapPin, Globe, Loader, Save, CheckCircle, 
+    Camera, FileText, Lock, ShieldCheck, CreditCard, Award, Plus, Trash2, 
+    XCircle, Github, Linkedin, Twitter
 } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [formData, setFormData] = useState({
-        clubName: '',
-        organizationName: '',
-        formerInstitution: '',
+        name: '',
+        email: '',
         phone: '',
-        logoUrl: '',
         description: '',
+        location: '',
+        website: '',
+        logoUrl: '',
+        organizationName: '',
+        clubName: '',
+        formerInstitution: '',
+        occupation: '',
+        linkedin: '',
+        github: '',
+        twitter: ''
     });
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -34,7 +34,35 @@ const Profile = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [logoError, setLogoError] = useState('');
+    const [teamError, setTeamError] = useState('');
     const navigate = useNavigate();
+
+    // Logo upload state
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState('');
+    const [logoUploading, setLogoUploading] = useState(false);
+    const logoInputRef = useRef(null);
+
+    // Club-admin team & achievements state
+    const [team, setTeam] = useState([]);
+    const [achievements, setAchievements] = useState([]);
+    const [profileSaving, setProfileSaving] = useState(false);
+    const [profileSaved, setProfileSaved] = useState(false);
+    const [newMember, setNewMember] = useState({ name: '', role: '', photoUrl: '' });
+    const [newMemberPhotoFile, setNewMemberPhotoFile] = useState(null);
+    const [newAchievement, setNewAchievement] = useState({ title: '', year: '', description: '' });
+
+    // Bank details state (club-admin only)
+    const [bankDetails, setBankDetails] = useState({
+        accountHolderName: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
+        upiId: '',
+    });
+    const [bankSaving, setBankSaving] = useState(false);
+    const [bankSaved, setBankSaved] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -42,12 +70,25 @@ const Profile = () => {
                 const userData = await getCurrentUser();
                 setUser(userData);
                 setFormData({
-                    clubName: userData.clubName || '',
-                    organizationName: userData.organizationName || '',
-                    formerInstitution: userData.formerInstitution || '',
+                    name: userData.name || '',
+                    email: userData.email || '',
                     phone: userData.phone || '',
-                    logoUrl: userData.logoUrl || '',
                     description: userData.description || '',
+                    location: userData.location || '',
+                    website: userData.website || '',
+                    logoUrl: userData.logoUrl || '',
+                    organizationName: userData.organizationName || '',
+                    clubName: userData.clubName || '',
+                    formerInstitution: userData.formerInstitution || '',
+                    occupation: userData.occupation || '',
+                    linkedin: userData.linkedin || '',
+                    github: userData.github || '',
+                    twitter: userData.twitter || ''
+                });
+                setTeam(userData.profile?.team || userData.team || []);
+                setAchievements(userData.profile?.achievements || userData.achievements || []);
+                setBankDetails(userData.profile?.bankDetails || userData.bankDetails || {
+                    accountHolderName: '', accountNumber: '', ifscCode: '', bankName: '', upiId: ''
                 });
             } catch (err) {
                 setError('Failed to load profile');
@@ -65,33 +106,124 @@ const Profile = () => {
     const handlePasswordChange = (e) => {
         setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
     };
-    const handleBackToDashboard = () => {
-        const role = user.role;
-        switch (role) {
-            case 'administrator':
-                navigate('/admin/dashboard');
-                break;
-            case 'company':
-                navigate('/company/dashboard');
-                break;
-            case 'club-admin':
-                navigate('/club/dashboard');
-                break;
-            case 'alumni-individual':
-                navigate('/alumni/dashboard');
-                break;
-            default:
-                navigate('/');
+
+    // Logo file selection handler
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        setLogoError('');
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+            setLogoError('Profile icon must be an image file');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setLogoError('Profile icon must be less than 5MB');
+            return;
+        }
+
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
+    };
+
+    // Upload logo to Cloudinary and return the URL
+    const uploadLogoToCloudinary = async () => {
+        if (!logoFile) return formData.logoUrl;
+        setLogoUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('logo', logoFile);
+            const res = await uploadLogoImage(fd);
+            const url = res.url || res.cloudinaryUrl || '';
+            setFormData(prev => ({ ...prev, logoUrl: url }));
+            setLogoFile(null);
+            return url;
+        } catch (err) {
+            throw new Error('Logo upload failed: ' + err.message);
+        } finally {
+            setLogoUploading(false);
         }
     };
+
+    // Team handlers
+    const handleAddMember = async () => {
+        if (!newMember.name || !newMember.role) return;
+        setTeamError('');
+        
+        let photoUrl = newMember.photoUrl;
+        if (newMemberPhotoFile) {
+            if (!newMemberPhotoFile.type.startsWith('image/')) {
+                setTeamError('Team photo must be an image file');
+                return;
+            }
+            if (newMemberPhotoFile.size > 2 * 1024 * 1024) {
+                setTeamError('Team photo must be less than 2MB');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('logo', newMemberPhotoFile);
+            const res = await uploadLogoImage(fd);
+            photoUrl = res.url || res.cloudinaryUrl || '';
+        }
+        setTeam([...team, { ...newMember, photoUrl }]);
+        setNewMember({ name: '', role: '', photoUrl: '' });
+        setNewMemberPhotoFile(null);
+    };
+    const handleRemoveMember = (i) => setTeam(team.filter((_, idx) => idx !== i));
+
+    const handleAddAchievement = () => {
+        if (!newAchievement.title) return;
+        setAchievements([...achievements, { ...newAchievement }]);
+        setNewAchievement({ title: '', year: '', description: '' });
+    };
+    const handleRemoveAchievement = (i) => setAchievements(achievements.filter((_, idx) => idx !== i));
+
+    const handleSaveProfileContent = async () => {
+        setProfileSaving(true);
+        try {
+            await updateUserProfile({ team, achievements });
+            setProfileSaved(true);
+            setTimeout(() => setProfileSaved(false), 3000);
+        } catch (e) {
+            setError('Failed to save: ' + e.message);
+        } finally {
+            setProfileSaving(false);
+        }
+    };
+
+    const handleSaveBankDetails = async () => {
+        setBankSaving(true);
+        setError('');
+        try {
+            await updateUserProfile({ bankDetails });
+            setBankSaved(true);
+            setTimeout(() => setBankSaved(false), 3000);
+        } catch (e) {
+            setError('Failed to save bank details: ' + e.message);
+        } finally {
+            setBankSaving(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSaving(true);
         setMessage('');
         setError('');
 
+        // Validate: description is mandatory for clubs
+        if (user?.role === 'club-admin' && !formData.description.trim()) {
+            setError('A club description is required. Please describe your club before saving.');
+            return;
+        }
+
+        setSaving(true);
         try {
-            await updateUserProfile(formData);
+            // Upload logo first if a new file was selected
+            let finalLogoUrl = formData.logoUrl;
+            if (logoFile) {
+                finalLogoUrl = await uploadLogoToCloudinary();
+            }
+            await updateUserProfile({ ...formData, logoUrl: finalLogoUrl });
             setMessage('Profile updated successfully!');
         } catch (err) {
             setError(err.message || 'Failed to update profile');
@@ -134,220 +266,380 @@ const Profile = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12 px-6">
-            <div className="max-w-4xl mx-auto">
-                <button
-                    onClick={() => handleBackToDashboard()}
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-semibold mb-8 transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" /> Back to Dashboard
-                </button>
+        <DashboardLayout user={user} title="Profile">
+            <div className="mb-8">
+                <h1 className="text-3xl lg:text-4xl font-bold font-heading text-slate-900 mb-2">
+                    Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Profile</span>
+                </h1>
+                <p className="text-slate-500 text-lg">Manage your account information{user?.role === 'club-admin' ? ' and achievements' : ''}.</p>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Sidebar / Info Card */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
-                            <div className="w-24 h-24 mx-auto bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg">
-                                {user?.name.charAt(0)}
+            <div className="max-w-3xl space-y-8">
+
+                {/* Status Messages */}
+                {message && (
+                    <div className="p-4 bg-green-50 border border-green-100 text-green-700 rounded-xl font-medium flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" /> {message}
+                    </div>
+                )}
+                {error && (
+                    <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-medium flex items-center gap-2">
+                        <XCircle className="w-5 h-5" /> {error}
+                    </div>
+                )}
+
+                {/* Profile Details Form */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <User className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-lg font-bold font-heading text-slate-900">Profile Details</h3>
+                    </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+
+                    {/* Profile Icon Upload — clubs and companies only */}
+                    {(user.role === 'club-admin' || user.role === 'company') && (
+                        <div className="flex flex-col items-center gap-3 pb-6 border-b border-slate-100">
+                            <p className="text-sm font-semibold text-slate-700 self-start">Profile Icon</p>
+                            <div className="relative group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+                                {/* Avatar circle */}
+                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-blue-100 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                    {(logoPreview || formData.logoUrl) ? (
+                                        <img
+                                            src={logoPreview || formData.logoUrl}
+                                            alt="Profile icon"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-3xl font-bold text-white select-none">
+                                            {(user.name || '?')[0].toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Hover overlay */}
+                                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    {logoUploading ? (
+                                        <Loader className="w-6 h-6 text-white animate-spin" />
+                                    ) : (
+                                        <Camera className="w-6 h-6 text-white" />
+                                    )}
+                                </div>
                             </div>
-                            <h2 className="text-xl font-bold font-heading text-slate-900">{user?.name}</h2>
-                            <p className="text-slate-500 text-sm mb-4">{user?.email}</p>
-                            <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-full">
-                                {user?.role}
-                            </span>
+                            <p className="text-xs text-slate-400 font-sans">Click to change · JPG, PNG, WebP · Max 5MB</p>
+                            
+                            {logoError && (
+                                <p className="mt-2 text-[11px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 animate-fadeIn text-center">
+                                    ✕ {logoError}
+                                </p>
+                            )}
+
+                            {logoFile && (
+                                <p className="text-[11px] text-blue-600 font-bold bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 mt-2">
+                                    📎 {logoFile.name} — will be uploaded on save
+                                </p>
+                            )}
+                            <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/jpg,image/jpeg,image/png,image/webp,image/avif"
+                                className="hidden"
+                                onChange={handleLogoChange}
+                                id="logo-upload-input"
+                            />
+                        </div>
+                    )}
+
+                    {user.role === 'club-admin' && (
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700">Club Name</label>
+                            <div className="relative">
+                                <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                <input type="text" name="clubName" value={formData.clubName} onChange={handleChange}
+                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans" />
+                            </div>
+                        </div>
+                    )}
+                    {user.role === 'company' && (
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700">Organization Name</label>
+                            <div className="relative">
+                                <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                <input type="text" name="organizationName" value={formData.organizationName} onChange={handleChange}
+                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans" />
+                            </div>
+                        </div>
+                    )}
+                    {user.role === 'alumni-individual' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Former Institution</label>
+                                <div className="relative">
+                                    <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                    <input type="text" name="formerInstitution" value={formData.formerInstitution} onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Occupation / Role</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                    <input type="text" name="occupation" value={formData.occupation} onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                        placeholder="e.g. Software Engineer" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Work Organization</label>
+                                <div className="relative">
+                                    <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                    <input type="text" name="organizationName" value={formData.organizationName} onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                        placeholder="e.g. Google" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700">Phone Number</label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                <input type="text" name="phone" value={formData.phone} onChange={handleChange}
+                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
+                                    placeholder="+1 234 567 8900" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700">
+                            Description / Bio
+                            {user?.role === 'club-admin' && (
+                                <span className="text-red-500 ml-1" title="Required for clubs">*</span>
+                            )}
+                        </label>
+                        <div className="relative">
+                            <FileText className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                required={user?.role === 'club-admin'}
+                                className={`w-full pl-10 pr-4 py-2 bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans min-h-[100px] ${
+                                    user?.role === 'club-admin' && !formData.description.trim()
+                                        ? 'border-red-300'
+                                        : 'border-slate-200'
+                                }`}
+                                placeholder={user?.role === 'club-admin' ? 'Describe your club — what it does, its mission, and what you offer...' : 'Tell us about yourself...'}
+                            />
+                        </div>
+                        {user?.role === 'club-admin' && !formData.description.trim() && (
+                            <p className="text-xs text-red-500 flex items-center gap-1">
+                                <span>⚠</span> Club description is required so sponsors and alumni can learn about you.
+                            </p>
+                        )}
+                    </div>
+                    <button type="submit" disabled={saving || logoUploading}
+                        className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-70">
+                        {(saving || logoUploading) ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {logoUploading ? 'Uploading...' : 'Save Changes'}
+                    </button>
+                </form>
+            </div>
+
+
+            {/* Bank Account Details — club-admin only */}
+            {user?.role === 'club-admin' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CreditCard className="w-5 h-5" /></div>
+                        <h3 className="text-lg font-bold font-heading text-slate-900">Payment Receiving Details</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {/* Account Holder */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">Account Holder Name</label>
+                            <input
+                                type="text"
+                                value={bankDetails.accountHolderName}
+                                onChange={e => setBankDetails(p => ({ ...p, accountHolderName: e.target.value }))}
+                                placeholder="Exact name as in bank"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* Bank Name */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">Bank Name</label>
+                            <input
+                                type="text"
+                                value={bankDetails.bankName}
+                                onChange={e => setBankDetails(p => ({ ...p, bankName: e.target.value }))}
+                                placeholder="e.g. State Bank of India"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* Account Number */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">Account Number</label>
+                            <input
+                                type="text"
+                                value={bankDetails.accountNumber}
+                                onChange={e => setBankDetails(p => ({ ...p, accountNumber: e.target.value }))}
+                                placeholder="00000000000"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* IFSC */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">IFSC Code</label>
+                            <input
+                                type="text"
+                                value={bankDetails.ifscCode}
+                                onChange={e => setBankDetails(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
+                                placeholder="e.g. SBIN0001234"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
+                        </div>
+
+                        {/* UPI */}
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <label className="block text-sm font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(optional)</span></label>
+                            <input
+                                type="text"
+                                value={bankDetails.upiId}
+                                onChange={e => setBankDetails(p => ({ ...p, upiId: e.target.value }))}
+                                placeholder="yourclub@upi"
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                            />
                         </div>
                     </div>
 
-                    {/* Main Settings Area */}
-                    <div className="lg:col-span-2 space-y-8">
-
-                        {/* Status Messages */}
-                        {message && (
-                            <div className="p-4 bg-green-50 border border-green-100 text-green-700 rounded-xl font-medium flex items-center gap-2">
-                                <CheckCircle className="w-5 h-5" /> {message}
-                            </div>
-                        )}
-                        {error && (
-                            <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-medium flex items-center gap-2">
-                                <XCircle className="w-5 h-5" /> {error}
-                            </div>
-                        )}
-
-                        {/* Profile Details Form */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <User className="w-5 h-5" />
-                                </div>
-                                <h3 className="text-lg font-bold font-heading text-slate-900">Profile Details</h3>
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {user.role === 'club-admin' && (
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">Club Name</label>
-                                        <div className="relative">
-                                            <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                name="clubName"
-                                                value={formData.clubName}
-                                                onChange={handleChange}
-                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {user.role === 'company' && (
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">Organization Name</label>
-                                        <div className="relative">
-                                            <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                name="organizationName"
-                                                value={formData.organizationName}
-                                                onChange={handleChange}
-                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {user.role === 'alumni-individual' && (
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">Former Institution</label>
-                                        <div className="relative">
-                                            <Building2 className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                name="formerInstitution"
-                                                value={formData.formerInstitution}
-                                                onChange={handleChange}
-                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">Phone Number</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                name="phone"
-                                                value={formData.phone}
-                                                onChange={handleChange}
-                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                                placeholder="+1 234 567 8900"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">Logo/Avatar URL</label>
-                                        <div className="relative">
-                                            <LinkIcon className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                name="logoUrl"
-                                                value={formData.logoUrl}
-                                                onChange={handleChange}
-                                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                                placeholder="https://example.com/logo.png"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-slate-700">Description / Bio</label>
-                                    <div className="relative">
-                                        <FileText className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                                        <textarea
-                                            name="description"
-                                            value={formData.description}
-                                            onChange={handleChange}
-                                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans min-h-[100px]"
-                                            placeholder="Tell us about yourself..."
-                                        />
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-70"
-                                >
-                                    {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    Save Changes
-                                </button>
-                            </form>
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-4">
+                        <p className="text-xs text-slate-400">
+                            🔒 These details are only visible to the platform administrator for processing fund transfers.
+                        </p>
+                        <div>
+                            <button
+                                type="button"
+                                onClick={handleSaveBankDetails}
+                                disabled={bankSaving}
+                                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-70 flex items-center gap-2 w-fit"
+                            >
+                                {bankSaving ? <Loader className="w-4 h-4 animate-spin" /> : (bankSaved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />)}
+                                {bankSaving ? 'Saving...' : (bankSaved ? 'Saved!' : 'Save Bank Details')}
+                            </button>
                         </div>
-
-                        {/* Security Form */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                                    <Lock className="w-5 h-5" />
-                                </div>
-                                <h3 className="text-lg font-bold font-heading text-slate-900">Security</h3>
-                            </div>
-
-                            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-slate-700">Current Password</label>
-                                    <input
-                                        type="password"
-                                        name="currentPassword"
-                                        value={passwordData.currentPassword}
-                                        onChange={handlePasswordChange}
-                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">New Password</label>
-                                        <input
-                                            type="password"
-                                            name="newPassword"
-                                            value={passwordData.newPassword}
-                                            onChange={handlePasswordChange}
-                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-slate-700">Confirm New Password</label>
-                                        <input
-                                            type="password"
-                                            name="confirmNewPassword"
-                                            value={passwordData.confirmNewPassword}
-                                            onChange={handlePasswordChange}
-                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all font-sans"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
-                                >
-                                    <Lock className="w-4 h-4" />
-                                    Update Password
-                                </button>
-                            </form>
-                        </div>
-
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Club Team & Achievements — club-admin only */}
+            {user?.role === 'club-admin' && (
+                <div className="space-y-8">
+                    {/* Team Section */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                        <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Users className="w-5 h-5" /></div>
+                                <h3 className="text-lg font-bold font-heading text-slate-900">Club Team & Leadership</h3>
+                            </div>
+                            <button onClick={handleSaveProfileContent} disabled={profileSaving}
+                                className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm flex items-center gap-2">
+                                {profileSaving ? <Loader className="w-4 h-4 animate-spin" /> : (profileSaved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />)}
+                                {profileSaving ? 'Saving...' : (profileSaved ? 'Profile Saved' : 'Save Team Changes')}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                            {team.map((m, i) => (
+                                <div key={i} className="group relative bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
+                                            {m.photoUrl ? <img src={m.photoUrl} alt="logo" className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-slate-300" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900 truncate">{m.name}</p>
+                                            <p className="text-sm text-indigo-600 font-medium truncate">{m.role}</p>
+                                        </div>
+                                        <button onClick={() => handleRemoveMember(i)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Add new member form */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-dashed border-slate-300">
+                            <p className="text-sm font-bold text-slate-600 mb-3">Add New Member</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                <input className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Full Name" value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} />
+                                <input className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Role (e.g. President)" value={newMember.role} onChange={e => setNewMember({ ...newMember, role: e.target.value })} />
+                            </div>
+                            <div className="flex flex-col gap-2 mb-4">
+                                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 font-bold bg-white w-fit px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+                                    <Camera className="w-3.5 h-3.5" />
+                                    {newMemberPhotoFile ? newMemberPhotoFile.name : 'Upload Member Photo'}
+                                    <input type="file" accept="image/*" className="hidden" 
+                                        onChange={e => { setNewMemberPhotoFile(e.target.files[0]); setTeamError(''); }} />
+                                </label>
+                                {teamError && (
+                                    <p className="text-[10px] font-bold text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 animate-fadeIn w-fit">
+                                        ✕ {teamError}
+                                    </p>
+                                )}
+                            </div>
+                            <button onClick={handleAddMember} className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm">
+                                <Plus className="w-4 h-4" /> Add to Team
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Achievements Section */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Award className="w-5 h-5" /></div>
+                            <h3 className="text-lg font-bold text-slate-900">Club Achievements</h3>
+                        </div>
+                        <div className="space-y-3 mb-4">
+                            {achievements.map((a, i) => (
+                                <div key={i} className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 relative">
+                                    <Award className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-900">{a.title}</p>
+                                        {a.year && <span className="text-xs font-bold text-amber-600">{a.year}</span>}
+                                        {a.description && <p className="text-slate-500 text-sm mt-1">{a.description}</p>}
+                                    </div>
+                                    <button onClick={() => handleRemoveAchievement(i)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-300">
+                            <p className="text-sm font-bold text-slate-600 mb-3">Add Achievement</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                <input className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Achievement Title" value={newAchievement.title} onChange={e => setNewAchievement({ ...newAchievement, title: e.target.value })} />
+                                <input className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                                    placeholder="Year (e.g. 2024)" value={newAchievement.year} onChange={e => setNewAchievement({ ...newAchievement, year: e.target.value })} />
+                            </div>
+                            <input className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none mb-3"
+                                placeholder="Short description (optional)" value={newAchievement.description} onChange={e => setNewAchievement({ ...newAchievement, description: e.target.value })} />
+                            <button onClick={handleAddAchievement} className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition text-sm">
+                                <Plus className="w-4 h-4" /> Add Achievement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
+    </DashboardLayout>
     );
 };
 
