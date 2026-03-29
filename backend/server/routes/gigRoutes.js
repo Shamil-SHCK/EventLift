@@ -12,5 +12,7 @@ router.put('/:id/apply', protect, gigController.applyForGig);
 router.put('/:id/assign', protect, gigController.assignGig);
 router.get('/accepted', protect, gigController.getAcceptedGigs);
 router.put('/:id/complete', protect, gigController.markGigComplete);
+router.put('/:id/submit-work', protect, upload.single('proof'), gigController.submitWork);
+router.put('/:id/review', protect, gigController.reviewWork);
 
 export default router;

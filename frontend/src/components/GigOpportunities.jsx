@@ -13,6 +13,10 @@ const GigOpportunities = () => {
     const [filters, setFilters] = useState({ category: '', minBudget: '' });
     const [actionLoading, setActionLoading] = useState(null);
     const [error, setError] = useState('');
+    
+    // Bidding Modal State
+    const [selectedGig, setSelectedGig] = useState(null);
+    const [applyForm, setApplyForm] = useState({ linkedInProfile: '', bidAmount: '' });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -41,16 +45,38 @@ const GigOpportunities = () => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
-    const handleAccept = async (gigId) => {
-        const linkedInProfile = window.prompt("Please enter your LinkedIn Profile (or Club Page) URL:");
-        if (!linkedInProfile) return;
+    const handleApplyClick = (gig) => {
+        setSelectedGig(gig);
+        setApplyForm({ linkedInProfile: '', bidAmount: '' });
+    };
 
-        setActionLoading(gigId);
+    const handleFormChange = (e) => {
+        setApplyForm({ ...applyForm, [e.target.name]: e.target.value });
+    };
+
+    const submitApplication = async (e) => {
+        e.preventDefault();
+        if (!selectedGig || !applyForm.linkedInProfile || !applyForm.bidAmount) return;
+
+        if (Number(applyForm.bidAmount) > selectedGig.maxBudget) {
+            setError(`Your bid cannot exceed the maximum budget limit of ₹${selectedGig.maxBudget}`);
+            return;
+        }
+
+        setActionLoading(selectedGig._id);
         try {
-            await applyForGig(gigId, linkedInProfile);
+            await applyForGig(selectedGig._id, applyForm.linkedInProfile, applyForm.bidAmount);
+            setError(''); // Clear any previous error
+            // Using alert here is okay for success or I can add a success state, 
+            // but the user specifically asked for error messages in red.
             alert('Application submitted successfully!');
+            setSelectedGig(null);
+            
+            // Re-fetch gigs
+            const gigsData = await getOpenGigs(filters);
+            setGigs(gigsData);
         } catch (err) {
-            alert(err.msg || 'Failed to submit application');
+            setError(err.msg || 'Failed to submit application');
         } finally {
             setActionLoading(null);
         }
@@ -154,12 +180,13 @@ const GigOpportunities = () => {
                                 <p className="text-slate-500 text-sm mb-6 line-clamp-2">{gig.description}</p>
 
                                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-50">
-                                    <div className="flex items-center text-slate-900 font-bold text-lg">
-                                        <span className="text-slate-400 text-sm font-normal mr-1">Budget:</span>
+                                    <div className="flex flex-col text-slate-900 font-bold text-md">
+                                        <div className="text-slate-400 text-xs font-normal">Est. Budget:</div>
                                         ₹{gig.budget.toLocaleString()}
+                                        {gig.maxBudget && <div className="text-xs text-indigo-600 font-normal">Max: ₹{gig.maxBudget.toLocaleString()}</div>}
                                     </div>
                                     <button
-                                        onClick={() => handleAccept(gig._id)}
+                                        onClick={() => handleApplyClick(gig)}
                                         disabled={actionLoading === gig._id}
                                         className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none transition-all"
                                     >
@@ -169,6 +196,74 @@ const GigOpportunities = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Bidding Modal */}
+            {selectedGig && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                            <h3 className="text-xl font-bold font-heading text-slate-900">Submit Gig Application</h3>
+                            <button onClick={() => setSelectedGig(null)} className="text-slate-400 hover:text-slate-600">
+                                &times;
+                            </button>
+                        </div>
+                        {error && (
+                            <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                                <AlertCircle className="w-4 h-4" />
+                                {error}
+                            </div>
+                        )}
+                        <form onSubmit={submitApplication} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">LinkedIn / Club Profile URL</label>
+                                <input
+                                    type="url"
+                                    name="linkedInProfile"
+                                    required
+                                    value={applyForm.linkedInProfile}
+                                    onChange={handleFormChange}
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                    placeholder="https://linkedin.com/in/..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Your Bid Amount (₹)</label>
+                                <div className="flex justify-between text-xs text-slate-500 mb-2">
+                                    <span>Est. Budget: ₹{selectedGig.budget}</span>
+                                    {selectedGig.maxBudget && <span className="text-indigo-600 font-medium">Max Limit: ₹{selectedGig.maxBudget}</span>}
+                                </div>
+                                <input
+                                    type="number"
+                                    name="bidAmount"
+                                    required
+                                    min="1"
+                                    max={selectedGig.maxBudget || 10000000}
+                                    value={applyForm.bidAmount}
+                                    onChange={handleFormChange}
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                    placeholder="Enter proposed fee"
+                                />
+                            </div>
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedGig(null)}
+                                    className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading === selectedGig._id}
+                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                                >
+                                    Submit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </DashboardLayout>

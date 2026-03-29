@@ -1,11 +1,12 @@
 import Gig from '../models/Gig.js';
 import CompanyProfile from '../models/CompanyProfile.js';
+import { calculateClubScore } from '../utils/rankHelper.js';
 
 // 1. Backlog: Publish gig work & Gig work posting form
 // 1. Backlog: Publish gig work & Gig work posting form
 export const createGig = async (req, res) => {
     try {
-        const { title, description, budget, category } = req.body;
+        const { title, description, budget, maxBudget, category } = req.body;
 
         // Find the company profile for this user
         const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
@@ -19,7 +20,7 @@ export const createGig = async (req, res) => {
         }
 
         const newGig = new Gig({
-            title, description, budget, category,
+            title, description, budget, maxBudget, category,
             company: companyProfile._id,
             poster: posterUrl
         });
@@ -60,10 +61,33 @@ export const getMyGigs = async (req, res) => {
 
         const gigs = await Gig.find({ company: companyProfile._id })
             .populate('assignedClub', 'name clubName logoUrl email')
-            .populate('applicants.club', 'name clubName logoUrl email') // Populate applicant details
+            .populate('applicants.club') // Populate applicant details to calculate score
             .sort({ createdAt: -1 });
 
-        res.json(gigs);
+        // Calculate score for each applicant and sort them
+        const processedGigs = await Promise.all(gigs.map(async (gig) => {
+            const gigObj = gig.toObject();
+            if (gigObj.applicants && gigObj.applicants.length > 0) {
+                const scoredApplicants = await Promise.all(gigObj.applicants.map(async (app) => {
+                    // app.club might be null if the club was deleted, handle gracefully
+                    const scoreObj = await calculateClubScore(app.club);
+                    app.clubScore = scoreObj.score;
+                    return app;
+                }));
+                
+                // Primary sort: score desc, Secondary sort: bidAmount asc
+                scoredApplicants.sort((a, b) => {
+                    if (b.clubScore !== a.clubScore) {
+                        return b.clubScore - a.clubScore;
+                    }
+                    return a.bidAmount - b.bidAmount;
+                });
+                gigObj.applicants = scoredApplicants;
+            }
+            return gigObj;
+        }));
+
+        res.json(processedGigs);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -71,10 +95,15 @@ export const getMyGigs = async (req, res) => {
 // 3. Apply for gig work (by Club)
 export const applyForGig = async (req, res) => {
     try {
-        const { linkedInProfile } = req.body;
+        const { linkedInProfile, bidAmount } = req.body;
         const gig = await Gig.findById(req.params.id);
         if (!gig) return res.status(404).json({ msg: 'Gig not found' });
         if (gig.status !== 'open') return res.status(400).json({ msg: 'Gig is no longer open for applications' });
+
+        if (bidAmount === undefined || bidAmount === null) return res.status(400).json({ msg: 'Bid amount is required' });
+        if (gig.maxBudget && bidAmount > gig.maxBudget) {
+            return res.status(400).json({ msg: `Bid amount cannot exceed maximum budget of ${gig.maxBudget}` });
+        }
 
         // Check if already applied
         const alreadyApplied = gig.applicants.some(app => app.club.toString() === req.user.profile);
@@ -82,7 +111,8 @@ export const applyForGig = async (req, res) => {
 
         gig.applicants.push({
             club: req.user.profile,
-            linkedInProfile
+            linkedInProfile,
+            bidAmount
         });
         await gig.save();
 
@@ -112,6 +142,7 @@ export const assignGig = async (req, res) => {
         if (!applicant) return res.status(404).json({ msg: 'Applicant not found' });
 
         gig.assignedClub = applicantId;
+        gig.winningBid = applicant.bidAmount;
         gig.status = 'assigned';
         await gig.save();
 
@@ -144,5 +175,70 @@ export const markGigComplete = async (req, res) => {
         await gig.save();
 
         res.json(gig);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// 7. Feature: Submit Work (by Club)
+export const submitWork = async (req, res) => {
+    try {
+        const { submissionNote } = req.body;
+        const gig = await Gig.findById(req.params.id);
+        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+
+        if (gig.assignedClub.toString() !== req.user.profile) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        if (gig.status !== 'assigned' && gig.status !== 'revision_requested') {
+            return res.status(400).json({ msg: 'Gig is not in a state to be submitted' });
+        }
+
+        let submissionUrl = '';
+        if (req.file) {
+            submissionUrl = req.file.path; // Cloudinary URL
+        }
+
+        gig.submissionUrl = submissionUrl || gig.submissionUrl;
+        gig.submissionNote = submissionNote || gig.submissionNote;
+        gig.status = 'submitted';
+        await gig.save();
+
+        res.json({ msg: 'Work submitted successfully', gig });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// 8. Feature: Review Work (by Company)
+export const reviewWork = async (req, res) => {
+    try {
+        const { decision, comment } = req.body; // 'approve' or 'request_changes'
+        const gig = await Gig.findById(req.params.id);
+        if (!gig) return res.status(404).json({ msg: 'Gig not found' });
+
+        const companyProfile = await CompanyProfile.findOne({ user: req.user.id });
+        if (!companyProfile || gig.company.toString() !== companyProfile._id.toString()) {
+            return res.status(401).json({ msg: 'Not authorized to review this gig' });
+        }
+
+        if (gig.status !== 'submitted') {
+            return res.status(400).json({ msg: 'Gig is not submitted for review' });
+        }
+
+        gig.feedbackHistory.push({
+            comment,
+            decision,
+            timestamp: new Date()
+        });
+
+        if (decision === 'approve') {
+            gig.status = 'approved';
+        } else if (decision === 'request_changes') {
+            gig.status = 'revision_requested';
+        } else {
+            return res.status(400).json({ msg: 'Invalid decision' });
+        }
+
+        await gig.save();
+
+        res.json({ msg: 'Review submitted', gig });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getCurrentUser, logoutUser, createEvent, getEvents, updateEvent, deleteEvent, updateUserProfile } from '../services/api';
 import { uploadLogoImage } from '../services/api/auth';
-import { getAcceptedGigs, markGigComplete } from '../services/api/gigService';
+import { getAcceptedGigs, submitWork } from '../services/api/gigService';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import { Rocket, DollarSign, Calendar, Plus, Briefcase, X, Clock, Users, Award, Upload, Trash2, Save } from 'lucide-react';
@@ -20,15 +20,19 @@ const ClubDashboard = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
     const [formError, setFormError] = useState(null);
-    const [toast, setToast] = useState(null); // { type: 'success'|'error', msg: string }
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [submissionNote, setSubmissionNote] = useState('');
+    const [submissionFile, setSubmissionFile] = useState(null);
+    const [selectedGig, setSelectedGig] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    const [viewMode, setViewMode] = useState('events'); // 'events', 'gigs', or 'profile'
     const navigate = useNavigate();
 
     const showToast = (type, msg) => {
         setToast({ type, msg });
         setTimeout(() => setToast(null), 4000);
     };
-
-    const [viewMode, setViewMode] = useState('events'); // 'events', 'gigs', or 'profile'
 
     // Team & Achievements state
     const [team, setTeam] = useState([]);
@@ -63,7 +67,6 @@ const ClubDashboard = () => {
         const fetchData = async () => {
             try {
                 const userData = await getCurrentUser();
-                console.log(userData)
                 if (userData.role !== 'club-admin') {
                     navigate('/login');
                     return;
@@ -74,12 +77,9 @@ const ClubDashboard = () => {
 
                 // Fetch Events
                 const eventsData = await getEvents();
-                console.log('Fetched Events:', eventsData);
-                console.log('Current User:', userData);
 
                 // Filter events created by this club
                 const myEvents = eventsData.filter(event => {
-                    console.log(event)
                     if (!event.organizer) return false;
 
                     // Check Logic 1: ID Match
@@ -92,8 +92,6 @@ const ClubDashboard = () => {
 
                     return idMatch || nameMatch;
                 });
-                console.log('Filtered Events:', myEvents);
-                console.log('Filtered Events:', myEvents);
                 setEvents(myEvents);
 
                 // Fetch Accepted Gigs
@@ -122,6 +120,33 @@ const ClubDashboard = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // File Validations
+        if (files.poster) {
+            if (!files.poster.type.startsWith('image/')) {
+                setFormError('Event poster must be an image file');
+                setSubmitting(false);
+                return;
+            }
+            if (files.poster.size > 5 * 1024 * 1024) {
+                setFormError('Poster size must be less than 5MB');
+                setSubmitting(false);
+                return;
+            }
+        }
+        if (files.brochure) {
+            if (files.brochure.type !== 'application/pdf') {
+                setFormError('Sponsorship brochure must be a PDF file');
+                setSubmitting(false);
+                return;
+            }
+            if (files.brochure.size > 5 * 1024 * 1024) {
+                setFormError('Brochure size must be less than 5MB');
+                setSubmitting(false);
+                return;
+            }
+        }
+
         setSubmitting(true);
         setFormError(null);
 
@@ -215,16 +240,41 @@ const ClubDashboard = () => {
     const activeEvents = events.filter(e => new Date(e.date) >= new Date()).length;
     const pendingGigs = acceptedGigs.filter(g => g.status !== 'completed').length;
 
-    const handleMarkGigDone = async (gigId) => {
-        if (window.confirm('Are you sure you want to mark this gig as done?')) {
-            try {
-                await markGigComplete(gigId);
-                setAcceptedGigs(acceptedGigs.map(g => g._id === gigId ? { ...g, status: 'completed' } : g));
-                showToast('success', 'Gig marked as completed!');
-            } catch (error) {
-                console.error(error);
-                showToast('error', 'Failed to update gig status.');
+    const handleSubmitWork = async (e) => {
+        e.preventDefault();
+        
+        // Validation
+        if (submissionFile) {
+            const isImage = submissionFile.type.startsWith('image/');
+            const isPDF = submissionFile.type === 'application/pdf';
+            if (!isImage && !isPDF) {
+                showToast('error', 'Proof must be an image or PDF');
+                return;
             }
+            if (submissionFile.size > 5 * 1024 * 1024) {
+                showToast('error', 'Proof file must be less than 5MB');
+                return;
+            }
+        }
+
+        setSubmitting(true);
+        try {
+            const formData = new FormData();
+            formData.append('submissionNote', submissionNote);
+            if (submissionFile) formData.append('proof', submissionFile);
+
+            const updatedGig = await submitWork(selectedGig._id, formData);
+            setAcceptedGigs(acceptedGigs.map(g => g._id === selectedGig._id ? { ...g, status: 'submitted' } : g));
+            showToast('success', 'Work submitted successfully!');
+            setShowSubmitModal(false);
+            setSubmissionNote('');
+            setSubmissionFile(null);
+            setSelectedGig(null);
+        } catch (error) {
+            console.error(error);
+            showToast('error', error.msg || 'Failed to submit work.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -232,6 +282,14 @@ const ClubDashboard = () => {
         if (!newMember.name || !newMember.role) return;
         let photoUrl = newMember.photoUrl;
         if (newMemberPhotoFile) {
+            if (!newMemberPhotoFile.type.startsWith('image/')) {
+                showToast('error', 'Team photo must be an image file');
+                return;
+            }
+            if (newMemberPhotoFile.size > 2 * 1024 * 1024) {
+                showToast('error', 'Team photo must be less than 2MB');
+                return;
+            }
             const fd = new FormData();
             fd.append('logo', newMemberPhotoFile);
             const data = await uploadLogoImage(fd);
@@ -259,7 +317,7 @@ const ClubDashboard = () => {
             setProfileSaved(true);
             setTimeout(() => setProfileSaved(false), 3000);
         } catch (e) {
-            alert('Failed to save profile: ' + e.message);
+            showToast('error', 'Failed to save profile: ' + e.message);
         } finally {
             setProfileSaving(false);
         }
@@ -298,14 +356,24 @@ const ClubDashboard = () => {
 
                             <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
                                 <div className="font-bold text-slate-900 text-lg">₹{gig.budget.toLocaleString()}</div>
-                                {gig.status !== 'completed' && (
+                                <div className="font-bold text-slate-900 text-lg">₹{gig.budget.toLocaleString()}</div>
+                                
+                                {gig.status === 'assigned' || gig.status === 'revision_requested' ? (
                                     <button
-                                        onClick={() => handleMarkGigDone(gig._id)}
-                                        className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm shadow-green-200"
+                                        onClick={() => { setSelectedGig(gig); setShowSubmitModal(true); }}
+                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
                                     >
-                                        Mark Done
+                                        Submit Work
                                     </button>
-                                )}
+                                ) : gig.status === 'submitted' ? (
+                                    <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Pending Review</span>
+                                ) : gig.status === 'approved' ? (
+                                    <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">Awaiting Payment</span>
+                                ) : gig.status === 'paid_to_platform' ? (
+                                    <span className="text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Processing Payout</span>
+                                ) : gig.status === 'completed' ? (
+                                    <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">Completed & Paid</span>
+                                ) : null}
                             </div>
                         </div>
                     ))}
@@ -601,6 +669,64 @@ const ClubDashboard = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Submit Work Modal */}
+            {showSubmitModal && selectedGig && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-fadeIn overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">Submit Work</h2>
+                                <p className="text-sm text-slate-500">{selectedGig.title}</p>
+                            </div>
+                            <button onClick={() => setShowSubmitModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmitWork} className="p-6">
+                            {selectedGig.status === 'revision_requested' && (
+                                <div className="mb-4 bg-red-50 p-4 rounded-xl border border-red-100">
+                                    <h4 className="text-sm font-bold text-red-700 mb-1">Company Feedback / Revision Note:</h4>
+                                    <p className="text-sm text-red-600 font-medium">
+                                        {selectedGig.feedbackHistory && selectedGig.feedbackHistory.length > 0 
+                                            ? selectedGig.feedbackHistory[selectedGig.feedbackHistory.length - 1].comment 
+                                            : 'Please revise your submission.'}
+                                    </p>
+                                </div>
+                            )}
+                            <div className="mb-4">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Completion Note (Optional)</label>
+                                <textarea
+                                    rows="3"
+                                    value={submissionNote}
+                                    onChange={(e) => setSubmissionNote(e.target.value)}
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                    placeholder="Add any details about the completed work..."
+                                ></textarea>
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Upload Proof (Required)</label>
+                                <input
+                                    type="file"
+                                    required
+                                    accept="image/*,application/pdf"
+                                    onChange={(e) => setSubmissionFile(e.target.files[0])}
+                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                />
+                                {submissionFile && <p className="mt-2 text-xs text-slate-500">{submissionFile.name}</p>}
+                            </div>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
+                                <button type="button" onClick={() => setShowSubmitModal(false)} className="px-5 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={submitting} className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50">
+                                    {submitting ? 'Submitting...' : 'Submit Work'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

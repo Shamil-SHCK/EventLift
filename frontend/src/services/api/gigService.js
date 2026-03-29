@@ -30,10 +30,10 @@ export const getMyGigs = () => {
 };
 
 // Feature: Apply for gig work
-export const applyForGig = (gigId, linkedInProfile) => {
+export const applyForGig = (gigId, linkedInProfile, bidAmount) => {
     return request(`/gigs/${gigId}/apply`, {
         method: 'PUT',
-        body: JSON.stringify({ linkedInProfile })
+        body: JSON.stringify({ linkedInProfile, bidAmount })
     });
 };
 
@@ -53,4 +53,21 @@ export const getAcceptedGigs = () => {
 // Feature: Mark gig as complete
 export const markGigComplete = (gigId) => {
     return request(`/gigs/${gigId}/complete`, { method: 'PUT' });
+};
+
+// Feature: Submit work for review
+export const submitWork = (gigId, formData) => {
+    // Note: formData should be FormData object to support files
+    return request(`/gigs/${gigId}/submit-work`, {
+        method: 'PUT',
+        body: formData
+    });
+};
+
+// Feature: Review submitted work
+export const reviewWork = (gigId, decision, comment) => {
+    return request(`/gigs/${gigId}/review`, {
+        method: 'PUT',
+        body: JSON.stringify({ decision, comment })
+    });
 };

@@ -52,6 +52,14 @@ const ClubTeam = () => {
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please select an image file');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                setError('Member photo must be less than 2MB');
+                return;
+            }
             setPhotoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => setPhotoPreview(reader.result);

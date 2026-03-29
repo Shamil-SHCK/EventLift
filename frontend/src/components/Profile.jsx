@@ -118,6 +118,16 @@ const Profile = () => {
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+            setError('Profile icon must be an image file');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Profile icon must be less than 5MB');
+            return;
+        }
+
         setLogoFile(file);
         setLogoPreview(URL.createObjectURL(file));
     };
@@ -144,8 +154,17 @@ const Profile = () => {
     // Team handlers
     const handleAddMember = async () => {
         if (!newMember.name || !newMember.role) return;
+        
         let photoUrl = newMember.photoUrl;
         if (newMemberPhotoFile) {
+            if (!newMemberPhotoFile.type.startsWith('image/')) {
+                setError('Team photo must be an image file');
+                return;
+            }
+            if (newMemberPhotoFile.size > 2 * 1024 * 1024) {
+                setError('Team photo must be less than 2MB');
+                return;
+            }
             const fd = new FormData();
             fd.append('logo', newMemberPhotoFile);
             const res = await uploadLogoImage(fd);

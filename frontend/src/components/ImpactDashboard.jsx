@@ -61,6 +61,16 @@ const ImpactDashboard = () => {
     const handleImageUpload = async (e) => {
         e.preventDefault();
         if (!imageFile) return;
+        
+        setError('');
+        if (!imageFile.type.startsWith('image/')) {
+            setError('Please upload an image file');
+            return;
+        }
+        if (imageFile.size > 5 * 1024 * 1024) {
+            setError('Image must be less than 5MB');
+            return;
+        }
 
         setImageUploading(true);
         const formData = new FormData();
@@ -84,7 +94,7 @@ const ImpactDashboard = () => {
             setImageCaption('');
             fetchImpactData();
         } catch (err) {
-            alert('Failed to upload image');
+            setError('Failed to upload image. Please try again.');
         } finally {
             setImageUploading(false);
         }
@@ -320,6 +330,13 @@ const ImpactDashboard = () => {
                                     {imageUploading ? 'Uploading...' : 'Upload Photo'}
                                 </button>
                             </form>
+                            
+                            {/* Error Message for Upload */}
+                            {error && (
+                                <p className="mt-4 text-sm font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 animate-fadeIn flex items-center gap-2">
+                                    <span>⚠</span> {error}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

@@ -73,7 +73,8 @@ const TransactionHistory = () => {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Event Name</th>
+                                        <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Type</th>
+                                        <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Project / Event Name</th>
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Amount (₹)</th>
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Status</th>
                                         <th className="p-5 font-bold text-slate-700 text-sm uppercase tracking-wider">Transfer Proof</th>
@@ -84,7 +85,17 @@ const TransactionHistory = () => {
                                     {transactions.map((tx) => (
                                         <tr key={tx._id} className="hover:bg-slate-50 transition-colors">
                                             <td className="p-5">
-                                                <div className="font-semibold text-slate-900">{tx.event?.title || 'Unknown Event'}</div>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${tx.gig ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                                                    {tx.gig ? 'Gig Work' : 'Event Sponsorship'}
+                                                </span>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="font-semibold text-slate-900">
+                                                    {tx.event?.title || tx.gig?.title || 'Unknown Transaction'}
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    {tx.event?.category || tx.gig?.category || ''}
+                                                </div>
                                             </td>
                                             <td className="p-5">
                                                 <div className="flex items-center font-bold text-slate-900">

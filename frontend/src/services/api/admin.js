@@ -52,3 +52,20 @@ export const uploadTransferProof = (id, file) => {
         body: formData,
     });
 };
+
+// Admin: Get Gigs in Escrow (to be paid out to clubs)
+export const getEscrowGigs = () => {
+    return request('/admin/escrow/gigs', {
+        method: 'GET',
+    });
+};
+
+// Admin: Payout Gig Escrow (Upload receipt and mark as completed)
+export const payoutGigEscrow = (gigId, file) => {
+    const formData = new FormData();
+    formData.append('receipt', file);
+    return request(`/admin/escrow/gigs/${gigId}/payout`, {
+        method: 'PUT',
+        body: formData,
+    });
+};

@@ -9,6 +9,7 @@ const CreateGigForm = () => {
         title: '',
         description: '',
         budget: '',
+        maxBudget: '',
         category: 'Tech' // Default
     });
     const [poster, setPoster] = useState(null);
@@ -25,6 +26,19 @@ const CreateGigForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (poster) {
+            if (!poster.type.startsWith('image/')) {
+                setError('Gig poster must be an image file');
+                setLoading(false);
+                return;
+            }
+            if (poster.size > 5 * 1024 * 1024) {
+                setError('Gig poster must be less than 5MB');
+                setLoading(false);
+                return;
+            }
+        }
+
         setLoading(true);
         setError('');
 
@@ -112,7 +126,7 @@ const CreateGigForm = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Budget ($)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Budget (₹)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <DollarSign className="h-5 w-5 text-gray-400" />
@@ -131,6 +145,25 @@ const CreateGigForm = () => {
                         </div>
 
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Max Budget Limit (₹)</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <DollarSign className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="number"
+                                    name="maxBudget"
+                                    required
+                                    min="0"
+                                    value={formData.maxBudget}
+                                    onChange={handleChange}
+                                    className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 border"
+                                    placeholder="10000"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

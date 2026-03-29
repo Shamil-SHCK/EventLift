@@ -8,8 +8,11 @@ const transactionSchema = new mongoose.Schema({
     },
     event: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Event',
-        required: true
+        ref: 'Event'
+    },
+    gig: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Gig'
     },
     amount: {
         type: Number,

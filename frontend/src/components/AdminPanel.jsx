@@ -90,7 +90,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
             await resetUserPassword(userId);
             alert('Password reset successfully');
         } catch (err) {
-            alert('Failed to reset password: ' + err.message);
+            setError('Failed to reset password: ' + err.message);
         }
     };
 

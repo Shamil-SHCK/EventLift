@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Transaction from '../models/Transaction.js';
 import ClubProfile from '../models/ClubProfile.js';
+import Gig from '../models/Gig.js';
 
 // @desc    Get all users with pending verification status
 // @route   GET /api/admin/users/pending
@@ -237,5 +238,55 @@ export const uploadTransferProof = async (req, res) => {
     } catch (error) {
         console.error('Upload Transfer Proof Error:', error);
         res.status(500).json({ message: 'Server Error uploading proof' });
+    }
+};
+
+// @desc    Upload transfer proof for a Gig Escrow and mark complete
+// @route   PUT /api/admin/gigs/:id/payout
+// @access  Private/Admin
+export const payoutGigEscrow = async (req, res) => {
+    try {
+        const transferProofUrl = req.file?.path || req.body?.transferProofUrl;
+        if (!transferProofUrl) {
+            return res.status(400).json({ message: 'No proof file uploaded' });
+        }
+
+        const gig = await Gig.findById(req.params.id);
+        if (!gig) {
+            return res.status(404).json({ message: 'Gig not found' });
+        }
+
+        gig.adminReceipt = transferProofUrl;
+        gig.status = 'completed';
+        await gig.save();
+
+        // Find associated transaction if it exists and mark completed
+        const transaction = await Transaction.findOne({ gig: gig._id, status: { $ne: 'completed' }});
+        if (transaction) {
+            transaction.transferProofUrl = transferProofUrl;
+            transaction.status = 'completed';
+            await transaction.save();
+        }
+
+        res.json({ message: 'Gig payout proof uploaded and marked completed', gig });
+    } catch (error) {
+        console.error('Upload Gig Payout Proof Error:', error);
+        res.status(500).json({ message: 'Server Error uploading proof' });
+    }
+};
+
+// @desc    Get all gigs in escrow (paid_to_platform)
+// @route   GET /api/admin/gigs-escrow
+// @access  Private/Admin
+export const getEscrowGigs = async (req, res) => {
+    try {
+        const gigs = await Gig.find({ status: { $in: ['paid_to_platform', 'completed'] } })
+            .populate('company', 'name email organizationName phone')
+            .populate('assignedClub', 'name clubName email bankDetails')
+            .sort({ createdAt: -1 });
+        res.json(gigs);
+    } catch (error) {
+        console.error("Admin Fetch Escrow Gigs Error:", error);
+        res.status(500).json({ message: 'Server Error fetching escrow gigs' });
     }
 };

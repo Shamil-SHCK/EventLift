@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { confirmSponsorship } from '../services/api';
+import { confirmSponsorship, confirmGigPayment } from '../services/api';
 import { CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
 
 const PaymentSuccess = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const sessionId = searchParams.get('session_id');
+    const paymentType = searchParams.get('type'); // 'gig' or null/default (event)
     const [status, setStatus] = useState('processing'); // 'processing', 'success', 'error'
     const [errorMsg, setErrorMsg] = useState('');
     const hasAttempted = useRef(false);
@@ -23,12 +24,16 @@ const PaymentSuccess = () => {
             hasAttempted.current = true;
 
             try {
-                await confirmSponsorship(sessionId);
+                if (paymentType === 'gig') {
+                    await confirmGigPayment(sessionId);
+                } else {
+                    await confirmSponsorship(sessionId);
+                }
                 setStatus('success');
             } catch (error) {
                 console.error("Confirmation error:", error);
                 setStatus('error');
-                setErrorMsg(error.message || 'Failed to confirm payment.');
+                setErrorMsg(error.msg || error.message || 'Failed to confirm payment.');
             }
         };
 
@@ -52,7 +57,11 @@ const PaymentSuccess = () => {
                             <CheckCircle2 className="w-10 h-10 text-green-600" />
                         </div>
                         <h2 className="text-2xl font-bold font-heading text-slate-900 mb-2">Payment Successful!</h2>
-                        <p className="text-slate-600 mb-8">Thank you for your generous sponsorship. The club will be thrilled to have your support.</p>
+                        <p className="text-slate-600 mb-8">
+                            {paymentType === 'gig' 
+                                ? 'Your escrow payment for the gig work has been received. The platform will hold the funds until the club completes the task.'
+                                : 'Thank you for your generous sponsorship. The club will be thrilled to have your support.'}
+                        </p>
                         <button
                             onClick={() => {
                                 const userStr = localStorage.getItem('user');

@@ -79,6 +79,11 @@ const Register = () => {
             return;
         }
 
+        if (verificationFile && verificationFile.size > 5 * 1024 * 1024) {
+            setError('Verification document must be less than 5MB');
+            return;
+        }
+
         setLoading(true);
 
         try {
