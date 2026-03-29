@@ -278,7 +278,7 @@ const ClubTeam = () => {
                     <div className="flex flex-col items-center">
                         <div className="px-6 py-2 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-full mb-6">Campus Lead</div>
                         {campusLead.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-6">
+                            <div className="flex flex-wrap justify-center gap-6">
                                 {campusLead.map((m, i) => (
                                     <MemberCard key={i} member={m} />
                                 ))}
@@ -293,7 +293,7 @@ const ClubTeam = () => {
                     <div className="flex flex-col items-center">
                         <div className="px-6 py-2 bg-purple-600 text-white text-xs font-bold uppercase tracking-widest rounded-full mb-6">Faculty In Charge</div>
                         {facultyAdvisor.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="flex flex-wrap justify-center gap-6">
                                 {facultyAdvisor.map((m, i) => (
                                     <MemberCard key={i} member={m} />
                                 ))}
@@ -308,7 +308,7 @@ const ClubTeam = () => {
                     <div className="flex flex-col items-center">
                         <div className="px-6 py-2 bg-slate-800 text-white text-xs font-bold uppercase tracking-widest rounded-full mb-6">Core Members</div>
                         {coreMembers.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
+                            <div className="flex flex-wrap justify-center gap-6 w-full">
                                 {coreMembers.map((m, i) => (
                                     <MemberCard key={i} member={m} />
                                 ))}

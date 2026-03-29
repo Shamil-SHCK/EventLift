@@ -6,6 +6,7 @@ import {
     XCircle, Github, Linkedin, Twitter
 } from 'lucide-react';
 import DashboardLayout from './DashboardLayout';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -545,7 +546,7 @@ const Profile = () => {
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
                         <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Users className="w-5 h-5" /></div>
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg w-5 h-5" />
                                 <h3 className="text-lg font-bold font-heading text-slate-900">Club Team & Leadership</h3>
                             </div>
                             <button onClick={handleSaveProfileContent} disabled={profileSaving}

@@ -217,7 +217,7 @@ const ClubPublicProfile = () => {
                             {/* Team & Leadership integrated into About */}
                             {profile.team && profile.team.length > 0 && (
                                 <div className="mt-8 pt-8 border-t border-slate-200">
-                                    <h4 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-8">
+                                    <h4 className="text-xl font-bold text-slate-900 flex items-center justify-center gap-2 mb-8">
                                         <Users className="w-6 h-6 text-blue-600" /> Our Team
                                     </h4>
                                     
@@ -226,7 +226,7 @@ const ClubPublicProfile = () => {
                                         {profile.team.some(m => m.role === 'Campus Lead') && (
                                             <div className="flex flex-col items-center">
                                                 <div className="px-5 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Campus Lead</div>
-                                                <div className="grid grid-cols-1 gap-4">
+                                                <div className="flex flex-wrap justify-center gap-6">
                                                     {profile.team.filter(m => m.role === 'Campus Lead').map((m, i) => (
                                                         <PublicMemberCard key={i} m={m} size="md" />
                                                     ))}
@@ -238,7 +238,7 @@ const ClubPublicProfile = () => {
                                         {profile.team.some(m => m.role === 'Faculty In Charge' || m.role === 'Faculty Advisor') && (
                                             <div className="flex flex-col items-center">
                                                 <div className="px-5 py-1.5 bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Faculty In Charge</div>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="flex flex-wrap justify-center gap-6">
                                                     {profile.team.filter(m => m.role === 'Faculty In Charge' || m.role === 'Faculty Advisor').map((m, i) => (
                                                         <PublicMemberCard key={i} m={m} size="sm" />
                                                     ))}
@@ -250,7 +250,7 @@ const ClubPublicProfile = () => {
                                         {profile.team.some(m => m.role !== 'Campus Lead' && m.role !== 'Faculty In Charge' && m.role !== 'Faculty Advisor') && (
                                             <div className="flex flex-col items-center">
                                                 <div className="px-5 py-1.5 bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Core Members</div>
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
+                                                <div className="flex flex-wrap justify-center gap-6 w-full">
                                                     {profile.team.filter(m => m.role !== 'Campus Lead' && m.role !== 'Faculty In Charge' && m.role !== 'Faculty Advisor').map((m, i) => (
                                                         <PublicMemberCard key={i} m={m} size="xs" />
                                                     ))}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { getClubTransactions, completeTransaction, uploadTransferProof, getEscrowGigs, payoutGigEscrow } from '../services/api/admin';
 import DashboardLayout from './DashboardLayout';
 import {
@@ -183,9 +183,9 @@ const GigProofUploadCell = ({ gig, onUploaded }) => {
     if (gig.status === 'completed') {
         return (
             <div className="flex items-center justify-end gap-2">
-                {gig.paymentReceiptUrl ? (
+                {gig.adminReceipt ? (
                     <a
-                        href={gig.paymentReceiptUrl}
+                        href={gig.adminReceipt}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-bold rounded-lg border border-green-100 hover:bg-green-100 transition-colors"
@@ -236,6 +236,35 @@ const AdminTransactions = () => {
     const [showBankFor, setShowBankFor] = useState(null); // clubId of the bank panel shown
     const [activeTab, setActiveTab] = useState('events');
 
+    const gigClubGroups = useMemo(() => {
+        const grouped = {};
+        gigs.forEach(gig => {
+            if (!gig.assignedClub) return;
+            // assignedClub is populated with ClubProfile details including _id, clubName, etc.
+            const clubId = gig.assignedClub._id;
+            if (!grouped[clubId]) {
+                grouped[clubId] = {
+                    clubId,
+                    clubName: gig.assignedClub.clubName || 'Unknown Club',
+                    collegeName: gig.assignedClub.collegeName || '',
+                    phone: gig.assignedClub.phone || '',
+                    bankDetails: gig.assignedClub.bankDetails || {},
+                    totalPending: 0,
+                    totalCompleted: 0,
+                    gigs: []
+                };
+            }
+            grouped[clubId].gigs.push(gig);
+            const amount = gig.winningBid || gig.budget || 0;
+            if (gig.status === 'paid_to_platform') {
+                grouped[clubId].totalPending += amount;
+            } else if (gig.status === 'completed') {
+                grouped[clubId].totalCompleted += amount;
+            }
+        });
+        return Object.values(grouped);
+    }, [gigs]);
+
     useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
@@ -276,7 +305,7 @@ const AdminTransactions = () => {
                         Platform <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Transfers</span>
                     </h1>
                     <p className="text-slate-500 text-lg mt-1 max-w-2xl">
-                        View club bank details and upload transfer proofs for events and escrow gigs.
+                        View club bank details and upload transfer proofs for events and gig payouts.
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-4">
@@ -326,7 +355,7 @@ const AdminTransactions = () => {
                             : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
                             }`}
                     >
-                        Gig Escrow Payouts
+                        Gig Payouts
                     </button>
                 </div>
             </div>
@@ -476,79 +505,135 @@ const AdminTransactions = () => {
                 gigs.length === 0 ? (
                     <div className="bg-white p-12 rounded-2xl border border-slate-100 text-center shadow-sm">
                         <Building2 className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">No Escrow Payouts Yet</h3>
-                        <p className="text-slate-500">There are no gigs in the escrow payout stage currently.</p>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">No Gigs Yet</h3>
+                        <p className="text-slate-500">There are no gigs in the payout stage currently.</p>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse min-w-[820px]">
-                                <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase">Gig Work</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase">Assigned Club</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase">Amount</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase text-right">Transfer Proof</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {gigs.map(gig => (
-                                        <tr key={gig._id} className="hover:bg-slate-50/50">
-                                            <td className="p-4">
-                                                <div className="font-bold text-slate-900">{gig.title}</div>
-                                                <div className="text-sm text-slate-500">{gig.category}</div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div>
-                                                        <div className="font-bold text-indigo-700">{gig.assignedClub?.clubName || 'Unknown Club'}</div>
-                                                        {(gig.assignedClub?.profile?.bankDetails?.accountNumber || gig.assignedClub?.profile?.bankDetails?.upiId) ? (
-                                                            <div className="relative group/tooltip inline-block mt-0.5">
-                                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full cursor-help flex items-center gap-1 w-max">
-                                                                    <CreditCard className="w-3 h-3" /> Bank Details
+                    <div className="space-y-4">
+                        {gigClubGroups.map(group => (
+                            <div key={group.clubId} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all hover:shadow-md">
+                                {/* Club header row */}
+                                <div
+                                    className="p-5 flex items-center justify-between cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                                    onClick={() => toggleClub(`gig-${group.clubId}`)}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                                            <Building2 className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900">{group.clubName}</h3>
+                                            <p className="text-sm text-slate-500">
+                                                {group.collegeName && <span className="mr-2">{group.collegeName} ·</span>}
+                                                {group.gigs.length} gig{group.gigs.length !== 1 ? 's' : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="hidden sm:flex flex-col items-end">
+                                            <span className="text-xs font-semibold text-slate-400">Pending</span>
+                                            <span className={`font-bold ${group.totalPending > 0 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                                ₹{group.totalPending.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="hidden sm:flex flex-col items-end">
+                                            <span className="text-xs font-semibold text-slate-400">Transferred</span>
+                                            <span className={`font-bold ${group.totalCompleted > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                                                ₹{group.totalCompleted.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        {/* Bank details toggle button */}
+                                        <button
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                setShowBankFor(prev => prev === `gig-${group.clubId}` ? null : `gig-${group.clubId}`);
+                                                setExpandedClub(`gig-${group.clubId}`);
+                                            }}
+                                            title="View bank account details"
+                                            className={`p-2 rounded-lg border transition-colors ${
+                                                showBankFor === `gig-${group.clubId}`
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                                                    : 'bg-white border-slate-200 text-slate-400 hover:border-indigo-400 hover:text-indigo-600'
+                                            }`}
+                                        >
+                                            <CreditCard className="w-4 h-4" />
+                                        </button>
+                                        <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400">
+                                            {expandedClub === `gig-${group.clubId}` ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Expanded content */}
+                                {expandedClub === `gig-${group.clubId}` && (
+                                    <div className="border-t border-slate-200 bg-white p-5 space-y-5">
+                                        {/* Bank details panel */}
+                                        {showBankFor === `gig-${group.clubId}` && (
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => setShowBankFor(null)}
+                                                    className="absolute top-3 right-3 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition z-10"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                                <BankDetailsCard bankDetails={group.bankDetails} phone={group.phone} />
+                                            </div>
+                                        )}
+
+                                        {/* Gigs table */}
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse min-w-[820px]">
+                                                <thead>
+                                                    <tr className="bg-slate-50">
+                                                        <th className="p-3 text-xs font-bold text-slate-500 uppercase rounded-l-lg">Gig Work</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 uppercase">Company (Client)</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 uppercase">Category</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 uppercase">Amount</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 uppercase">Status</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 uppercase text-right rounded-r-lg">Transfer Proof</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {group.gigs.map(gig => (
+                                                        <tr key={gig._id} className="hover:bg-slate-50/50">
+                                                            <td className="p-3 py-4">
+                                                                <div className="font-bold text-slate-900">{gig.title}</div>
+                                                            </td>
+                                                            <td className="p-3 py-4">
+                                                                <div className="font-medium text-slate-700">{gig.company?.organizationName || gig.company?.name || 'Unknown Client'}</div>
+                                                                <div className="text-xs text-slate-400">{gig.company?.email}</div>
+                                                            </td>
+                                                            <td className="p-3 py-4">
+                                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded uppercase">
+                                                                    {gig.category}
                                                                 </span>
-                                                                <div className="hidden group-hover/tooltip:block absolute left-0 bottom-full mb-2 w-64 bg-slate-900 text-white rounded-lg p-3 text-xs shadow-xl z-10 border border-slate-700">
-                                                                    <div className="space-y-1">
-                                                                        <div className="flex justify-between border-b border-slate-700 pb-1 mb-1 font-bold"><span>Bank Account</span></div>
-                                                                        <div className="flex justify-between"><span>Name:</span> <span>{gig.assignedClub?.profile?.bankDetails?.accountHolderName || '-'}</span></div>
-                                                                        <div className="flex justify-between"><span>Bank:</span> <span>{gig.assignedClub?.profile?.bankDetails?.bankName || '-'}</span></div>
-                                                                        <div className="flex justify-between"><span>A/c No:</span> <span>{gig.assignedClub?.profile?.bankDetails?.accountNumber || '-'}</span></div>
-                                                                        <div className="flex justify-between"><span>IFSC:</span> <span>{gig.assignedClub?.profile?.bankDetails?.ifscCode || '-'}</span></div>
-                                                                        <div className="flex justify-between pt-1 border-t border-slate-700 mt-1"><span>UPI ID:</span> <span>{gig.assignedClub?.profile?.bankDetails?.upiId || '-'}</span></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-full mt-0.5 block w-max">
-                                                                No Bank Details
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 font-bold text-slate-900">
-                                                ₹{gig.budget?.toLocaleString()}
-                                            </td>
-                                            <td className="p-4">
-                                                {gig.status === 'paid_to_platform' ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
-                                                        <Clock className="w-3.5 h-3.5" /> Pending Transfer
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 text-green-700 text-xs font-bold border border-green-100">
-                                                        <CheckCircle2 className="w-3.5 h-3.5" /> Transferred
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <GigProofUploadCell gig={gig} onUploaded={fetchData} />
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                                            </td>
+                                                            <td className="p-3 py-4 font-bold text-slate-900">
+                                                                ₹{(gig.winningBid || gig.budget || 0).toLocaleString()}
+                                                            </td>
+                                                            <td className="p-3 py-4">
+                                                                {gig.status === 'paid_to_platform' ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+                                                                        <Clock className="w-3.5 h-3.5" /> Pending Transfer
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 text-green-700 text-xs font-bold border border-green-100">
+                                                                        <CheckCircle2 className="w-3.5 h-3.5" /> Transferred
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 py-4 text-right">
+                                                                <GigProofUploadCell gig={gig} onUploaded={fetchData} />
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 )
             )}
