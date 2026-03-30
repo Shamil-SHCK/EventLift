@@ -322,6 +322,11 @@ const CompanyDashboard = () => {
                                                         <p className="text-sm font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub.clubName || gig.assignedClub.name}>
                                                             {gig.assignedClub.clubName || gig.assignedClub.name}
                                                         </p>
+                                                        {gig.assignedClub.phone && (
+                                                            <a href={`tel:${gig.assignedClub.phone}`} className="text-[11px] text-slate-500 mt-0.5 hover:text-indigo-600 flex items-center justify-end gap-1">
+                                                                📞 {gig.assignedClub.phone}
+                                                            </a>
+                                                        )}
                                                         <p className="text-[11px] font-bold text-amber-600 mt-0.5">Awaiting Work</p>
                                                     </div>
                                                 </div>
@@ -333,6 +338,11 @@ const CompanyDashboard = () => {
                                                         <p className="text-xs font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub?.clubName || gig.assignedClub?.name}>
                                                             {gig.assignedClub?.clubName || gig.assignedClub?.name}
                                                         </p>
+                                                        {gig.assignedClub?.phone && (
+                                                            <a href={`tel:${gig.assignedClub?.phone}`} className="text-[11px] text-slate-500 hover:text-indigo-600 flex items-center justify-end gap-1 mt-0.5">
+                                                                📞 {gig.assignedClub?.phone}
+                                                            </a>
+                                                        )}
                                                     </div>
                                                     <button
                                                         onClick={() => { setSelectedGig(gig); setShowReviewModal(true); }}
@@ -349,6 +359,11 @@ const CompanyDashboard = () => {
                                                         <p className="text-xs font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub?.clubName || gig.assignedClub?.name}>
                                                             {gig.assignedClub?.clubName || gig.assignedClub?.name}
                                                         </p>
+                                                        {gig.assignedClub?.phone && (
+                                                            <a href={`tel:${gig.assignedClub?.phone}`} className="text-[11px] text-slate-500 hover:text-indigo-600 flex items-center justify-end gap-1 mt-0.5">
+                                                                📞 {gig.assignedClub?.phone}
+                                                            </a>
+                                                        )}
                                                     </div>
                                                     <div className="flex flex-col gap-2">
                                                         <button
@@ -374,6 +389,11 @@ const CompanyDashboard = () => {
                                                         <p className="text-xs font-bold text-indigo-600 truncate max-w-[120px]" title={gig.assignedClub?.clubName || gig.assignedClub?.name}>
                                                             {gig.assignedClub?.clubName || gig.assignedClub?.name}
                                                         </p>
+                                                        {gig.assignedClub?.phone && (
+                                                            <a href={`tel:${gig.assignedClub?.phone}`} className="text-[11px] text-slate-500 hover:text-indigo-600 flex items-center justify-end gap-1 mt-0.5">
+                                                                📞 {gig.assignedClub?.phone}
+                                                            </a>
+                                                        )}
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1">
                                                         <button

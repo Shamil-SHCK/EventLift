@@ -60,7 +60,7 @@ export const getMyGigs = async (req, res) => {
         }
 
         const gigs = await Gig.find({ company: companyProfile._id })
-            .populate('assignedClub', 'name clubName logoUrl email')
+            .populate('assignedClub', 'name clubName logoUrl email phone')
             .populate('applicants.club') // Populate applicant details to calculate score
             .sort({ createdAt: -1 });
 
